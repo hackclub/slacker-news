@@ -12,9 +12,11 @@ When a system not in state X tends to enter state X, and a system in state X ten
 In my very first Slack message, I said communities have three attractor states: apathy, conflict, and co-operation. Today I want to expand on that, exploring each of these states and why they dominate the possible futures of the Slack. 
 
 **First Future: the Gated Community**
+
 In this possible future, teenagers build cool things and make really close friendships. They do this in private channels, and you’re not invited. 
 
 **Gated Communities become Ghost Towns**
+
 The Slack has built-in attrition as people age out of Hack Club. So the size of the community follows a simple equation:
 
 `size = current members + (new members * retention) - attrition`
@@ -37,11 +39,13 @@ Private channels do not necessarily have this effect. It depends on whether priv
 The Slack is not a gated community right now. Many people have noted that the cool conversations that used to happen in public now often happen in private channels. But there are still good things happening in public channels. The question is whether the balance will keep shifting towards private channels.
 
 **Second Future: Drama Club**
+
 In this possible future, people come to the Slack for conflict: who is the bad guy in a dispute between friends? Who is the bad guy in a dispute between HQ and users? Who is to blame when something goes wrong? What is the worst, most damning, juiciest rumor about everyone you know?
 
 Channels like #meta and #community-logs are a window onto this future. They have their good moments too, but if I changed the channel descriptions to capture the typical post in each channel, #meta would be “A place for complaining about Hack Club without proposing solutions”, and #community-logs would be “A place to spread rumors and make fun of people”.
 
 **Drama Club is an Attractor State**
+
 Drama begets drama. People get mad at each other, causing them to do bad things, which people then get mad about. For HQ and the FD, drama leads to misconduct, which leads to more enforcement, which leads to more drama. Also, people love drama. Can you imagine a reality TV show where all of the characters handled their problems with respectful discussion?
 
 Drama also creates rival factions. Some drama happens, and forevermore, everyone who was involved remembers who was on which side of The Hairdryer Incident
@@ -53,16 +57,19 @@ This dynamic is self-reinforcing: if a rival faction is on the path to destroyin
 Political systems are probably cursed to always have rival factions. But Hack Club does not have to be. Power is zero-sum, but hacking isn’t.
 
 **Drama Club is Bad**
+
 Drama Club is defined by conflict. Conflict is a healthy part of a community, but a community defined by conflict can never be healthy, and any conflict–however moral the cause–is unhealthy when handled wrong.
 
 If the Slack’s chief export is conflict, why bother having it? “Because conflict will improve Hack Club!” Maybe. Conflict can bring change, but it can just as easily prevent change. People often tell me privately that they have something new they want to try, but they are scared they will be dragged in #meta for trying it. We are already living in a world where conflict on the Slack is bleeding away creative potential. Like I said, conflict needs to be healthy, or else we get this.
 
 **The Gated Community is Bad**
+
 Invitation to the gated community is based on how technical you are, or how cool you are. If you’re already technical, or cool, congratulations. But what if you’re a teenager who is just getting started on your technical journey? And what if you don’t fit into mainstream social dynamics?
 
 I was an awkward nerd once. So were a lot of Hack Club staff. Some of us managed to find a home (for me it was the debate team) and some didn’t. But all of us want to create the place we deserved, whether or not we ever got it, because there are still teens out there who need it, deserve it, and aren’t getting it anywhere else.
 
 **Third Future: the Town Garden**
+
 So: the Slack can be defined by conflict, but doesn’t have to be. And the Slack can converge on death, or on growth. What would it look like for the Slack to converge towards growth without being defined by conflict?
 
 Everyone who has been here a long time has told me about how great the Slack used to be. Here is a day in #lounge from 3 years ago:
@@ -74,6 +81,7 @@ It isn’t cherry-picked. I just chose the date, and this came up. I see two fun
 What would this third future look like? We can’t go back to the past, not really. But we can have some of what made that past so special. This can be a place to learn, a place to create, and a place to belong. It is possible. The Town Garden is a place where people welcome each other, help each other, work through their disagreements, and walk out as better hackers, better friends, and better people. This last point is, I think, a hugely neglected part of modern childhood–you are surrounded by conflicting advice about how to be successful, but there is far less guidance on how to be human.
 
 **Is the Town Garden an Attractor State?**
+
 I believe it can be. The Hacker Values largely boil down to “help others, and make every conflict productive”. If everyone adopted those–as values, not just as rules–then unproductive conflict wouldn’t just get punished by the fire department. It would be low status. It would be cringe. Helping people, on the other hand, would be high status.
 
 You Decide

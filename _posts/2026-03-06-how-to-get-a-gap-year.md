@@ -8,13 +8,13 @@ Since the [gap year applications](https://manifesto.hackclub.com/) opened, sever
 
 [Manitej](https://manifesto.hackclub.com/a-designers-note) and [Tongyu](https://journal.tongyu.fish/gapyear/) have also written on this topic.
 
-[Augie's advice](https://cdn.hackclub.com/019cd450-8ec0-7b0f-941c-89d21fded704/augie_s_advice.png)
+![Augie's advice](https://cdn.hackclub.com/019cd450-8ec0-7b0f-941c-89d21fded704/augie_s_advice.png)
 
-[Sebastian's advice](https://cdn.hackclub.com/019cd450-909c-7a13-a182-5b99c9b67f2e/sebastian_s_advice.png)
+![Sebastian's advice](https://cdn.hackclub.com/019cd450-909c-7a13-a182-5b99c9b67f2e/sebastian_s_advice.png)
 
-[Euan's advice](https://cdn.hackclub.com/019cd450-9278-7abd-adf6-b8a541c62d94/euan_s_advice.png)
+![Euan's advice](https://cdn.hackclub.com/019cd450-9278-7abd-adf6-b8a541c62d94/euan_s_advice.png)
 
-To this I will add my own thoughts, which is that Hack Club hires two kinds of people.
+To this I will add my own observation: Hack Club hires two kinds of people.
 
 The first type are people who built something impressive *to Hack Club*. This is both easier and harder than building something impressive to a school or employer. Easier, because Hack Club is very open-minded about what you build. But harder because it has to be something that mattered to you. If your project is something you build because you wanted it to exist, that will work in your favor. If you built it to prove to Hack Club that you can code, that will work against you: why do you want to work at Hack Club? To change the world? Then why aren't you already trying to do it?
 

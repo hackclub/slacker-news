@@ -19,24 +19,31 @@ What’s new?
 The original bot could only delete messages, but this new version has a few new tricks up its sleeve!
 
 **Logging!**
+
 One of the major concerns was the lack of logs in Prometheus, which has since been fixed. Any action taken will be logged and only viewable by HQ staff and the Fire Department. For message deletions, the original message author and content will be logged. For thread deletions, a full transcript will be saved before deletion. Same with channel bans (more on that later!). This is to prevent abuse and help make sure Prometheus is only used to help improve the Slack rather than punish people for liking pineapple on pizza.
 
 **Delete Message & Destroy Thread**
+
 The OG feature, now with logs. Right-click any message -> Message Shortcuts -> Delete Message. Poof, gone.
 Need to go nuclear? Right-click -> Destroy Thread wipes an entire thread. A full transcript gets archived in a private place where only the FD + HQ staff can make sure everything is good before anything disappears, so nothing is truly gone, it's just... relocated.
 
 **Channel Bans**
+
 If you host a public channel, you can now enforce your own channel bans in case someone needs to take a chill pill for a bit. You can set a duration (1h, 2d, 1w... you get the idea) and a reason, so when someone asks "why can't I post in #lounge," there's an actual answer. Use /pro channelban @user [#channel] [duration] reason to banish, and /pro channelunban @user [#channel] when they've served their time.
 
 **Channel pings!!!**
+
 Moderators can also use @here and @channel pings with Prometheus /pro here <message> and /pro channel <message>. Use wisely, nobody likes being pinged 47 times a day (looking at some personal channels here)
 
 **Welcome!**
+
 When you join a channel, channel managers can now set a custom welcome message that greets you on arrival. It can either pop up just for you (ephemeral, only you see it) or slide into your DMs. Channel managers can set this up with /pro welcome set [ephemeral|dm] <message>. Include helpful information, links to guides, channel rules, or a funny joke.
 
 **Manager**
+
 Yes, you can finally change the manager on your profile now! Run /pro manager to add someone to your profile. Groundbreaking, I know.
 
 **How do I use it?**
+
 Right now, you probably only have access to the manager command, and for this pilot test we're running with a whitelist. We plan to give people more access as we fix bugs and see how it works in the wild.
 For now, if you want to suggest any new features, report bugs, or contribute, the bot is fully open source at https://github.com/3kh0/prometheus. Me (Rowan) and Evan welcome any and all feedback, thoughts, and musings...

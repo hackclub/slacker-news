@@ -23,6 +23,7 @@ Submissions are not guaranteed to be published. Quality, tone, and significance 
 As I make changes to the Slack, I will announce them here.
 
 **Why We Need It**
+
 Slack is good at many things but productive public disagreement isn’t one of them; for that, the Slack is about as useful as a chocolate hammer. Threads move too fast for people to keep up. They get too long to reasonably be read (and too hard to scroll through) so people ignore each other. Things get derailed, or forgotten. Most harmfully, things are *immediate*, so people say things without stopping to reflect on them. How many times have people said something mean in a minute that they wouldn’t have said in an hour?
 
 I also hope this will give the Slack a single shared informational baseline. #announcements and #happenings do good work–and have a commanding lead in fame–but they are inherently limited by being Slack channels. *Slacker News* is not a replacement for them. Its focus will be on going into greater detail, covering more subjects, and giving more voice to you.
