@@ -48,3 +48,11 @@ permalink: /submissions/
 
 1. Ads should be short
 2. Ads are more likely to be accepted if they are advertising something done for the benefit of the Hack Club community
+
+**How to Submit**
+
+Draft a gdoc and share it with eps@hackclub.com. If we note changes or leave comments, you need to address those before you can be published.
+
+This process will likely change later.
+
+We also welcome PRs to improve the site or fix typos and formatting errors. Please don't structure article submissions as PRs.
