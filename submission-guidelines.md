@@ -14,21 +14,33 @@ permalink: /submissions/
 
 1. Novelty
     Submissions should either:
+        
         A. Make a new contribution to a subject already raised by a previous editorial
+       
         B. Raise a subject not covered by a previous editorial
+
 2. Quality
     Submissions should:
+        
         A. Show epistemic humility. This means being honest about the limits of what they know, and allowing the possibility that they are mistaken
+        
         B. Be carefully fact-checked
+
 3. Civility
     Submissions should not:
+        
         A. Accuse community members of bad faith
+        
         B. Reveal sensitive information about people, including private communications, without their consent
+       
         C. Violate the code of conduct
+
 4. Format
         A. 200-2000 words
-        B. MUST be in Comic Sans or Papyrus
+
+5. If you are pointing out a problem, you do not *have to* propose a solution, but criticism without concrete suggestions is less likely to be approved.
 
 **Ads**
+
 1. Ads should be short
 2. Ads are more likely to be accepted if they are advertising something done for the benefit of the Hack Club community
