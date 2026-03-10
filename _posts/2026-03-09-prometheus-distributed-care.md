@@ -29,15 +29,15 @@ Need to go nuclear? Right-click -> Destroy Thread wipes an entire thread. A full
 
 **Channel Bans**
 
-If you host a public channel, you can now enforce your own channel bans in case someone needs to take a chill pill for a bit. You can set a duration (1h, 2d, 1w... you get the idea) and a reason, so when someone asks "why can't I post in #lounge," there's an actual answer. Use /pro channelban @user [#channel] [duration] reason to banish, and /pro channelunban @user [#channel] when they've served their time.
+If you host a public channel, you can now enforce your own channel bans in case someone needs to take a chill pill for a bit. You can set a duration (1h, 2d, 1w... you get the idea) and a reason, so when someone asks "why can't I post in #lounge," there's an actual answer. Use `/pro channelban @user [#channel] [duration]` reason to banish, and `/pro channelunban @user [#channel]` when they've served their time.
 
 **Channel pings!!!**
 
-Moderators can also use @here and @channel pings with Prometheus /pro here <message> and /pro channel <message>. Use wisely, nobody likes being pinged 47 times a day (looking at some personal channels here)
+Moderators can also use @here and @channel pings with Prometheus `/pro here <message>` and `/pro channel <message>`. Use wisely, nobody likes being pinged 47 times a day (looking at some personal channels here)
 
 **Welcome!**
 
-When you join a channel, channel managers can now set a custom welcome message that greets you on arrival. It can either pop up just for you (ephemeral, only you see it) or slide into your DMs. Channel managers can set this up with /pro welcome set [ephemeral|dm] <message>. Include helpful information, links to guides, channel rules, or a funny joke.
+When you join a channel, channel managers can now set a custom welcome message that greets you on arrival. It can either pop up just for you (ephemeral, only you see it) or slide into your DMs. Channel managers can set this up with `/pro welcome set [ephemeral|dm] <message>`. Include helpful information, links to guides, channel rules, or a funny joke.
 
 **Manager**
 
