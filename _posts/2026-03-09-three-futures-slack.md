@@ -29,7 +29,8 @@ On a practical level, here’s what this looks like: a newcomer joins the Slack,
 
 Zach has run online communities before Hack Club. He told me that if an online community defines itself by who is not a part of it, the community inevitably dies. I think his experience supports the theory I’ve laid out.
 
-Ghost Towns are an Attractor State
+**Ghost Towns are an Attractor State**
+
 The Slack grows in part by word of mouth. As the community shrinks, so does the influx of new members. As the community grows, so does the influx of new members.
 
 This means staying the same size is an unstable state, like a ball on a windy hilltop. Small perturbations will become strong trends. The attractor states are death and growth. More on growth later. 
