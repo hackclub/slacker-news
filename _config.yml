@@ -4,6 +4,8 @@ description: A simple blog about things worth reading.
 
 permalink: /:slug/
 
+header_pages: []
+
 # Build settings
 theme: minima
 plugins:
