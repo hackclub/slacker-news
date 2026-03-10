@@ -236,7 +236,11 @@ a {
     line-height: 1.75;
     color: #111;
 
-    p { margin-bottom: 1.2em; }
+    p {
+      margin-bottom: 1.2em;
+
+      a { text-decoration: underline; } 
+    }
   }
 
   .story-footer {
