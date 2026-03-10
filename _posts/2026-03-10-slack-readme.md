@@ -9,8 +9,7 @@ Hack Club is a massive org. And yet, there are no guides for newcomers to read. 
 Hex-4 also had this frustration and started Readme (a guide to Hack Club) but left it unfinished. In early February, I asked about creating a guide to Hack Club where I was told about the existence of Readme. Seeing it unfinished, I decided to pick up where Hex-4 left off.
  
 Writing Readme turned into a bit of a rabbit hole. I asked a lot of questions in #hq and #community and did a lot of Googling. The page about Hack Club macots and lore was even harder to write with the lore being scattered and all. I wasn't sure where to start reading. That part is being handed off to future-me. 
-Writing Readme turned into a bit of a rabbit hole. I asked a lot of questions in #hq and #community and did a lot of Googling. The page about Hack Club macots and lore was even harder to write with the lore being scattered and all. I wasn't sure where to start reading. That part is being handed off to future-me. 
  
-Readme lays out Hack Club like a book. It covers topics like how to make threads in Slack, what YSWS programs are, the 2 lovebirds that are Orpheus and Heidi and generally points the reader in the right direction to provide a smoother introduction into Hack Club. Readme lays out Hack Club like a book. It covers topics like how to make threads in Slack, what YSWS programs are, the 2 lovebirds that are Orpheus and Heidi and generally points the reader in the right direction to provide a smoother introduction into Hack Club.
+Readme lays out Hack Club like a book. It covers topics like how to make threads in Slack, what YSWS programs are, the 2 lovebirds that are Orpheus and Heidi and generally points the reader in the right direction to provide a smoother introduction into Hack Club.
 
 [You can read it here](https://eofreternal.github.io/readme/slack/).
