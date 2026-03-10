@@ -1,5 +1,5 @@
 ---
-title: Prometheus Brings Users More Powers to Improve Slack
+title: New Slack Readme Helps New Users
 layout: story
 date: '2026-03-10'
 author: '@Eternal'

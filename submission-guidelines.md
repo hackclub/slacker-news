@@ -1,15 +1,16 @@
 ---
 layout: page
-title: Submissions
+title: Submission Guidelines
 permalink: /submissions/
 ---
 
-**News Guidelines**
+**News**
 1. News stories should be purely factual, rather than speculative or opinionated
 2. Authors should fact-check their submissions
 3. Rumors and hearsay should be distinguished from observed facts and statements directly from the relevant parties
+4. News stories should be notable and/or give value to the community
 
-**Editorial Guidelines**
+**Editorials**
 
 1. Novelty
     Submissions should either:
@@ -28,6 +29,6 @@ permalink: /submissions/
         A. 200-2000 words
         B. MUST be in Comic Sans or Papyrus
 
-**Ad Guidelines**
+**Ads**
 1. Ads should be short
 2. Ads are more likely to be accepted if they are advertising something done for the benefit of the Hack Club community
