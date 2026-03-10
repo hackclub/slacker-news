@@ -54,7 +54,7 @@ Channels like #meta and #community-logs are a window onto this future. They have
 
 Drama begets drama. People get mad at each other, causing them to do bad things, which people then get mad about. For HQ and the FD, drama leads to misconduct, which leads to more enforcement, which leads to more drama. Also, people love drama. Can you imagine a reality TV show where all of the characters handled their problems with respectful discussion?
 
-Drama also creates rival factions. Some drama happens, and forevermore, everyone sinvolved remembers who was on which side of The Hairdryer Incident.
+Drama also creates rival factions. Some drama happens, and forevermore, everyone involved remembers who was on which side of The Hairdryer Incident.
 
 Rival factions are destructive to the systems they inhabit. When people identify with their own faction rather than the system as whole, their perceived self-interest is to serve their faction at the expense of the system. It becomes rational to make the system 100 points worse as long as your faction comes out 10 points ahead.
 
