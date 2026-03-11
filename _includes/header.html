@@ -1,6 +1,8 @@
 <header class="site-header" role="banner">
   <div class="wrapper">
-    <a class="site-title" rel="author" href="{{ "/" | relative_url }}">{{ site.title | escape }}</a>
+    <a class="site-title" rel="author" href="{{ "/" | relative_url }}">
+      <img src="{{ "/Core SN logo.svg" | relative_url }}" alt="{{ site.title | escape }}" style="height: 2em; vertical-align: middle;">
+    </a>
     <nav class="site-nav">
       <input type="checkbox" id="nav-trigger" class="nav-trigger" />
       <label for="nav-trigger">
@@ -12,7 +14,10 @@
       </label>
       <div class="trigger">
         <a class="page-link" href="{{ "/about/" | relative_url }}">About</a>
+        <span class="nav-pip">|</span>
         <a class="page-link" href="{{ "/submissions/" | relative_url }}">Submissions</a>
+        <span class="nav-pip">|</span>
+        <a class="page-link" href="https://hackclub.com">Hack Club</a>
       </div>
     </nav>
   </div>

@@ -67,6 +67,14 @@ a {
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #000;
+    margin-left: 0;
+  }
+  .page-link:not(:last-child) {
+    margin-right: 0;
+  }
+  .nav-pip {
+    color: #999;
+    margin: 0 4px;
   }
 }
 
