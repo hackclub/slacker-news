@@ -1,0 +1,8 @@
+---
+layout: story
+date: '2026-03-12 16:09:39'
+author: "@eps"
+title: Slack Users Can Now Set Their Own Manager
+---
+
+If only you could do this in real life, too.
