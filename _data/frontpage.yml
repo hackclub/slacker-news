@@ -2,8 +2,7 @@
 # Set each value to the slug of a post (the filename without the date and .md extension).
 # Example: a post named 2026-03-06-my-story.md has the slug "my-story"
 
-headline: 
-  - welcome-to-slacker-news
+headline: welcome-to-slacker-news
 
 opinion:
   - three-futures-slack
