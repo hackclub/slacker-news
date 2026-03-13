@@ -1,5 +1,5 @@
 ---
-title: Confessions splits into two channels
+title: Confessions Splits into Two Channels
 layout: story
 date: '2026-03-12'
 author: '@eps'
