@@ -1,5 +1,5 @@
 ---
-title: Prometheus Brings Users More Powers to Improve Slack
+title: Confessions splits into two channels
 layout: story
 date: '2026-03-12'
 author: '@eps'

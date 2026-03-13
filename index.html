@@ -7,7 +7,8 @@ layout: default
   <div class="front-top">
 
     <!-- Headline block (left) -->
-    {% assign headline = site.posts | where: "slug", site.data.frontpage.headline | first %}
+    {% assign headline_slug = site.data.frontpage.headline | first %}
+    {% assign headline = site.posts | where: "slug", headline_slug | first %}
     {% if headline %}
     <a href="{{ headline.url | relative_url }}" class="front-block headline-block">
       <h2 class="block-headline">{{ headline.title }}</h2>
