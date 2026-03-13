@@ -289,6 +289,23 @@ a {
   text-align: center;
 }
 
+.theme-toggle {
+  cursor: pointer;
+}
+
+html.dark-mode {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #000;
+
+  img, svg, video {
+    filter: invert(1) hue-rotate(180deg);
+  }
+
+  .site-title img {
+    filter: none;
+  }
+}
+
 // ─── Responsive ───────────────────────────────────────────────────────────────
 
 @media (max-width: 700px) {

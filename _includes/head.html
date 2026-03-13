@@ -6,7 +6,29 @@
   <link rel="icon" type="image/svg+xml" href="{{ "/SN H Logo.svg" | relative_url }}">
   <link rel="stylesheet" href="{{ "/assets/main.css" | relative_url }}">
   {%- feed_meta -%}
+  <script>
+    (function() {
+      if (localStorage.getItem('dark-mode') === 'true') {
+        document.documentElement.classList.add('dark-mode');
+      }
+    })();
+  </script>
   {%- if jekyll.environment == 'production' and site.google_analytics -%}
     {%- include google-analytics.html -%}
   {%- endif -%}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.getElementById('theme-toggle');
+      if (!btn) return;
+      function x() {
+        btn.textContent = document.documentElement.classList.contains('dark-mode') ? 'Light Mode' : 'Dark Mode';
+      }
+      x();
+      btn.addEventListener('click', function() {
+        document.documentElement.classList.toggle('dark-mode');
+        localStorage.setItem('dark-mode', document.documentElement.classList.contains('dark-mode'));
+        x();
+      });
+    });
+  </script>
 </head>
