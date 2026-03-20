@@ -3,6 +3,7 @@ title: Prometheus Brings Users More Powers to Improve Slack
 layout: story
 date: '2026-03-09'
 author: '@Rowan'
+category: news
 ---
 Right now, most community channels on Slack are nobody's responsibility. The Fire Department holds them to a minimum standard, but there's no one to actually make them really good. Keen readers may notice that this is a great example of the [Tragedy of the Commons](https://en.wikipedia.org/wiki/Tragedy_of_the_commons), when everyone has access but no one has real ownership, and channels just become noise rather than meaningful discussion.
 

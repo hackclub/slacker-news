@@ -1,0 +1,19 @@
+---
+layout: default
+title: Opinion Archive
+permalink: /opinion/
+---
+
+<div class="archive-page">
+  <div class="section-label">OPINION</div>
+  <hr class="section-rule">
+  <div class="archive-grid">
+    {% assign opinion_posts = site.posts | where: "category", "opinion" %}
+    {% for post in opinion_posts %}
+    <a href="{{ post.url | relative_url }}" class="front-block story-block">
+      <h3 class="story-block-title">{{ post.title }}</h3>
+      <p class="story-block-excerpt">{{ post.excerpt | strip_html | truncatewords: 18 }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</div>

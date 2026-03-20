@@ -3,6 +3,7 @@ title: New Slack Readme Helps New Users
 layout: story
 date: '2026-03-10'
 author: '@Eternal'
+category: news
 ---
 Hack Club is a massive org. And yet, there are no guides for newcomers to read. They're plopped in the Slack and left to fend for themselves. 
  

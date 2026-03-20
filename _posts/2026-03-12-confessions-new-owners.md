@@ -3,6 +3,7 @@ title: Confessions Splits into Two Channels
 layout: story
 date: '2026-03-12'
 author: '@eps'
+category: news
 ---
 #confessions  began as a place for Hack Clubbers to say genuinely difficult things that they need to get off their chest. This purpose is still written into the confession guidelines, but over the years the channel has drifted to include jokes and personal opinions. A new channel, #self , has been created as a space for less serious discussions. Users who make unserious posts in #confessions will be redirected to #self.
 

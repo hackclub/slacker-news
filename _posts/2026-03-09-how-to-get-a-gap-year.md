@@ -3,6 +3,7 @@ title: How to Get a Gap Year at Hack Club
 layout: story
 date: '2026-03-09'
 author: '@eps'
+category: opinion
 ---
 Since the [gap year applications](https://manifesto.hackclub.com/) opened, several people have asked "How do I get one?". So I asked the gap years for their advice:
 

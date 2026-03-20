@@ -1,25 +1,6 @@
 # Front page slot assignments.
-# Set each value to the slug of a post (the filename without the date and .md extension).
-# Example: a post named 2026-03-06-my-story.md has the slug "my-story"
+# The headline is the manually pinned top story.
+# All other sections are auto-populated from post categories.
 
-headline: 
+headline:
   - transparency-debate
-
-opinion:
-  - three-futures-slack
-  - how-to-get-a-gap-year
-
-stories:
-  - confessions-new-owners
-  - welcome-to-slacker-news
-  - set-your-own-manager
-  - prometheus-distributed-care
-  - slack-readme
-
-changelog:
-  - change: Added RSS feed
-    date: "2026-03-18"
-    author: "@3kho"
-  - change: Site launched
-    date: "2026-03-09"
-    author: "@eps"

@@ -4,11 +4,38 @@ layout: default
 
 <div class="newspaper-front">
 
+  {% assign headline_slug = site.data.frontpage.headline | first %}
+  {% assign headline = site.posts | where: "slug", headline_slug | first %}
+
+  {% assign all_opinion = site.posts | where: "category", "opinion" %}
+  {% assign display_opinion = "" | split: "" %}
+  {% for post in all_opinion %}
+    {% if display_opinion.size < 3 %}
+      {% assign display_opinion = display_opinion | push: post %}
+    {% endif %}
+  {% endfor %}
+
+  {% assign all_news = site.posts | where: "category", "news" %}
+  {% assign display_news = "" | split: "" %}
+  {% for post in all_news %}
+    {% if post.slug != headline_slug and display_news.size < 8 %}
+      {% assign display_news = display_news | push: post %}
+    {% endif %}
+  {% endfor %}
+
+  {% assign now_ts = site.time | date: '%s' | plus: 0 %}
+  {% assign thirty_days_ago = now_ts | minus: 2592000 %}
+  {% assign recent_changelog = "" | split: "" %}
+  {% for entry in site.data.changelog %}
+    {% assign entry_ts = entry.date | date: '%s' | plus: 0 %}
+    {% if entry_ts >= thirty_days_ago %}
+      {% assign recent_changelog = recent_changelog | push: entry %}
+    {% endif %}
+  {% endfor %}
+
   <div class="front-top">
 
     <!-- Headline block (left) -->
-    {% assign headline_slug = site.data.frontpage.headline | first %}
-    {% assign headline = site.posts | where: "slug", headline_slug | first %}
     {% if headline %}
     <a href="{{ headline.url | relative_url }}" class="front-block headline-block">
       <h2 class="block-headline">{{ headline.title }}</h2>
@@ -21,41 +48,34 @@ layout: default
     <div class="front-block opinion-block">
       <div class="section-label">OPINION</div>
       <hr class="block-rule">
-      {% for slug in site.data.frontpage.opinion %}
-        {% assign post = site.posts | where: "slug", slug | first %}
-        {% if post %}
-        <a href="{{ post.url | relative_url }}" class="opinion-item">
-          <h3 class="opinion-title">{{ post.title }}</h3>
-          <p class="opinion-excerpt">{{ post.excerpt | strip_html | truncatewords: 18 }}</p>
-        </a>
-        {% unless forloop.last %}<hr class="opinion-divider">{% endunless %}
-        {% endif %}
+      {% for post in display_opinion %}
+      <a href="{{ post.url | relative_url }}" class="opinion-item">
+        <h3 class="opinion-title">{{ post.title }}</h3>
+        <p class="opinion-excerpt">{{ post.excerpt | strip_html | truncatewords: 18 }}</p>
+      </a>
+      {% unless forloop.last %}<hr class="opinion-divider">{% endunless %}
       {% endfor %}
+      {% if display_opinion.size > 0 %}<hr class="opinion-divider">{% endif %}
+      <a href="{{ '/opinion/' | relative_url }}" class="archive-link">All opinion &rarr;</a>
     </div>
 
   </div><!-- /.front-top -->
 
-  {% assign story_count = 0 %}
-  {% for slug in site.data.frontpage.stories %}
-    {% assign post = site.posts | where: "slug", slug | first %}
-    {% if post %}{% assign story_count = story_count | plus: 1 %}{% endif %}
-  {% endfor %}
-
+  {% assign story_count = display_news.size %}
   {% if story_count < 4 %}
   <div class="front-bottom front-bottom--{{ story_count }}">
   {% else %}
   <div class="front-bottom">
   {% endif %}
-    {% for slug in site.data.frontpage.stories %}
-      {% assign post = site.posts | where: "slug", slug | first %}
-      {% if post %}
-      <a href="{{ post.url | relative_url }}" class="front-block story-block">
-        <h3 class="story-block-title">{{ post.title }}</h3>
-        <p class="story-block-excerpt">{{ post.excerpt | strip_html | truncatewords: 18 }}</p>
-      </a>
-      {% endif %}
+    {% for post in display_news %}
+    <a href="{{ post.url | relative_url }}" class="front-block story-block">
+      <h3 class="story-block-title">{{ post.title }}</h3>
+      <p class="story-block-excerpt">{{ post.excerpt | strip_html | truncatewords: 18 }}</p>
+    </a>
     {% endfor %}
   </div><!-- /.front-bottom -->
+
+  <a href="{{ '/news/' | relative_url }}" class="news-archive-link">All news &rarr;</a>
 
   <hr class="section-rule">
 
@@ -63,13 +83,15 @@ layout: default
     <div class="front-block changelog-block">
       <div class="section-label">CHANGELOG</div>
       <hr class="block-rule">
-      {% for entry in site.data.frontpage.changelog %}
+      {% for entry in recent_changelog %}
       <div class="changelog-item">
         <span class="changelog-change">{{ entry.change }}</span>
         <span class="changelog-meta">{{ entry.date }} &middot; {{ entry.author }}</span>
       </div>
       {% unless forloop.last %}<hr class="changelog-divider">{% endunless %}
       {% endfor %}
+      {% if recent_changelog.size > 0 %}<hr class="changelog-divider">{% endif %}
+      <a href="{{ '/changelogs/' | relative_url }}" class="archive-link">All changelogs &rarr;</a>
     </div>
   </div>
 

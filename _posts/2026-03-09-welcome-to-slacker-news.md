@@ -3,6 +3,7 @@ title: Welcome to Slacker News
 layout: story
 date: '2026-03-09'
 author: '@eps'
+category: news
 ---
 
 I have a lot to say on the Slack, but it often feels like I’m standing in an office building, shouting at the top of my lungs in the vain hope that I’ll be heard a hundred rooms away. I’m not the only one.

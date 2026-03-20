@@ -364,6 +364,61 @@ html.dark-mode {
   }
 }
 
+// ─── Archive pages ────────────────────────────────────────────────────────────
+
+.archive-page {
+  max-width: 1248px;
+  margin: 28px auto;
+  padding: 0 16px;
+
+  .section-label {
+    font-size: 0.75rem;
+    font-family: Georgia, serif;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 8px;
+  }
+
+  .section-rule {
+    margin-bottom: 20px;
+  }
+}
+
+.archive-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+// ─── Archive links ────────────────────────────────────────────────────────────
+
+.archive-link {
+  display: block;
+  font-size: 0.78rem;
+  font-family: Georgia, serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #555;
+  margin-top: 4px;
+
+  &:visited { color: #555; }
+  &:hover { color: #000; }
+}
+
+.news-archive-link {
+  display: block;
+  font-size: 0.78rem;
+  font-family: Georgia, serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #555;
+  text-align: right;
+
+  &:visited { color: #555; }
+  &:hover { color: #000; }
+}
+
 // ─── Responsive ───────────────────────────────────────────────────────────────
 
 @media (max-width: 700px) {
@@ -376,6 +431,9 @@ html.dark-mode {
   }
   .front-changelog {
     grid-template-columns: 1fr;
+  }
+  .archive-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
   .site-title {
     font-size: 1.8rem;

@@ -1,0 +1,18 @@
+---
+layout: default
+title: Changelogs Archive
+permalink: /changelogs/
+---
+
+<div class="archive-page">
+  <div class="section-label">CHANGELOG</div>
+  <hr class="section-rule">
+  <div class="archive-grid">
+    {% for entry in site.data.changelog %}
+    <div class="front-block story-block">
+      <h3 class="story-block-title">{{ entry.change }}</h3>
+      <p class="story-block-excerpt">{{ entry.date }} &middot; {{ entry.author }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>

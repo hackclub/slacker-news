@@ -2,6 +2,7 @@
 layout: story
 date: '2026-03-18 10:51:00'
 author: "@eps"
+category: news
 title: Debate to be Held on Moderation Transparency
 ---
 There will be a debate on Sunday, March 22 at 10:15 AM EDT, in #eps-conduit, on the subject of moderation transparency in the Slack.
