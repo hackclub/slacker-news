@@ -7,7 +7,7 @@ permalink: /news/
 <div class="archive-page">
   <div class="section-label">NEWS</div>
   <hr class="section-rule">
-  <div class="archive-grid">
+  <div class="archive-list">
     {% assign news_posts = site.posts | where: "category", "news" %}
     {% for post in news_posts %}
     <a href="{{ post.url | relative_url }}" class="front-block story-block">

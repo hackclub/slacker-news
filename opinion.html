@@ -7,7 +7,7 @@ permalink: /opinion/
 <div class="archive-page">
   <div class="section-label">OPINION</div>
   <hr class="section-rule">
-  <div class="archive-grid">
+  <div class="archive-list">
     {% assign opinion_posts = site.posts | where: "category", "opinion" %}
     {% for post in opinion_posts %}
     <a href="{{ post.url | relative_url }}" class="front-block story-block">

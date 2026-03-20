@@ -385,9 +385,9 @@ html.dark-mode {
   }
 }
 
-.archive-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.archive-list {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
@@ -432,9 +432,7 @@ html.dark-mode {
   .front-changelog {
     grid-template-columns: 1fr;
   }
-  .archive-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+
   .site-title {
     font-size: 1.8rem;
   }
