@@ -1,6 +1,10 @@
 # Front page slot assignments.
 # The headline is the manually pinned top story.
-# All other sections are auto-populated from post categories.
+# Opinion lists up to 3 slugs to pin; falls back to most recent if fewer than 3.
 
 headline:
-  - transparency-debate
+  - slack-survey
+
+opinion:
+  - against-moderation-transparency
+  - three-futures-slack

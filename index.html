@@ -8,10 +8,22 @@ layout: default
   {% assign headline = site.posts | where: "slug", headline_slug | first %}
 
   {% assign all_opinion = site.posts | where: "category", "opinion" %}
+  {% assign opinion_slugs = site.data.frontpage.opinion %}
   {% assign display_opinion = "" | split: "" %}
+  {% if opinion_slugs %}
+    {% for slug in opinion_slugs %}
+      {% assign matched = all_opinion | where: "slug", slug | first %}
+      {% if matched and display_opinion.size < 3 %}
+        {% assign display_opinion = display_opinion | push: matched %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
   {% for post in all_opinion %}
     {% if display_opinion.size < 3 %}
-      {% assign display_opinion = display_opinion | push: post %}
+      {% assign already = display_opinion | where: "slug", post.slug | first %}
+      {% unless already %}
+        {% assign display_opinion = display_opinion | push: post %}
+      {% endunless %}
     {% endif %}
   {% endfor %}
 
@@ -40,7 +52,7 @@ layout: default
     <a href="{{ headline.url | relative_url }}" class="front-block headline-block">
       <h2 class="block-headline">{{ headline.title }}</h2>
       <hr class="block-rule">
-      <p class="block-excerpt">{{ headline.excerpt | strip_html | truncatewords: 55 }}</p>
+      <p class="block-excerpt">{{ headline.excerpt | strip_html | truncatewords: 150 }}</p>
     </a>
     {% endif %}
 
