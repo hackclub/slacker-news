@@ -303,9 +303,10 @@ a {
     text-transform: uppercase;
     color: #555;
     margin-bottom: 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+
+    .story-category {
+      float: right;
+    }
   }
 
   .story-rule {
