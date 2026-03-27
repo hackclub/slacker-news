@@ -6,8 +6,9 @@ layout: default
   <header class="story-header">
     <h1 class="story-title">{{ page.title }}</h1>
     <div class="story-meta">
-      {% if page.author %}<span class="story-author">By {{ page.author }}</span> &mdash; {% endif %}
-      <time>{{ page.date | date: "%B %-d, %Y" }}</time>
+      <span>{% if page.author %}<span class="story-author">By {{ page.author }}</span> &mdash; {% endif %}
+      <time>{{ page.date | date: "%B %-d, %Y" }}</time></span>
+      {% if page.category %}<span class="story-category">{{ page.category | upcase }}</span>{% endif %}
     </div>
     <hr class="story-rule">
   </header>
