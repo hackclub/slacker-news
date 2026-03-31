@@ -5,7 +5,7 @@ date: '2026-03-30'
 author: '@eps'
 category: opinion
 ---
-I got Shrouded once. For privacy, I’ll keep the details vague. In short, I was discussing a Hack Club project, and my message got reported as advertising. I deletd my message and moved on, but it was surprising. I want to respect the intent of each channel. But…what is the intent of each channel? Who is doing the intending? And, if a channel needs to change, who gets to say so?
+I got Shrouded once. For privacy, I’ll keep the details vague. In short, I was discussing a Hack Club project, and my message got reported as advertising. I deleted my message and moved on, but it was surprising. I want to respect the intent of each channel. But…what is the intent of each channel? Who is doing the intending? And, if a channel needs to change, who gets to say so?
 
 This is on my mind again because people have asked me to hold more debates, and I’m shopping for a venue. I’ve been using my personal channel, #eps-conduit. But the debates have the potential to bring a lot of life to wherever they are held, and I’ve [written before](https://news.hackclub.com/three-futures-slack/) about personal channels draining the life from public channels, so I have mixed feelings about keeping them in my own channel. But if not there, where else do I put them?
 
