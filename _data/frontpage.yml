@@ -3,9 +3,10 @@
 # Opinion lists up to 3 slugs to pin; falls back to most recent if fewer than 3.
 
 headline:
-  - slack-survey
+  - introducing-mole
 
 opinion:
+  - prometheus-mole
   - tragedy-anticommons
   - against-moderation-transparency
-  - three-futures-slack
+
