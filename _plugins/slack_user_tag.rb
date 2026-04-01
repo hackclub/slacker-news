@@ -7,7 +7,7 @@ module SlackUserTag
   class Tag < Liquid::Tag
     def initialize(tag_name, markup, tokens)
       super
-      parts = markup.split(",").map(&:strip)
+      parts = markup.split(",", 2).map(&:strip)
       @id   = parts[0]
       @name = parts[1]
     end
