@@ -442,3 +442,21 @@ html.dark-mode {
     font-size: 1.8rem;
   }
 }
+
+$slack-link-fg:         #1264a3;
+$slack-link-bg:         rgba(18, 100, 163, 0.1);
+$slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
+
+.slack_channel {
+  color: $slack-link-fg;
+  background: $slack-link-bg;
+  border-radius: 3px;
+  padding: 0 3px;
+  white-space: nowrap;
+
+  &:visited { color: $slack-link-fg; }
+  &:hover {
+    background: $slack-link-bg-hover;
+    color: $slack-link-fg;
+  }
+}
