@@ -3,7 +3,7 @@ layout: story
 date: '2026-03-26 10:57:00'
 author: "@neven (hex4)"
 category: news
-title: More Power to Prometheus
+title: Hack Club Introduces Mole
 ---
 
 If you strip away all the programs, the Slack, the memes, and the code, Hack Club has always been about one thing: Making sure that the youth of today have the tools and knowledge to build on the frontier of what's possible.
