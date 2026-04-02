@@ -52,7 +52,15 @@ layout: default
     <a href="{{ headline.url | relative_url }}" class="front-block headline-block">
       <h2 class="block-headline">{{ headline.title }}</h2>
       <hr class="block-rule">
-      <p class="block-excerpt">{{ headline.excerpt | strip_html | truncatewords: 150 }}</p>
+      <div class="block-excerpts">
+        {% assign paras = headline.content | split: '</p>' %}
+        {% for p in paras limit:2 %}
+          {% assign stripped = p | strip_html | strip %}
+          {% if stripped != '' %}
+            <p class="block-excerpt">{{ stripped }}</p>
+          {% endif %}
+        {% endfor %}
+      </div>
     </a>
     {% endif %}
 

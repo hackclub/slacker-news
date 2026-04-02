@@ -3,10 +3,10 @@
 # Opinion lists up to 3 slugs to pin; falls back to most recent if fewer than 3.
 
 headline:
-  - introducing-mole
+  - community-privacy-policy
 
 opinion:
-  - prometheus-mole
+  - 3-months-at-hack-club
   - tragedy-anticommons
   - against-moderation-transparency
 

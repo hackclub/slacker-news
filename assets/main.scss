@@ -140,6 +140,8 @@ a {
 // ─── Headline block ───────────────────────────────────────────────────────────
 
 .headline-block {
+  display: flex;
+  flex-direction: column;
   .block-headline {
     font-size: 2rem;
     font-weight: 900;
@@ -153,12 +155,18 @@ a {
     border-top: 2px solid #000;
     margin: 0 0 14px;
   }
+  .block-excerpts {
+    flex: 1;
+    overflow: hidden;
+  }
   .block-excerpt {
     font-size: 1rem;
     line-height: 1.6;
-    margin: 0;
     color: #222;
-    overflow: hidden;
+    margin: 0;
+  }
+  .block-excerpt + .block-excerpt {
+    margin-top: 0.8em;
   }
 }
 
