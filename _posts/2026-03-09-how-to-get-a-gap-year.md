@@ -23,7 +23,7 @@ You can do this by making things that are useful to Hack Club. That's challengin
 
 So that's hard. I think the easier way to impress Hack Club is simply to make what you want to see in the world.
 
-The second type are people who get hired by *showing the right mindset*. I would put myself in this category. I've met others too, who didn't really have any big technical accomplishments to show off. Instead of showing what we had done, we showed what we had the potential to do, given the resources. I've said before that I got this job by going on a hike with @cwalker. Specifically, it was a multi-day hike which left lots of time to talk. And I talk a lot.
+The second type are people who get hired by *showing the right mindset*. I would put myself in this category. I've met others too, who didn't really have any big technical accomplishments to show off. Instead of showing what we had done, we showed what we had the potential to do, given the resources. I've said before that I got this job by going on a hike with {% slack_user cwalker, UDK5M9Y13 %}. Specifically, it was a multi-day hike which left lots of time to talk. And I talk a lot.
 
 I talked about how we are forced to go to college by a job market that punishes you relentlessly if you don't. About how some people aren't a good fit for college, and we are failing those people. I talked about how to fix it. This became a debate. I argued my side passionately, and cited lots of evidence. I've put a lot of energy into the subject because I sincerely care about it, and that comes through when I talk about it.
 

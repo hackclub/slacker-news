@@ -7,7 +7,7 @@ category: news
 ---
 Right now, most community channels on Slack are nobody's responsibility. The Fire Department holds them to a minimum standard, but there's no one to actually make them really good. Keen readers may notice that this is a great example of the [Tragedy of the Commons](https://en.wikipedia.org/wiki/Tragedy_of_the_commons), when everyone has access but no one has real ownership, and channels just become noise rather than meaningful discussion.
 
-So we're bringing back Prometheus, this time with official approval from Evan (@eps), who runs the Slack.
+So we're bringing back Prometheus, this time with official approval from Evan ({% slack_user eps, U09Q8MLTE58 %}), who runs the Slack.
 
 If you're new, here's some context. Prometheus was originally built as a tool to help people manage their personal channels by allowing them to delete messages from other users and bots. The problem was that it didn't include logs, and the sweeping power of deletion was a bit ahead of its time and lacked a real purpose.
 

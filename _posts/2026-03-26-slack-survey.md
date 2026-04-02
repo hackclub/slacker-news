@@ -25,5 +25,5 @@ The questions on the census are as follows:
 
 Prizes will be raffled off to respondents. This month's prizes include:
 - A Raspberry Pi Zero 2W
-- Setting the Slack's workspace icon (subject to @eps's approval)
-- Setting a custom Slackbot response. If you don't know what these are, try typing "vim" in the Slack. See how many you can find! (subject to @eps's approval)
+- Setting the Slack's workspace icon (subject to {% slack_user eps, U09Q8MLTE58 %}'s approval)
+- Setting a custom Slackbot response. If you don't know what these are, try typing "vim" in the Slack. See how many you can find! (subject to {% slack_user eps, U09Q8MLTE58 %}'s approval)

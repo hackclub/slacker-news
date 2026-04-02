@@ -13,6 +13,6 @@ This system is a periodic source of controversy, and attracts calls for change i
 
 The time is right to make progress on this disagreement. HQ is developing a new conduct reporting system that spans all departments within Hack Club, and inevitably, decisions will have to be made about how much of that information is public.
 
-The debate will feature @cyao, @krish, and @acon arguing in favor of greater transparency; and @eps, @Tanuki, and @Scooter Y arguing against. There will be time set aside for audience questions.
+The debate will feature {% slack_user cyao, U09ULFV88KU %}, {% slack_user krish, U02KQ9WQT0A %}, and {% slack_user acon, U07AZFQLPQ8 %} arguing in favor of greater transparency; and {% slack_user eps, U09Q8MLTE58 %}, {% slack_user Tanuki, U083PK90X4G %}, and {% slack_user Scooter Y, U046VA0KR8R %} arguing against. There will be time set aside for audience questions.
 
 *CALL FOR SUBMISSIONS: Slacker News publishes community members. I welcome your submissions on this and other topics. I have kept my opinions out of this piece to be consistent with the requirements for a news article, but I will publish an opinion piece after the debate.*

@@ -15,6 +15,6 @@ The channel owners explained it like so:
 > - stay in ##confessions if: it’s something that you would never send somewhere else, something you need to get off your chest.
 > - move to ##self if: it’s a hot take, an email you received today or if you like ice cream.
 
-#confessions is becoming the first use of the new Channel Owners feature in [Prometheus](https://news.hackclub.com/prometheus-distributed-care/). The channel owners, @alice;, @hna; and @an actual, living deer can now use channel pings and channel bans, delete messages and threads, and set ephemeral messages in #confessions. All three are members of the Confessions Review Team.
+#confessions is becoming the first use of the new Channel Owners feature in [Prometheus](https://news.hackclub.com/prometheus-distributed-care/). The channel owners, {% slack_user alice, U05MKEZUY67 %}, {% slack_user hna, U089924LMK8 %}, and {% slack_user an actual, living deer, U04CBLNSVH6 %} can now use channel pings and channel bans, delete messages and threads, and set ephemeral messages in #confessions. All three are members of the Confessions Review Team.
 
 The Confessions Review Team will continue screening private confessions and #meta posts made via Prox2.
