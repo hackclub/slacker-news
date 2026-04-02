@@ -33,7 +33,7 @@ Need to go nuclear? Right-click -> Destroy Thread wipes an entire thread. A full
 
 **Channel Bans**
 
-If you host a public channel, you can now enforce your own channel bans in case someone needs to take a chill pill for a bit. You can set a duration (1h, 2d, 1w... you get the idea) and a reason, so when someone asks "why can't I post in #lounge," there's an actual answer. Use `/pro channelban @user [#channel] [duration]` reason to banish, and `/pro channelunban @user [#channel]` when they've served their time.
+If you host a public channel, you can now enforce your own channel bans in case someone needs to take a chill pill for a bit. You can set a duration (1h, 2d, 1w... you get the idea) and a reason, so when someone asks "why can't I post in #lounge," there's an actual answer. Use `/pro channelban @user [##channel] [duration]` reason to banish, and `/pro channelunban @user [##channel]` when they've served their time.
 
 
 **Channel pings!!!**
@@ -54,4 +54,4 @@ Yes, you can finally change the manager on your profile now! Run `/pro manager` 
 **How do I use it?**
 
 Right now, you probably only have access to the manager command, and for this pilot test we're running with a whitelist. We plan to give people more access as we fix bugs and see how it works in the wild.
-For now, if you want to suggest any new features, report bugs, or contribute, the bot is fully open source at https://github.com/3kh0/prometheus. Me (Rowan) and Evan welcome any and all feedback, thoughts, and musings...
+For now, if you want to suggest any new features, report bugs, or contribute, the bot is fully open source at [https://github.com/3kh0/prometheus](https://github.com/3kh0/prometheus). Me (Rowan) and Evan welcome any and all feedback, thoughts, and musings...

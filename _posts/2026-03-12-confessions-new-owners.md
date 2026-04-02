@@ -11,9 +11,9 @@ The channel owners explained it like so:
 
 > We love yapping :yay:! But that’s burying what is making this channel special.
 >
-> That’s why #self is becoming the new home for all of your public confessions!
-> - stay in #confessions if: it’s something that you would never send somewhere else, something you need to get off your chest.
-> - move to #self if: it’s a hot take, an email you received today or if you like ice cream.
+> That’s why ##self is becoming the new home for all of your public confessions!
+> - stay in ##confessions if: it’s something that you would never send somewhere else, something you need to get off your chest.
+> - move to ##self if: it’s a hot take, an email you received today or if you like ice cream.
 
 #confessions is becoming the first use of the new Channel Owners feature in [Prometheus](https://news.hackclub.com/prometheus-distributed-care/). The channel owners, @alice;, @hna; and @an actual, living deer can now use channel pings and channel bans, delete messages and threads, and set ephemeral messages in #confessions. All three are members of the Confessions Review Team.
 
