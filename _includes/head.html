@@ -14,8 +14,6 @@
 
       if (stored === 'true' || (stored === null && prefersDark)) {
         document.documentElement.classList.add('dark-mode');
-      } else {
-        document.documentElement.classList.add('light-mode');
       }
 
       document.documentElement.style.colorScheme = document.documentElement.classList.contains('dark-mode') ? 'dark' : 'light';
@@ -35,7 +33,7 @@
       }
 
       syncColorScheme();
-      
+
       btn.addEventListener('click', function(event) {
         event.preventDefault();
         document.documentElement.classList.toggle('dark-mode');
@@ -43,6 +41,7 @@
         syncColorScheme();
         x();
       });
+    });
   </script>
   <script>
     window.addEventListener('load', function() {
