@@ -32,7 +32,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (
     req.path === "/login" ||
     req.path === "/callback" ||
-    req.path === "/logout"
+    req.path === "/logout" ||
+    req.path == "/robots.txt" ||
+    req.path == "/favicon.ico" ||
+    req.path.endsWith(".xml")
   ) {
     return next();
   }
