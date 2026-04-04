@@ -5,3 +5,5 @@ _site
 .DS_Store
 vendor
 post\ template.md
+
+.env

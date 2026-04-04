@@ -11,3 +11,5 @@ sass:
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
+exclude:
+  - proxy

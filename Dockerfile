@@ -7,7 +7,12 @@ COPY . .
 RUN chown 1000:1000 -R /srv/jekyll
 RUN bundle exec jekyll build -d /srv/jekyll/_site
 
-FROM nginx:alpine
-COPY --from=builder /srv/jekyll/_site /usr/share/nginx/html
+FROM oven/bun:1 AS runtime
+WORKDIR /app
+COPY proxy/package.json proxy/bun.lock* ./
+RUN bun install --frozen-lockfile || bun install
+COPY proxy/server.ts proxy/tsconfig.json ./
+COPY --from=builder /srv/jekyll/_site ./dist
+ENV PORT=80
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["bun", "run", "server.ts"]

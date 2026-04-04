@@ -1,0 +1,15 @@
+{
+  "name": "proxy",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/express": "^5.0.6"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "express-openid-connect": "^2.20.1"
+  }
+}
