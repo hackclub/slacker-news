@@ -1,6 +1,10 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { auth, requiresAuth } from "express-openid-connect";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+const LOGIN_PAGE = readFileSync(join(import.meta.dir, "login.html"), "utf-8");
 
 const app = express();
 
@@ -22,6 +26,8 @@ app.use(
   }),
 );
 
+app.get("/logo.svg", (_, res) => res.sendFile(join(import.meta.dir, "logo.svg")));
+
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (
     req.path === "/login" ||
@@ -32,14 +38,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
 
   if (!req.oidc.isAuthenticated()) {
-    res.send(`
-      <html>
-        <body>
-          <h1>log in now</h1>
-          <a href="/login">Sign in</a>
-        </body>
-      </html>
-    `);
+    res.send(LOGIN_PAGE);
     return;
   }
 

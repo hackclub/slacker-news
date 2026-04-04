@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slacker News</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Georgia, "Times New Roman", serif;
+        background-color: #f5f5f0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        border-top: 5px solid #000;
+        border-bottom: 3px double #000;
+        background-color: #fff;
+        text-align: center;
+        padding: 12px 0;
+      }
+
+      main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .login-card {
+        background: #fff;
+        border: 2px solid #000;
+        border-radius: 14px;
+        padding: 48px 56px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .login-card h1 {
+        font-size: 1.1rem;
+        font-weight: normal;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #555;
+      }
+
+      .login-rule {
+        width: 100%;
+        border: none;
+        border-top: 2px solid #000;
+      }
+
+      .sign-in-btn {
+        display: inline-block;
+        font-family: Georgia, serif;
+        font-size: 0.95rem;
+        font-weight: bold;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #fff;
+        background: #000;
+        border: 2px solid #000;
+        padding: 14px 32px;
+        text-decoration: none;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+
+      .sign-in-btn:hover {
+        background: #f5f5f0;
+        color: #000;
+      }
+
+      footer {
+        border-top: 3px double #000;
+        background-color: #fff;
+        color: #555;
+        font-size: 0.75rem;
+        font-family: Georgia, serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        text-align: center;
+        padding: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img
+        src="/logo.svg"
+        alt="Slacker News"
+        style="height: 2.4em; vertical-align: middle"
+      />
+    </header>
+    <main>
+      <div class="login-card">
+        <h1>Members only</h1>
+        <hr class="login-rule" />
+        <a class="sign-in-btn" href="/login">Sign in with Hack Club</a>
+      </div>
+    </main>
+    <footer>
+      <p>A Hack Club Project</p>
+    </footer>
+  </body>
+</html>

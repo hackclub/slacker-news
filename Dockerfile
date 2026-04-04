@@ -11,7 +11,7 @@ FROM oven/bun:1 AS runtime
 WORKDIR /app
 COPY proxy/package.json proxy/bun.lock* ./
 RUN bun install --frozen-lockfile || bun install
-COPY proxy/server.ts proxy/tsconfig.json ./
+COPY proxy/server.ts proxy/tsconfig.json proxy/login.html proxy/logo.svg ./
 COPY --from=builder /srv/jekyll/_site ./dist
 ENV PORT=80
 EXPOSE 80
