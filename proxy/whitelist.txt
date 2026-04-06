@@ -1,9 +1,0 @@
-/
-/login
-/callback
-/logout
-/robots.txt
-/favicon.ico
-/feed.xml
-/Core SN logo.svg
-/SN H Logo.svg

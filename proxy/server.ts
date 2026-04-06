@@ -7,7 +7,7 @@ import { join } from "path";
 const LOGIN_PAGE = readFileSync(join(import.meta.dir, "login.html"), "utf-8");
 
 const WHITELIST: string[] = readFileSync(
-  join(import.meta.dir, "whitelist.txt"),
+  join(import.meta.dir, "dist/whitelist.txt"),
   "utf-8",
 )
   .split("\n")
@@ -52,9 +52,16 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-app.get("/feed.xml", (_, res) => {
+app.get("/feed.xml", (req: Request, res: Response) => {
   const feed = readFileSync(join(import.meta.dir, "dist/feed.xml"), "utf-8");
-  const excerpted = feed.replace(/<content[^>]*>[\s\S]*?<\/content>/g, "");
+  if (req.oidc.isAuthenticated()) {
+    res.type("application/atom+xml").send(feed);
+    return;
+  }
+  const excerpted = feed.replace(
+    /<content[^>]*>[\s\S]*?<\/content>/g,
+    '<content type="html">Sign in to Slacker News to read the full article.</content>',
+  );
   res.type("application/atom+xml").send(excerpted);
 });
 

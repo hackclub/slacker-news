@@ -1,7 +1,21 @@
 # Slacker News Proxy
 
-This is the proxy server for Slacker News. It puts an auth layer in front of the server.
+Auth layer in front of the Jekyll site using Hack Club Auth.
 
-Build the static files into /proxy/dist and run `bun i && bun dev`. Or just use Docker, everything should work automatically.
+All pages require login by default. To make an article publicly accessible, add `public: true` to its frontmatter:
 
-Add paths into whitelist to make them accessible and bypass auth. Files in /assets are also accessible.
+```yaml
+---
+title: My Article
+public: true
+---
+```
+
+The RSS feed is always accessible but shows excerpts only for unauthenticated readers.
+
+## Environment variables
+
+- `HCA_CLIENT_ID` — Hack Club Auth client ID
+- `HCA_CLIENT_SECRET` — Hack Club Auth client secret
+- `SESSION_SECRET` — Secret for signing session cookies
+- `BASE_URL` — Public URL of the site (e.g. `https://news.hackclub.com`)
