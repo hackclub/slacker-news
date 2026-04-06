@@ -18,3 +18,5 @@ Last week, our offices stayed open late because the staff were watching the Arte
 Stardance isn’t only about space. It is about the larger idea that there is still magic left to discover, and that you–yes, you–can be part of it, can go out and do something life-changing, that you never thought was possible for you.
 
 ![Zach and Christina with Jared Isaacman](https://cdn.hackclub.com/019d648d-d92e-70e2-88a8-6365a7294334/stardance_article_end.png)
+
+We're so excited to find out what you can do.
