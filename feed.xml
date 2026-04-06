@@ -1,0 +1,26 @@
+---
+layout: none
+permalink: /feed.xml
+---
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <generator uri="https://jekyllrb.com/" version="{{ jekyll.version }}">Jekyll</generator>
+  <link href="{{ 'feed.xml' | absolute_url }}" rel="self" type="application/atom+xml" />
+  <link href="{{ '/' | absolute_url }}" rel="alternate" type="text/html" />
+  <updated>{{ site.time | date_to_xmlschema }}</updated>
+  <id>{{ 'feed.xml' | absolute_url }}</id>
+  <title type="html">{{ site.title | xml_escape }}</title>
+  {% if site.description %}<subtitle>{{ site.description | xml_escape }}</subtitle>{% endif %}
+  {% for post in site.posts limit: 20 %}
+  <entry>
+    <title type="html">{{ post.title | xml_escape }}</title>
+    <link href="{{ post.url | absolute_url }}" rel="alternate" type="text/html" title="{{ post.title | xml_escape }}" />
+    <published>{{ post.date | date_to_xmlschema }}</published>
+    <updated>{{ post.last_modified_at | default: post.date | date_to_xmlschema }}</updated>
+    <id>{{ post.id | absolute_url }}</id>
+    {% if post.author %}<author><name>{{ post.author | xml_escape }}</name></author>{% endif %}
+    {% if post.category %}<category term="{{ post.category | xml_escape }}" />{% endif %}
+    <summary type="html"><![CDATA[{{ post.excerpt | strip_html | strip | xml_escape }}]]></summary>
+  </entry>
+  {% endfor %}
+</feed>

@@ -6,13 +6,12 @@ import { join } from "path";
 
 const LOGIN_PAGE = readFileSync(join(import.meta.dir, "login.html"), "utf-8");
 
-const WHITELIST: string[] = readFileSync(
-  join(import.meta.dir, "dist/whitelist.txt"),
-  "utf-8",
-)
-  .split("\n")
-  .map((line) => line.trim())
-  .filter(Boolean);
+const PUBLIC_PATHS = new Set<string>(
+  readFileSync(join(import.meta.dir, "dist/whitelist.txt"), "utf-8")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean),
+);
 
 const app = express();
 
@@ -40,7 +39,10 @@ app.get("/logo.svg", (_, res) =>
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   const path = decodeURIComponent(req.path);
-  if (WHITELIST.includes(path) || path.startsWith("/assets/")) {
+  if (!path.endsWith("/") && !path.includes(".")) {
+    return res.redirect(301, path + "/");
+  }
+  if (PUBLIC_PATHS.has(path) || path.startsWith("/assets/")) {
     return next();
   }
 
@@ -50,19 +52,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
 
   next();
-});
-
-app.get("/feed.xml", (req: Request, res: Response) => {
-  const feed = readFileSync(join(import.meta.dir, "dist/feed.xml"), "utf-8");
-  if (req.oidc.isAuthenticated()) {
-    res.type("application/atom+xml").send(feed);
-    return;
-  }
-  const excerpted = feed.replace(
-    /<content[^>]*>[\s\S]*?<\/content>/g,
-    '<content type="html">Sign in to Slacker News to read the full article.</content>',
-  );
-  res.type("application/atom+xml").send(excerpted);
 });
 
 app.use(express.static("dist"));
