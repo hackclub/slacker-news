@@ -1,6 +1,9 @@
 {
   "name": "proxy",
   "private": true,
+  "scripts": {
+    "dev": "bun run --watch server.ts --env-file .env"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/express": "^5.0.6"

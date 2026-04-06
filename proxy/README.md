@@ -1,15 +1,7 @@
-# proxy
+# Slacker News Proxy
 
-To install dependencies:
+This is the proxy server for Slacker News. It puts an auth layer in front of the server.
 
-```bash
-bun install
-```
+Build the static files into /proxy/dist and run `bun i && bun dev`. Or just use Docker, everything should work automatically.
 
-To run:
-
-```bash
-bun run 
-```
-
-This project was created using `bun init` in bun v1.3.10. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+Add paths into whitelist to make them accessible and bypass auth. Files in /assets are also accessible.

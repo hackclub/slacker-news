@@ -10,9 +10,11 @@ RUN bundle exec jekyll build -d /srv/jekyll/_site
 FROM oven/bun:1 AS runtime
 WORKDIR /app
 COPY proxy/package.json proxy/bun.lock* ./
-RUN bun install --frozen-lockfile || bun install
+RUN bun install --frozen-lockfile
 COPY proxy/server.ts proxy/tsconfig.json proxy/login.html proxy/logo.svg ./
 COPY --from=builder /srv/jekyll/_site ./dist
 ENV PORT=80
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://127.0.0.1/ || exit 1
 CMD ["bun", "run", "server.ts"]

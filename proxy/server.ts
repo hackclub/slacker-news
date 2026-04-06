@@ -6,6 +6,14 @@ import { join } from "path";
 
 const LOGIN_PAGE = readFileSync(join(import.meta.dir, "login.html"), "utf-8");
 
+const WHITELIST: string[] = readFileSync(
+  join(import.meta.dir, "whitelist.txt"),
+  "utf-8",
+)
+  .split("\n")
+  .map((line) => line.trim())
+  .filter(Boolean);
+
 const app = express();
 
 const PORT = process.env.PORT || 7244;
@@ -26,17 +34,13 @@ app.use(
   }),
 );
 
-app.get("/logo.svg", (_, res) => res.sendFile(join(import.meta.dir, "logo.svg")));
+app.get("/logo.svg", (_, res) =>
+  res.sendFile(join(import.meta.dir, "logo.svg")),
+);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (
-    req.path === "/login" ||
-    req.path === "/callback" ||
-    req.path === "/logout" ||
-    req.path == "/robots.txt" ||
-    req.path == "/favicon.ico" ||
-    req.path.endsWith(".xml")
-  ) {
+  const path = decodeURIComponent(req.path);
+  if (WHITELIST.includes(path) || path.startsWith("/assets/")) {
     return next();
   }
 
@@ -46,6 +50,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
 
   next();
+});
+
+app.get("/feed.xml", (_, res) => {
+  const feed = readFileSync(join(import.meta.dir, "dist/feed.xml"), "utf-8");
+  const excerpted = feed.replace(/<content[^>]*>[\s\S]*?<\/content>/g, "");
+  res.type("application/atom+xml").send(excerpted);
 });
 
 app.use(express.static("dist"));
