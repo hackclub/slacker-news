@@ -16,5 +16,5 @@ COPY --from=builder /srv/jekyll/_site ./dist
 ENV PORT=80
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://127.0.0.1/ || exit 1
+  CMD bun -e "fetch('http://127.0.0.1/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["bun", "run", "server.ts"]
