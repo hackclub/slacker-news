@@ -1,5 +1,4 @@
 ---
-layout: story
 date: '2026-03-26 10:57:00'
 author: "@eps"
 category: opinion

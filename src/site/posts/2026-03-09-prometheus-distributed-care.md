@@ -1,6 +1,5 @@
 ---
 title: Prometheus Brings Users More Powers to Improve Slack
-layout: story
 date: '2026-03-09'
 author: '@Rowan'
 category: news

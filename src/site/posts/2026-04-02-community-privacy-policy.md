@@ -1,5 +1,4 @@
 ---
-layout: story
 date: 2026-04-02
 author: "@eps"
 category: news

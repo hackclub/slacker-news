@@ -5,8 +5,10 @@ import yaml from "js-yaml";
 import MarkdownIt from "markdown-it";
 
 const ROOT = process.cwd();
-const POSTS_DIR = path.join(ROOT, "_posts");
-const DATA_DIR = path.join(ROOT, "_data");
+const CONTENT_DIR = path.join(ROOT, "src", "site");
+const POSTS_DIR = path.join(CONTENT_DIR, "posts");
+const DATA_DIR = path.join(CONTENT_DIR, "data");
+const PAGES_DIR = path.join(CONTENT_DIR, "pages");
 
 const markdown = new MarkdownIt({
     html: true,
@@ -126,7 +128,7 @@ function parseYamlFile<T>(filePath: string): T {
 }
 
 export function getSiteConfig(): SiteConfig {
-    const raw = parseYamlFile<Record<string, MaybeString>>(path.join(ROOT, "_config.yml"));
+    const raw = parseYamlFile<Record<string, MaybeString>>(path.join(CONTENT_DIR, "site.yml"));
 
     return {
         title: raw.title ?? "Slacker News",
@@ -189,7 +191,7 @@ export function formatStoryDate(date: Date): string {
 }
 
 export function getPageMarkdown(filePath: string): { title?: string; html: string } {
-    const parsed = matter(readText(path.join(ROOT, filePath)));
+    const parsed = matter(readText(path.join(PAGES_DIR, filePath)));
 
     return {
         title: parsed.data.title ? String(parsed.data.title) : undefined,
@@ -198,7 +200,7 @@ export function getPageMarkdown(filePath: string): { title?: string; html: strin
 }
 
 export function getPageHtml(filePath: string): { title?: string; html: string } {
-    const parsed = matter(readText(path.join(ROOT, filePath)));
+    const parsed = matter(readText(path.join(PAGES_DIR, filePath)));
 
     return {
         title: parsed.data.title ? String(parsed.data.title) : undefined,

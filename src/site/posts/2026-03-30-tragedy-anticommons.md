@@ -1,6 +1,5 @@
 ---
 title: The Tragedy of the Anticommons on the Slack
-layout: story
 date: '2026-03-30'
 author: '@eps'
 category: opinion

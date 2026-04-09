@@ -1,5 +1,4 @@
 ---
-layout: story
 date: '2026-04-01 10:57:00'
 author: "@Rowan"
 category: opinion

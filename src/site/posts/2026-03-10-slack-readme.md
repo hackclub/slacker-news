@@ -1,6 +1,5 @@
 ---
 title: New Slack Readme Helps New Users
-layout: story
 date: '2026-03-10'
 author: '@Eternal'
 category: news

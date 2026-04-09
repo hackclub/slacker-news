@@ -1,6 +1,5 @@
 ---
 title: How to Get a Gap Year at Hack Club
-layout: story
 date: '2026-03-09'
 author: '@eps'
 category: opinion

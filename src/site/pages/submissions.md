@@ -1,7 +1,5 @@
 ---
-layout: page
 title: Submission Guidelines
-permalink: /submissions/
 ---
 
 **News**

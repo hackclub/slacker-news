@@ -1,6 +1,5 @@
 ---
 title: Three Futures for this Slack
-layout: story
 date: '2026-03-09'
 author: '@eps'
 category: opinion
