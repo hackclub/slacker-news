@@ -3,7 +3,7 @@
 # Opinion lists up to 3 slugs to pin; falls back to most recent if fewer than 3.
 
 headline:
-  - nasa-stardance
+  - new-hq
 
 opinion:
   - 3-months-at-hack-club
