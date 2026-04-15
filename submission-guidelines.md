@@ -4,6 +4,14 @@ title: Submission Guidelines
 permalink: /submissions/
 ---
 
+**AI use**
+1. Articles should be human-written. This is hard to define, but it's the guiding principle.
+2. Proactively disclose how you used AI.
+3. AI proofreading for typos, grammar errors, missing words, etc. is welcome.
+4. Asking AI to critique your piece and make suggestions is welcome.
+5. Asking AI to directly change your piece, outside of proofreading, is a complicated grey area. The bigger the changes, the more it is an issue.
+6. Talking with AI to work through your ideas is fine. But the ideas presented should be your own. For example, if you are arguing for a position, do not ask AI to give you arguments.
+
 **News**
 1. News stories should be purely factual, rather than speculative or opinionated
 2. Authors should fact-check their submissions
