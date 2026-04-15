@@ -7,7 +7,8 @@
     "styles": "sass src/styles/main.scss public/assets/main.css --no-source-map",
     "dev": "npm run styles && astro dev",
     "build": "npm run styles && astro build",
-    "preview": "npm run styles && astro preview"
+    "preview": "npm run styles && astro preview",
+    "test": "node --test"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.11",
