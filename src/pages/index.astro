@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import {
+  getAcknowledgements,
   getFrontpageData,
   getPosts,
   getRecentChangelogEntries,
@@ -34,7 +35,11 @@ for (const post of allOpinion) {
 const allNews = posts.filter((post) => post.category === "news");
 const displayNews = allNews.filter((post) => post.slug !== headlineSlug).slice(0, 8);
 
+const allEssays = posts.filter((post) => post.category === "essays");
+const displayEssays = allEssays.slice(0, 4);
+
 const recentChangelog = getRecentChangelogEntries(30);
+const acknowledgements = getAcknowledgements();
 ---
 
 <BaseLayout siteTitle={site.title} siteDescription={site.description}>
@@ -80,6 +85,27 @@ const recentChangelog = getRecentChangelogEntries(30);
 
     <a href="/news/" class="news-archive-link">All news &rarr;</a>
 
+    {displayEssays.length > 0 && (
+      <>
+        <hr class="section-rule" />
+
+        <div class="front-essays">
+          {displayEssays.map((post) => (
+            <a href={post.url} class="front-block story-block essay-block">
+              <h3 class="story-block-title">{post.title}</h3>
+              <div class="essay-block-excerpts">
+                {post.paragraphs.slice(0, 4).map((paragraph) => (
+                  <p class="block-excerpt">{paragraph}</p>
+                ))}
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <a href="/essays/" class="news-archive-link">All essays &rarr;</a>
+      </>
+    )}
+
     <hr class="section-rule" />
 
     <div class="front-changelog">
@@ -99,6 +125,17 @@ const recentChangelog = getRecentChangelogEntries(30);
         ))}
         {recentChangelog.length > 0 && <hr class="changelog-divider" />}
         <a href="/changelogs/" class="archive-link">All changelogs &rarr;</a>
+      </div>
+
+      <div class="front-block acknowledgements-block">
+        <div class="section-label">ACKNOWLEDGEMENTS</div>
+        <hr class="block-rule" />
+        <div class="acknowledgements-grid">
+          {acknowledgements.map((person) => (
+            <span class="acknowledgement-name">{person.name}</span>
+          ))}
+        </div>
+        <a href="/acknowledgements/" class="archive-link">All acknowledgements &rarr;</a>
       </div>
     </div>
   </div>

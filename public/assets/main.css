@@ -435,6 +435,68 @@ a:visited {
   margin: 12px 0;
 }
 
+.front-essays {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.essay-block:hover {
+  background: #fff;
+}
+
+.essay-block-excerpts {
+  margin-top: 8px;
+}
+.essay-block-excerpts .block-excerpt {
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #444;
+  margin: 0;
+}
+.essay-block-excerpts .block-excerpt + .block-excerpt {
+  margin-top: 0.65em;
+}
+
+.acknowledgements-block:hover {
+  background: #fff;
+}
+.acknowledgements-block .section-label {
+  font-size: 0.75rem;
+  font-family: Georgia, serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 6px;
+}
+.acknowledgements-block .block-rule {
+  border: none;
+  border-top: 2px solid #000;
+  margin: 0 0 14px;
+}
+
+.acknowledgements-grid {
+  column-count: 2;
+  column-gap: 20px;
+  margin-bottom: 14px;
+}
+.acknowledgements-grid .acknowledgement-name {
+  display: block;
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1.4;
+}
+
+.acknowledgements-full-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px 20px;
+}
+.acknowledgements-full-grid .acknowledgement-name {
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+
 .story-page {
   max-width: 680px;
   margin: 32px auto;

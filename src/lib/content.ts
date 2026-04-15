@@ -53,7 +53,11 @@ type FrontpageData = {
 const CHANNEL_REGEX = /##([\w-]+)|\B#([\w-]+)/g;
 
 function readText(filePath: string): string {
-    return fs.readFileSync(filePath, "utf8");
+    try {
+        return fs.readFileSync(filePath, "utf8");
+    } catch (error) {
+        throw new Error(`Failed to read content file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+    }
 }
 
 function normalizeWhitespace(input: string): string {
@@ -128,7 +132,11 @@ function extractParagraphs(html: string): string[] {
 }
 
 function parseYamlFile<T>(filePath: string): T {
-    return yaml.load(readText(filePath)) as T;
+    try {
+        return yaml.load(readText(filePath)) as T;
+    } catch (error) {
+        throw new Error(`Failed to parse YAML file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+    }
 }
 
 export function getSiteConfig(): SiteConfig {

@@ -283,6 +283,78 @@ a {
   margin: 12px 0;
 }
 
+// ─── Essays block ────────────────────────────────────────────────────────────
+
+.front-essays {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.essay-block {
+  &:hover { background: #fff; }
+}
+
+.essay-block-excerpts {
+  margin-top: 8px;
+
+  .block-excerpt {
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: #444;
+    margin: 0;
+  }
+
+  .block-excerpt + .block-excerpt {
+    margin-top: 0.65em;
+  }
+}
+
+// ─── Acknowledgements block ──────────────────────────────────────────────────
+
+.acknowledgements-block {
+  &:hover { background: #fff; }
+
+  .section-label {
+    font-size: 0.75rem;
+    font-family: Georgia, serif;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 6px;
+  }
+
+  .block-rule {
+    border: none;
+    border-top: 2px solid #000;
+    margin: 0 0 14px;
+  }
+}
+
+.acknowledgements-grid {
+  column-count: 2;
+  column-gap: 20px;
+  margin-bottom: 14px;
+
+  .acknowledgement-name {
+    display: block;
+    font-size: 1rem;
+    font-weight: bold;
+    line-height: 1.4;
+  }
+}
+
+.acknowledgements-full-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px 20px;
+
+  .acknowledgement-name {
+    font-size: 1.05rem;
+    line-height: 1.75;
+  }
+}
+
 // ─── Story (article) page ─────────────────────────────────────────────────────
 
 .story-page {

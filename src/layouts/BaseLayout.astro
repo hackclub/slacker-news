@@ -61,7 +61,8 @@ const pageDescription = description ?? siteDescription;
           btn.textContent = document.documentElement.classList.contains("dark-mode") ? "Light Mode" : "Dark Mode";
         }
         updateThemeButtonLabel();
-        btn.addEventListener("click", function () {
+        btn.addEventListener("click", function (event) {
+          event.preventDefault();
           document.documentElement.classList.toggle("dark-mode");
           var isDark = document.documentElement.classList.contains("dark-mode");
           document.documentElement.classList.toggle("light-mode", !isDark);

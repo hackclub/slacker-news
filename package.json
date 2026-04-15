@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "packageManager": "bun@1.2.9",
   "scripts": {
     "styles": "sass src/styles/main.scss public/assets/main.css --no-source-map",
-    "dev": "npm run styles && astro dev",
-    "build": "npm run styles && astro build",
-    "preview": "npm run styles && astro preview",
+    "dev": "bun run styles && astro dev",
+    "build": "bun run styles && astro build",
+    "preview": "bun run styles && astro preview",
     "test": "node --test"
   },
   "dependencies": {
