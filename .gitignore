@@ -10,3 +10,9 @@ _site
 scorecard.png
 .agents/
 review-import.json
+
+.env
+.env.local
+.env.development
+.env.test
+.env.production
