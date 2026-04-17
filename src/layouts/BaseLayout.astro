@@ -75,7 +75,7 @@ const pageDescription = description ?? siteDescription;
           try {
             localStorage.setItem("dark-mode", String(isDark));
           } catch (_error) {
-            // Ignore storage access errors in restrictive browsing modes.
+            // do nothing :)
           }
           updateThemeButtonLabel();
         });

@@ -1,6 +1,6 @@
 # Slacker News
 
-A community-driven news aggregator built with [Astro](https://astro.build), highlighting stories that matter to builders and creative people. Run by [Hack Club](https://hackclub.com).
+Official news from Hack Club Slack; built with [Astro](https://astro.build); highlighting stories that matter to hackers and makers. Run by [Hack Club](https://hackclub.com).
 
 ## Prerequisites
 
@@ -120,12 +120,34 @@ The project includes a `Dockerfile` for containerized deployment. Build and run 
 
 ```bash
 docker build -t slacker-news .
-docker run -p 8080:80 slacker-news
+docker run --rm --name slacker-news -p 8080:80 slacker-news
 ```
 
 The container uses Bun for all build and runtime operations and serves the static production build.
 
 The container listens on port 80, so map it to whatever host port you want, for example `8080:80`.
+
+Open the site over HTTP (not HTTPS):
+
+```text
+http://localhost:8080
+```
+
+If you send HTTPS to this container port (for example `https://localhost:8080`), nginx will log binary TLS bytes and return `400` because this image serves plain HTTP only.
+
+Quick sanity check:
+
+```bash
+curl -I http://localhost:8080
+```
+
+If Docker says the port is already allocated, stop the existing container and rerun:
+
+```bash
+docker ps
+docker stop <container_id_or_name>
+docker run --rm --name slacker-news -p 8080:80 slacker-news
+```
 
 ## Contributing
 
