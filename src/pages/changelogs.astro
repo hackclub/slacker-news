@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import SlackMention from "../components/SlackMention.astro";
 import { getChangelogEntries, getSiteConfig } from "../lib/content";
 
 const site = await getSiteConfig();
@@ -15,7 +16,10 @@ const changelogEntries = await getChangelogEntries();
         <div class="front-block story-block">
           <h3 class="story-block-title">{entry.change}</h3>
           <p class="story-block-excerpt">
-            {entry.date} &middot; {entry.author}
+            {entry.date} &middot; {(() => {
+              const authorName = entry.author.trim().replace(/^@+/, "");
+              return entry.slackId ? <SlackMention name={authorName} id={entry.slackId} /> : entry.author;
+            })()}
           </p>
         </div>
       ))}

@@ -21,6 +21,17 @@ $link-hover-color:      #000000;
 body {
   font-family: Georgia, "Times New Roman", serif;
   background-color: #f5f5f0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+html {
+  background-color: #f5f5f0;
+}
+
+.page-content {
+  flex: 1;
 }
 
 a {
@@ -154,6 +165,10 @@ a {
   }
   .block-excerpts {
     flex: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 8;
+    line-clamp: 8;
     overflow: hidden;
   }
   .block-excerpt {
@@ -430,6 +445,9 @@ a {
 }
 
 .theme-toggle {
+  border: 0;
+  background: none;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -546,6 +564,20 @@ html.dark-mode {
 $slack-link-fg:         #1264a3;
 $slack-link-bg:         rgba(18, 100, 163, 0.1);
 $slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
+
+.slack_user {
+  color: $slack-link-fg;
+  background: $slack-link-bg;
+  border-radius: 3px;
+  padding: 0 3px;
+  white-space: nowrap;
+
+  &:visited { color: $slack-link-fg; }
+  &:hover {
+    background: $slack-link-bg-hover;
+    color: $slack-link-fg;
+  }
+}
 
 .slack_channel {
   color: $slack-link-fg;

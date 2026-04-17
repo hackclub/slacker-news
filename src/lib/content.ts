@@ -25,10 +25,12 @@ export type ChangelogEntry = {
     change: string;
     date: string;
     author: string;
+    slackId?: string;
 };
 
 export type Acknowledgement = {
     name: string;
+    slackId?: string;
 };
 
 type FrontpageData = {
@@ -90,15 +92,6 @@ function toExcerpt(entry: { body: string; data: { excerpt?: string } }): string 
     return stripMarkdown(source);
 }
 
-async function requireEntry(collection: string, slug: string) {
-    const entry = await getEntry(collection, slug);
-    if (!entry) {
-        throw new Error(`Missing required content entry ${collection}/${slug}`);
-    }
-
-    return entry;
-}
-
 export async function getSiteConfig(): Promise<SiteConfig> {
     return {
         title: siteData.title,
@@ -156,7 +149,12 @@ export function formatStoryDate(date: Date): string {
 }
 
 export async function getPageEntry(slug: string): Promise<CollectionEntry<"pages">> {
-    return requireEntry("pages", slug);
+    const entry = await getEntry("pages", slug);
+    if (!entry) {
+        throw new Error(`Missing required content entry pages/${slug}`);
+    }
+
+    return entry;
 }
 
 export { truncateWords };

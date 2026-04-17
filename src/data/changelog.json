@@ -1,17 +1,20 @@
 [
   {
-    "change": "Astrofication: moved content to Astro collections and MDX",
+    "change": "Astronomical potential",
     "date": "2026-04-15",
-    "author": "@matmanna"
+    "author": "@matmanna",
+    "slackId": "U09UQ385LSG"
   },
   {
     "change": "Added RSS feed",
     "date": "2026-03-18",
-    "author": "@3kho"
+    "author": "@rowan",
+    "slackId": "U080A3QP42C"
   },
   {
     "change": "Site launched",
     "date": "2026-03-09",
-    "author": "@eps"
+    "author": "@eps",
+    "slackId": "U09Q8MLTE58"
   }
 ]

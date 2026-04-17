@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import SlackMention from "../components/SlackMention.astro";
 import {
   getAcknowledgements,
   getFrontpageData,
@@ -117,7 +118,10 @@ const acknowledgements = await getAcknowledgements();
             <div class="changelog-item">
               <span class="changelog-change">{entry.change}</span>
               <span class="changelog-meta">
-                {entry.date} &middot; {entry.author}
+                {entry.date} &middot; {(() => {
+                  const authorName = entry.author.trim().replace(/^@+/, "");
+                  return entry.slackId ? <SlackMention name={authorName} id={entry.slackId} /> : entry.author;
+                })()}
               </span>
             </div>
             {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}
@@ -131,9 +135,14 @@ const acknowledgements = await getAcknowledgements();
         <div class="section-label">ACKNOWLEDGEMENTS</div>
         <hr class="block-rule" />
         <div class="acknowledgements-grid">
-          {acknowledgements.map((person) => (
-            <span class="acknowledgement-name">{person.name}</span>
-          ))}
+          {acknowledgements.map((person) => {
+            const userName = person.name.trim().replace(/^@+/, "");
+            return (
+              <span class="acknowledgement-name">
+                {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
+              </span>
+            );
+          })}
         </div>
         <a href="/acknowledgements/" class="archive-link">All acknowledgements &rarr;</a>
       </div>

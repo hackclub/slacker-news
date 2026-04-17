@@ -31,26 +31,29 @@ const pageDescription = description ?? siteDescription;
       </style>
     </noscript>
     <script is:inline>
-      document.documentElement.classList.remove("no-js");
-    </script>
-    <script is:inline>
       (function () {
-        document.documentElement.classList.add("js");
+        var root = document.documentElement;
+        root.classList.remove("no-js");
+        root.classList.add("js");
 
-        var storedPreference = localStorage.getItem("dark-mode");
-        var prefersDark =
-          typeof window.matchMedia === "function" &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        try {
+          var storedPreference = localStorage.getItem("dark-mode");
+          var prefersDark =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-        if (storedPreference === "false") {
-          document.documentElement.classList.remove("dark-mode");
-          document.documentElement.classList.add("light-mode");
-          return;
-        }
+          if (storedPreference === "false") {
+            root.classList.remove("dark-mode");
+            root.classList.add("light-mode");
+            return;
+          }
 
-        if (storedPreference === "true" || (storedPreference === null && prefersDark)) {
-          document.documentElement.classList.remove("light-mode");
-          document.documentElement.classList.add("dark-mode");
+          if (storedPreference === "true" || (storedPreference === null && prefersDark)) {
+            root.classList.remove("light-mode");
+            root.classList.add("dark-mode");
+          }
+        } catch (_error) {
+          // do nothing :)
         }
       })();
     </script>
@@ -58,56 +61,24 @@ const pageDescription = description ?? siteDescription;
       document.addEventListener("DOMContentLoaded", function () {
         var btn = document.getElementById("theme-toggle");
         if (!btn) return;
+
         function updateThemeButtonLabel() {
           btn.textContent = document.documentElement.classList.contains("dark-mode") ? "Light Mode" : "Dark Mode";
         }
+
         updateThemeButtonLabel();
-        btn.addEventListener("click", function (event) {
-          event.preventDefault();
-          document.documentElement.classList.toggle("dark-mode");
-          var isDark = document.documentElement.classList.contains("dark-mode");
-          document.documentElement.classList.toggle("light-mode", !isDark);
-          localStorage.setItem("dark-mode", isDark);
+        btn.addEventListener("click", function () {
+          var root = document.documentElement;
+          root.classList.toggle("dark-mode");
+          var isDark = root.classList.contains("dark-mode");
+          root.classList.toggle("light-mode", !isDark);
+          try {
+            localStorage.setItem("dark-mode", String(isDark));
+          } catch (_error) {
+            // Ignore storage access errors in restrictive browsing modes.
+          }
           updateThemeButtonLabel();
         });
-      });
-    </script>
-    <script is:inline>
-      window.addEventListener("load", function () {
-        var wrapper = document.querySelector(".block-excerpts");
-        if (!wrapper || wrapper.scrollHeight <= wrapper.clientHeight) return;
-
-        var paras = Array.from(wrapper.querySelectorAll(".block-excerpt"));
-
-        while (paras.length > 1 && wrapper.scrollHeight > wrapper.clientHeight) {
-          var last = paras[paras.length - 1];
-          last.style.display = "none";
-          if (wrapper.scrollHeight <= wrapper.clientHeight) {
-            last.style.display = "";
-            break;
-          }
-          last.remove();
-          paras.pop();
-        }
-
-        if (wrapper.scrollHeight <= wrapper.clientHeight) return;
-
-        var last = paras[paras.length - 1];
-        var words = last.textContent.split(/\s+/);
-
-        while (wrapper.scrollHeight > wrapper.clientHeight && words.length > 1) {
-          words.pop();
-          last.textContent = words.join(" ") + "…";
-        }
-
-        var truncated = words.join(" ");
-        var sentenceMatch = truncated.match(/^(.*[.!?])\s/);
-        if (sentenceMatch && sentenceMatch[1].length > truncated.length * 0.6) {
-          last.textContent = sentenceMatch[1];
-          if (wrapper.scrollHeight > wrapper.clientHeight) {
-            last.textContent = truncated + "…";
-          }
-        }
       });
     </script>
   </head>
@@ -135,7 +106,7 @@ const pageDescription = description ?? siteDescription;
             <span class="nav-pip">|</span>
             <a class="page-link" href="/feed.xml">RSS</a>
             <span class="nav-pip js-only">|</span>
-            <a class="page-link theme-toggle js-only" id="theme-toggle" role="button" href="#">Dark Mode</a>
+            <button class="page-link theme-toggle js-only" id="theme-toggle" type="button">Dark Mode</button>
           </div>
         </nav>
       </div>
