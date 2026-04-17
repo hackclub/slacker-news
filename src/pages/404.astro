@@ -1,0 +1,15 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getSiteConfig } from "../lib/content";
+
+const site = await getSiteConfig();
+---
+
+<BaseLayout title="404" siteTitle={site.title} siteDescription={site.description}>
+  <div class="container">
+    <h1>404</h1>
+
+    <p><strong>Page not found :(</strong></p>
+    <p>The requested page could not be found.</p>
+  </div>
+</BaseLayout>

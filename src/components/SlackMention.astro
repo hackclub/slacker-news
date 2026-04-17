@@ -1,0 +1,10 @@
+---
+interface Props {
+    name: string;
+    id: string;
+}
+
+const { name, id } = Astro.props;
+---
+
+<a href={`https://hackclub.slack.com/team/${encodeURIComponent(id)}`} class="slack_user" target="_blank" rel="noreferrer noopener">@{name}</a>

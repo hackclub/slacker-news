@@ -1,0 +1,147 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SlackMention from "../components/SlackMention.astro";
+import {
+  getAcknowledgements,
+  getFrontpageData,
+  getPosts,
+  getRecentChangelogEntries,
+  getSiteConfig,
+  truncateWords
+} from "../lib/content";
+
+const site = await getSiteConfig();
+const posts = await getPosts();
+const frontpage = await getFrontpageData();
+
+const headlineSlug = frontpage.headline?.[0];
+const headline = posts.find((post) => post.slug === headlineSlug);
+
+const allOpinion = posts.filter((post) => post.category === "opinion");
+const opinionSlugs = frontpage.opinion ?? [];
+const displayOpinion = [];
+for (const slug of opinionSlugs) {
+  const matched = allOpinion.find((post) => post.slug === slug);
+  if (matched && displayOpinion.length < 3) {
+    displayOpinion.push(matched);
+  }
+}
+for (const post of allOpinion) {
+  if (displayOpinion.length >= 3) break;
+  if (!displayOpinion.some((candidate) => candidate.slug === post.slug)) {
+    displayOpinion.push(post);
+  }
+}
+
+const allNews = posts.filter((post) => post.category === "news");
+const displayNews = allNews.filter((post) => post.slug !== headlineSlug).slice(0, 8);
+
+const allEssays = posts.filter((post) => post.category === "essays");
+const displayEssays = allEssays.slice(0, 4);
+
+const recentChangelog = await getRecentChangelogEntries(30);
+const acknowledgements = await getAcknowledgements();
+---
+
+<BaseLayout siteTitle={site.title} siteDescription={site.description}>
+  <div class="newspaper-front">
+    <div class="front-top">
+      {headline && (
+        <a href={headline.url} class="front-block headline-block">
+          <h2 class="block-headline">{headline.title}</h2>
+          <hr class="block-rule" />
+          <div class="block-excerpts">
+            {headline.paragraphs.slice(0, 2).map((paragraph) => (
+              <p class="block-excerpt">{paragraph}</p>
+            ))}
+          </div>
+        </a>
+      )}
+
+      <div class="front-block opinion-block">
+        <div class="section-label">OPINION</div>
+        <hr class="block-rule" />
+        {displayOpinion.map((post, index) => (
+          <>
+            <a href={post.url} class="opinion-item">
+              <h3 class="opinion-title">{post.title}</h3>
+              <p class="opinion-excerpt">{truncateWords(post.excerpt, 18)}</p>
+            </a>
+            {index < displayOpinion.length - 1 && <hr class="opinion-divider" />}
+          </>
+        ))}
+        {displayOpinion.length > 0 && <hr class="opinion-divider" />}
+        <a href="/opinion/" class="archive-link">All opinion &rarr;</a>
+      </div>
+    </div>
+
+    <div class={`front-bottom ${displayNews.length < 4 ? `front-bottom--${displayNews.length}` : ""}`}>
+      {displayNews.map((post) => (
+        <a href={post.url} class="front-block story-block">
+          <h3 class="story-block-title">{post.title}</h3>
+          <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
+        </a>
+      ))}
+    </div>
+
+    <a href="/news/" class="news-archive-link">All news &rarr;</a>
+
+    {displayEssays.length > 0 && (
+      <>
+        <hr class="section-rule" />
+
+        <div class="front-essays">
+          {displayEssays.map((post) => (
+            <a href={post.url} class="front-block story-block essay-block">
+              <h3 class="story-block-title">{post.title}</h3>
+              <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
+            </a>
+          ))}
+        </div>
+
+        <a href="/essays/" class="news-archive-link">All essays &rarr;</a>
+      </>
+    )}
+
+    <hr class="section-rule" />
+
+    <div class="front-changelog">
+      <div class="front-block changelog-block">
+        <div class="section-label">CHANGELOG</div>
+        <hr class="block-rule" />
+        {recentChangelog.map((entry, index) => (
+          <>
+            <div class="changelog-item">
+              <span class="changelog-change">{entry.change}</span>
+              <span class="changelog-meta">
+                {entry.date} &middot; {(() => {
+                  const authorName = entry.author.trim().replace(/^@+/, "");
+                  return entry.slackId ? <SlackMention name={authorName} id={entry.slackId} /> : entry.author;
+                })()}
+              </span>
+            </div>
+            {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}
+          </>
+        ))}
+        {recentChangelog.length > 0 && <hr class="changelog-divider" />}
+        <a href="/changelogs/" class="archive-link">All changelogs &rarr;</a>
+      </div>
+
+      <div class="front-block acknowledgements-block">
+        <div class="section-label">ACKNOWLEDGEMENTS</div>
+        <hr class="block-rule" />
+        <div class="acknowledgements-grid">
+          {acknowledgements.map((person) => {
+            const userName = person.name.trim().replace(/^@+/, "");
+            return (
+              <span class="acknowledgement-name">
+                {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
+              </span>
+            );
+          })}
+        </div>
+        <a href="/acknowledgements/" class="archive-link">All acknowledgements &rarr;</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

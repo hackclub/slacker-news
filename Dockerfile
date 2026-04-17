@@ -1,13 +1,8 @@
-FROM ruby:3.4.4 AS builder
-RUN apt-get update -qq && apt-get install -y build-essential nodejs
-WORKDIR /srv/jekyll
-COPY Gemfile Gemfile.lock ./
-RUN gem install bundler:2.3.7 && bundle install
+FROM oven/bun:latest
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
-RUN chown 1000:1000 -R /srv/jekyll
-RUN bundle exec jekyll build -d /srv/jekyll/_site
-
-FROM nginx:alpine
-COPY --from=builder /srv/jekyll/_site /usr/share/nginx/html
+RUN bun run build
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["bun", "run", "preview", "--host", "0.0.0.0", "--port", "80"]

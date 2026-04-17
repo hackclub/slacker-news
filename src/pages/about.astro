@@ -1,0 +1,15 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import { getPageEntry, getSiteConfig } from "../lib/content";
+
+const site = await getSiteConfig();
+const page = await getPageEntry("about");
+const { Content } = await page.render();
+---
+
+<PageLayout
+  pageTitle={page.data.title ?? "About"}
+  Content={Content}
+  siteTitle={site.title}
+  siteDescription={site.description}
+/>

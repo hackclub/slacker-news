@@ -1,0 +1,22 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getPosts, getSiteConfig, truncateWords } from "../lib/content";
+
+const site = await getSiteConfig();
+const essaysPosts = (await getPosts()).filter((post) => post.category === "essays");
+---
+
+<BaseLayout title="Essays Archive" siteTitle={site.title} siteDescription={site.description}>
+  <div class="archive-page">
+    <div class="section-label">ESSAYS</div>
+    <hr class="section-rule" />
+    <div class="archive-list">
+      {essaysPosts.map((post) => (
+        <a href={post.url} class="front-block story-block">
+          <h3 class="story-block-title">{post.title}</h3>
+          <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

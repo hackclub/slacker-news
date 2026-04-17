@@ -1,0 +1,9 @@
+---
+interface Props {
+    id: string;
+}
+
+const { id } = Astro.props;
+---
+
+<a href={`https://hackclub.slack.com/archives/${encodeURIComponent(id)}`} class="slack_channel" target="_blank" rel="noreferrer noopener">#{id}</a>

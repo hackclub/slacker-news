@@ -1,0 +1,34 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SlackMention from "../components/SlackMention.astro";
+import { getAcknowledgements, getSiteConfig } from "../lib/content";
+
+const site = await getSiteConfig();
+const acknowledgements = await getAcknowledgements();
+---
+
+<BaseLayout title="Acknowledgements" siteTitle={site.title} siteDescription={site.description}>
+  <article class="story-page">
+    <header class="story-header">
+      <h1 class="story-title">Acknowledgements</h1>
+      <hr class="story-rule" />
+    </header>
+
+    <div class="story-body">
+      <div class="acknowledgements-full-grid">
+        {acknowledgements.map((person) => {
+          const userName = person.name.trim().replace(/^@+/, "");
+          return (
+            <span class="acknowledgement-name">
+              {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+
+    <footer class="story-footer">
+      <a href="/">&larr; Back to front page</a>
+    </footer>
+  </article>
+</BaseLayout>

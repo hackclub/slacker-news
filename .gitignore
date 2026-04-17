@@ -1,7 +1,12 @@
-_site
-.sass-cache
-.jekyll-cache
-.jekyll-metadata
 .DS_Store
-vendor
-post\ template.md
+node_modules
+dist
+.astro
+_site
+.jekyll-cache
+*.report.html
+.tmp-**.mjs
+.desloppify/
+scorecard.png
+.agents/
+review-import.json

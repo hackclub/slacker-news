@@ -1,0 +1,38 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
+
+export async function getStaticPaths() {
+  return (await getPosts()).map((post) => ({
+    params: { slug: post.slug },
+    props: { post }
+  }));
+}
+
+const site = await getSiteConfig();
+const { post } = Astro.props;
+const { Content } = await post.entry.render();
+---
+
+<BaseLayout title={post.title} siteTitle={site.title} siteDescription={site.description}>
+  <article class="story-page">
+    <header class="story-header">
+      <h1 class="story-title">{post.title}</h1>
+      <div class="story-meta">
+        {post.category && <span class="story-category">{post.category.toUpperCase()}</span>}
+        {post.author && <span class="story-author">By {post.author}</span>}
+        {post.author && " — "}
+        <time>{formatStoryDate(new Date(post.date))}</time>
+      </div>
+      <hr class="story-rule" />
+    </header>
+
+    <div class="story-body">
+      <Content />
+    </div>
+
+    <footer class="story-footer">
+      <a href="/">&larr; Back to front page</a>
+    </footer>
+  </article>
+</BaseLayout>

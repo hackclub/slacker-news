@@ -1,0 +1,121 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  siteTitle: string;
+  siteDescription: string;
+}
+
+import "../styles/main.scss";
+
+const { title, description, siteTitle, siteDescription } = Astro.props;
+const pageTitle = title && title !== siteTitle ? `${title} | ${siteTitle}` : siteTitle;
+const pageDescription = description ?? siteDescription;
+---
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="icon" type="image/svg+xml" href="/SN%20H%20Logo.svg" />
+    <link rel="alternate" type="application/rss+xml" title={siteTitle} href="/feed.xml" />
+    <noscript>
+      <style>
+        .js-only {
+          display: none !important;
+        }
+      </style>
+    </noscript>
+    <script is:inline>
+      (function () {
+        var root = document.documentElement;
+        root.classList.remove("no-js");
+        root.classList.add("js");
+
+        try {
+          var storedPreference = localStorage.getItem("dark-mode");
+          var prefersDark =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+          if (storedPreference === "false") {
+            root.classList.remove("dark-mode");
+            root.classList.add("light-mode");
+            return;
+          }
+
+          if (storedPreference === "true" || (storedPreference === null && prefersDark)) {
+            root.classList.remove("light-mode");
+            root.classList.add("dark-mode");
+          }
+        } catch (_error) {
+          // do nothing :)
+        }
+      })();
+    </script>
+    <script is:inline>
+      document.addEventListener("DOMContentLoaded", function () {
+        var btn = document.getElementById("theme-toggle");
+        if (!btn) return;
+
+        function updateThemeButtonLabel() {
+          btn.textContent = document.documentElement.classList.contains("dark-mode") ? "Light Mode" : "Dark Mode";
+        }
+
+        updateThemeButtonLabel();
+        btn.addEventListener("click", function () {
+          var root = document.documentElement;
+          root.classList.toggle("dark-mode");
+          var isDark = root.classList.contains("dark-mode");
+          root.classList.toggle("light-mode", !isDark);
+          try {
+            localStorage.setItem("dark-mode", String(isDark));
+          } catch (_error) {
+            // do nothing :)
+          }
+          updateThemeButtonLabel();
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <header class="site-header" role="banner">
+      <div class="wrapper">
+        <a class="site-title" rel="author" href="/">
+          <img src="/Core%20SN%20logo.svg" alt={siteTitle} style="height: 2em; vertical-align: middle;" />
+        </a>
+        <nav class="site-nav">
+          <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+          <label for="nav-trigger">
+            <span class="menu-icon">
+              <svg viewBox="0 0 18 15" width="18px" height="15px">
+                <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z" />
+              </svg>
+            </span>
+          </label>
+          <div class="trigger">
+            <a class="page-link" href="/about/">About</a>
+            <span class="nav-pip">|</span>
+            <a class="page-link" href="/submissions/">Submissions</a>
+            <span class="nav-pip">|</span>
+            <a class="page-link" href="https://hackclub.com">Hack Club</a>
+            <span class="nav-pip">|</span>
+            <a class="page-link" href="/feed.xml">RSS</a>
+            <span class="nav-pip js-only">|</span>
+            <button class="page-link theme-toggle js-only" id="theme-toggle" type="button">Dark Mode</button>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <slot />
+      </div>
+    </main>
+  </body>
+</html>
