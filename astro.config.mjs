@@ -4,6 +4,9 @@ import mdx from "@astrojs/mdx";
 export default defineConfig({
     site: "https://news.hackclub.com",
     integrations: [mdx()],
+    image: {
+        domains: ["cdn.hackclub.com", "user-cdn.hackclub-assets.com"]
+    },
     redirects: {
         "/3-months-at-hack-club": "/opinion/3-months-at-hack-club",
         "/against-moderation-transparency": "/opinion/against-moderation-transparency",
