@@ -5,4 +5,4 @@ RUN bun install --frozen-lockfile
 COPY . .
 RUN bun run build
 EXPOSE 80
-CMD ["bun", "run", "preview", "--host", "0.0.0.0", "--port", "80"]
+CMD ["bun", "run", "serve.ts"]
