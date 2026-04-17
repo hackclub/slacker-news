@@ -2,7 +2,7 @@ import { getCollection, getEntry, type CollectionEntry } from "astro:content";
 import siteData from "../data/site.json";
 import frontpageData from "../data/frontpage.json";
 import changelogData from "../data/changelog.json";
-import acknowledgementsData from "../data/acknowledgements_frontpage.json";
+import acknowledgementsData from "../data/acknowledgements.json";
 
 export type SiteConfig = {
     title: string;
@@ -106,13 +106,14 @@ export async function getPosts(): Promise<Post[]> {
         .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
         .map((entry) => {
             const paragraphs = extractBlocks(entry.body);
+            const [category] = entry.slug.split("/", 1);
 
             return {
                 slug: entry.slug,
                 url: `/${entry.slug}/`,
                 title: entry.data.title,
                 author: entry.data.author,
-                category: entry.data.category,
+                category,
                 date: entry.data.date,
                 excerpt: toExcerpt(entry),
                 paragraphs,

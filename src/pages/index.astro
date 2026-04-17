@@ -3,9 +3,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import SlackMention from "../components/SlackMention.astro";
 import {
   getAcknowledgements,
+  getChangelogEntries,
   getFrontpageData,
   getPosts,
-  getRecentChangelogEntries,
   getSiteConfig,
   truncateWords
 } from "../lib/content";
@@ -39,7 +39,7 @@ const displayNews = allNews.filter((post) => post.slug !== headlineSlug).slice(0
 const allEssays = posts.filter((post) => post.category === "essays");
 const displayEssays = allEssays.slice(0, 4);
 
-const recentChangelog = await getRecentChangelogEntries(30);
+const recentChangelog = (await getChangelogEntries()).slice(0, 3);
 const acknowledgements = await getAcknowledgements();
 ---
 

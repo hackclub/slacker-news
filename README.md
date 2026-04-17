@@ -1,6 +1,6 @@
 # Slacker News
 
-Official news from Hack Club Slack; built with [Astro](https://astro.build); highlighting stories that matter to hackers and makers. Run by [Hack Club](https://hackclub.com).
+Official news from the Hack Club Slack; built with [Astro](https://astro.build); highlighting stories that matter to hackers and makers. Run by [Hack Club](https://hackclub.com).
 
 ## Prerequisites
 
