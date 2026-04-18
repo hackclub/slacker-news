@@ -16,6 +16,7 @@ const frontpage = await getFrontpageData();
 
 const headlineSlug = frontpage.headline?.[0];
 const headline = posts.find((post) => post.slug === headlineSlug);
+const headlineExcerpts = headline?.paragraphs.slice(0, headline?.leadingImage ? 1 : 2) ?? [];
 
 const allOpinion = posts.filter((post) => post.category === "opinion");
 const opinionSlugs = frontpage.opinion ?? [];
@@ -48,12 +49,25 @@ const acknowledgements = await getAcknowledgements();
     <div class="front-top">
       {headline && (
         <a href={headline.url} class="front-block headline-block">
-          <h2 class="block-headline">{headline.title}</h2>
-          <hr class="block-rule" />
-          <div class="block-excerpts">
-            {headline.paragraphs.slice(0, 2).map((paragraph) => (
-              <p class="block-excerpt">{paragraph}</p>
-            ))}
+          {headline.leadingImage && (
+            <div class="headline-media">
+              <img
+                src={headline.leadingImage.src}
+                alt={headline.leadingImage.alt}
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+          )}
+
+          <div class="headline-content">
+            <h2 class="block-headline">{headline.title}</h2>
+            <hr class="block-rule" />
+            <div class="block-excerpts">
+              {headlineExcerpts.map((paragraph) => (
+                <p class="block-excerpt">{headline.leadingImage ? paragraph : truncateWords(paragraph, 28)}</p>
+              ))}
+            </div>
           </div>
         </a>
       )}

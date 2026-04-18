@@ -150,6 +150,28 @@ a {
 .headline-block {
   display: flex;
   flex-direction: column;
+
+  .headline-media {
+    margin: -24px -22px 16px;
+    overflow: hidden;
+    border-radius: 12px 12px 0 0;
+    background: #e8e8e2;
+
+    img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 7;
+      object-fit: cover;
+      object-position: center;
+    }
+  }
+
+  .headline-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
   .block-headline {
     font-size: 2rem;
     font-weight: 900;
