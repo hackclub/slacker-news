@@ -18,6 +18,10 @@ export type Post = {
     date: Date;
     excerpt: string;
     paragraphs: string[];
+    leadingImage?: {
+        src: string;
+        alt: string;
+    };
     entry: CollectionEntry<"posts">;
 };
 
@@ -76,18 +80,58 @@ function stripMarkdown(input: string): string {
     );
 }
 
-function extractBlocks(body: string): string[] {
+function getBodyBlocks(body: string): string[] {
     return body
         .replace(/^import\s.+$/gm, "")
         .replace(/^export\s.+$/gm, "")
         .split(/\n{2,}/)
+        .map((block) => block.trim())
+        .filter(Boolean);
+}
+
+function getAttributeValue(tag: string, attribute: string): string | undefined {
+    return tag.match(new RegExp(`${attribute}=["']([^"']*)["']`, "i"))?.[1];
+}
+
+function extractImageFromBlock(block: string): { src: string; alt: string } | undefined {
+    const markdownImage = block.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)$/s);
+    if (markdownImage) {
+        return {
+            alt: markdownImage[1],
+            src: markdownImage[2]
+        };
+    }
+
+    const imgTag = block.match(/<img\b[^>]*>/i);
+    if (!imgTag) {
+        return undefined;
+    }
+
+    const tag = imgTag[0];
+    const src = getAttributeValue(tag, "src");
+    if (!src) {
+        return undefined;
+    }
+
+    return {
+        src,
+        alt: getAttributeValue(tag, "alt") ?? ""
+    };
+}
+
+function extractTextBlocks(body: string): string[] {
+    const blocks = getBodyBlocks(body);
+    const leadingImage = extractImageFromBlock(blocks[0] ?? "");
+
+    return blocks
+        .slice(leadingImage ? 1 : 0)
         .map((block) => stripMarkdown(block))
         .filter(Boolean);
 }
 
 function toExcerpt(entry: { body: string; data: { excerpt?: string } }): string {
     const explicitExcerpt = entry.data.excerpt;
-    const source = explicitExcerpt ?? extractBlocks(entry.body)[0] ?? "";
+    const source = explicitExcerpt ?? extractTextBlocks(entry.body)[0] ?? "";
 
     return stripMarkdown(source);
 }
@@ -105,7 +149,9 @@ export async function getPosts(): Promise<Post[]> {
     return posts
         .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
         .map((entry) => {
-            const paragraphs = extractBlocks(entry.body);
+            const bodyBlocks = getBodyBlocks(entry.body);
+            const leadingImage = extractImageFromBlock(bodyBlocks[0] ?? "");
+            const paragraphs = extractTextBlocks(entry.body);
             const [category] = entry.slug.split("/", 1);
 
             return {
@@ -117,6 +163,7 @@ export async function getPosts(): Promise<Post[]> {
                 date: entry.data.date,
                 excerpt: toExcerpt(entry),
                 paragraphs,
+                leadingImage,
                 entry
             } satisfies Post;
         });
