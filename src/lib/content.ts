@@ -39,7 +39,6 @@ export type Acknowledgement = {
 
 type FrontpageData = {
     headline?: string[];
-    opinion?: string[];
 };
 
 function normalizeWhitespace(input: string): string {

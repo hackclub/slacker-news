@@ -18,21 +18,7 @@ const headlineSlug = frontpage.headline?.[0];
 const headline = posts.find((post) => post.slug === headlineSlug);
 const headlineExcerpts = headline?.paragraphs.slice(0, headline?.leadingImage ? 1 : 2) ?? [];
 
-const allOpinion = posts.filter((post) => post.category === "opinion");
-const opinionSlugs = frontpage.opinion ?? [];
-const displayOpinion = [];
-for (const slug of opinionSlugs) {
-  const matched = allOpinion.find((post) => post.slug === slug);
-  if (matched && displayOpinion.length < 3) {
-    displayOpinion.push(matched);
-  }
-}
-for (const post of allOpinion) {
-  if (displayOpinion.length >= 3) break;
-  if (!displayOpinion.some((candidate) => candidate.slug === post.slug)) {
-    displayOpinion.push(post);
-  }
-}
+const displayOpinion = posts.filter((post) => post.category === "opinion").slice(0, 3);
 
 const allNews = posts.filter((post) => post.category === "news");
 const displayNews = allNews.filter((post) => post.slug !== headlineSlug).slice(0, 8);
