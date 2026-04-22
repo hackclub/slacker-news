@@ -21,7 +21,7 @@ const { Content } = await post.entry.render();
       <div class="story-meta">
         {post.category && <span class="story-category">{post.category.toUpperCase()}</span>}
         {post.author && <span class="story-author">By {post.author}</span>}
-        {post.author && " — "}
+        {post.author && " · "}
         <time>{formatStoryDate(new Date(post.date))}</time>
       </div>
       <hr class="story-rule" />

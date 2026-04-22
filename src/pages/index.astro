@@ -7,7 +7,8 @@ import {
   getFrontpageData,
   getPosts,
   getSiteConfig,
-  truncateWords
+  truncateWords,
+  formatStoryDate
 } from "../lib/content";
 
 const site = await getSiteConfig();
@@ -16,9 +17,9 @@ const frontpage = await getFrontpageData();
 
 const headlineSlug = frontpage.headline?.[0];
 const headline = posts.find((post) => post.slug === headlineSlug);
-const headlineExcerpts = headline?.paragraphs.slice(0, headline?.leadingImage ? 1 : 2) ?? [];
 
-const displayOpinion = posts.filter((post) => post.category === "opinion").slice(0, 3);
+const allOpinion = posts.filter((post) => post.category === "opinion");
+const displayOpinion = allOpinion.slice(0, 3);
 
 const allNews = posts.filter((post) => post.category === "news");
 const displayNews = allNews.filter((post) => post.slug !== headlineSlug).slice(0, 8);
@@ -26,17 +27,20 @@ const displayNews = allNews.filter((post) => post.slug !== headlineSlug).slice(0
 const allEssays = posts.filter((post) => post.category === "essays");
 const displayEssays = allEssays.slice(0, 4);
 
+const sidebarOpinion = allOpinion.filter((post) => !displayOpinion.some((d) => d.slug === post.slug)).slice(0, 5);
+
 const recentChangelog = (await getChangelogEntries()).slice(0, 3);
 const acknowledgements = await getAcknowledgements();
 ---
 
 <BaseLayout siteTitle={site.title} siteDescription={site.description}>
   <div class="newspaper-front">
-    <div class="front-top">
-      {headline && (
-        <a href={headline.url} class="front-block headline-block">
+    <!-- Top fold: Hero + Sidebar -->
+    {headline && (
+      <section class="hero-section">
+        <a href={headline.url} class="hero-main">
           {headline.leadingImage && (
-            <div class="headline-media">
+            <div class="hero-image">
               <img
                 src={headline.leadingImage.src}
                 alt={headline.leadingImage.alt}
@@ -45,92 +49,137 @@ const acknowledgements = await getAcknowledgements();
               />
             </div>
           )}
-
-          <div class="headline-content">
-            <h2 class="block-headline">{headline.title}</h2>
-            <hr class="block-rule" />
-            <div class="block-excerpts">
-              {headlineExcerpts.map((paragraph) => (
-                <p class="block-excerpt">{headline.leadingImage ? paragraph : truncateWords(paragraph, 28)}</p>
-              ))}
-            </div>
+          <span class="hero-badge">Top Story</span>
+          <h2 class="hero-title">{headline.title}</h2>
+          {!headline.leadingImage && headline.paragraphs.length > 1 ? (
+            <>
+              <p class="hero-excerpt">{headline.paragraphs[0]}</p>
+              <p class="hero-excerpt">{headline.paragraphs[1]}</p>
+            </>
+          ) : (
+            <p class="hero-excerpt">{headline.paragraphs[0] ?? headline.excerpt}</p>
+          )}
+          <div class="hero-meta">
+            {headline.author && <span>By {headline.author}</span>}
+            {headline.author && <span> · </span>}
+            <time>{formatStoryDate(new Date(headline.date))}</time>
+            {headline.category && (
+              <>
+                <span> · </span>
+                <span>{headline.category}</span>
+              </>
+            )}
           </div>
         </a>
-      )}
 
-      <div class="front-block opinion-block">
-        <div class="section-label">OPINION</div>
-        <hr class="block-rule" />
-        {displayOpinion.map((post, index) => (
-          <>
-            <a href={post.url} class="opinion-item">
-              <h3 class="opinion-title">{post.title}</h3>
-              <p class="opinion-excerpt">{truncateWords(post.excerpt, 18)}</p>
+        <div class="hero-sidebar">
+          <h3 class="sidebar-label">Opinion</h3>
+          {displayOpinion.map((post) => (
+            <a href={post.url} class="sidebar-item">
+              <h4 class="sidebar-item-title">{post.title}</h4>
+              <p class="sidebar-item-excerpt">{truncateWords(post.excerpt, 12)}</p>
+              <div class="sidebar-item-meta">
+                {post.author && <span>By {post.author}</span>}
+                {post.author && <span> · </span>}
+                <time>{formatStoryDate(new Date(post.date))}</time>
+              </div>
             </a>
-            {index < displayOpinion.length - 1 && <hr class="opinion-divider" />}
-          </>
-        ))}
-        {displayOpinion.length > 0 && <hr class="opinion-divider" />}
-        <a href="/opinion/" class="archive-link">All opinion &rarr;</a>
-      </div>
-    </div>
+          ))}
+          {headline.leadingImage && sidebarOpinion.length > 0 && (
+            <>
+              <hr class="sidebar-divider" />
+              {sidebarOpinion.map((post) => (
+                <a href={post.url} class="sidebar-item sidebar-item--compact">
+                  <h4 class="sidebar-item-title">{post.title}</h4>
+                  <div class="sidebar-item-meta">
+                    {post.author && <span>By {post.author}</span>}
+                    {post.author && <span> · </span>}
+                    <time>{formatStoryDate(new Date(post.date))}</time>
+                  </div>
+                </a>
+              ))}
+            </>
+          )}
+        </div>
+      </section>
+    )}
 
-    <div class={`front-bottom ${displayNews.length < 4 ? `front-bottom--${displayNews.length}` : ""}`}>
-      {displayNews.map((post) => (
-        <a href={post.url} class="front-block story-block">
-          <h3 class="story-block-title">{post.title}</h3>
-          <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
-        </a>
-      ))}
-    </div>
-
-    <a href="/news/" class="news-archive-link">All news &rarr;</a>
-
-    {displayEssays.length > 0 && (
-      <>
+    <!-- News -->
+    {displayNews.length > 0 && (
+      <section>
+        <div class="section-header">
+          <h2 class="section-label">News</h2>
+          <a href="/news/" class="section-more">See all &rarr;</a>
+        </div>
         <hr class="section-rule" />
-
-        <div class="front-essays">
-          {displayEssays.map((post) => (
-            <a href={post.url} class="front-block story-block essay-block">
-              <h3 class="story-block-title">{post.title}</h3>
-              <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
+        <div class="headline-grid headline-grid--2">
+          {displayNews.map((post) => (
+            <a href={post.url} class="headline-card">
+              <h3 class="headline-card-title">{post.title}</h3>
+              <p class="headline-card-excerpt">{truncateWords(post.excerpt, 14)}</p>
+              <div class="headline-card-meta">
+                {post.author && <span>By {post.author}</span>}
+                {post.author && <span> · </span>}
+                <time>{formatStoryDate(new Date(post.date))}</time>
+              </div>
             </a>
           ))}
         </div>
-
-        <a href="/essays/" class="news-archive-link">All essays &rarr;</a>
-      </>
+      </section>
     )}
 
-    <hr class="section-rule" />
+    <!-- Essays -->
+    {displayEssays.length > 0 && (
+      <section>
+        <div class="section-header">
+          <h2 class="section-label">Essays</h2>
+          <a href="/essays/" class="section-more">See all &rarr;</a>
+        </div>
+        <hr class="section-rule" />
+        <div class="headline-grid headline-grid--2">
+          {displayEssays.map((post) => (
+            <a href={post.url} class="headline-card">
+              <h3 class="headline-card-title">{post.title}</h3>
+              <p class="headline-card-excerpt">{truncateWords(post.excerpt, 18)}</p>
+              <div class="headline-card-meta">
+                {post.author && <span>By {post.author}</span>}
+                {post.author && <span> · </span>}
+                <time>{formatStoryDate(new Date(post.date))}</time>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
 
-    <div class="front-changelog">
-      <div class="front-block changelog-block">
-        <div class="section-label">CHANGELOG</div>
-        <hr class="block-rule" />
-        {recentChangelog.map((entry, index) => (
-          <>
+    <!-- Bottom panels: Changelog & Acknowledgements -->
+    <div class="two-column">
+      <div>
+        <div class="section-header">
+          <h2 class="section-label">Changelog</h2>
+        </div>
+        <hr class="section-rule" />
+        <div class="changelog-list">
+          {recentChangelog.map((entry) => (
             <div class="changelog-item">
               <span class="changelog-change">{entry.change}</span>
               <span class="changelog-meta">
-                {entry.date} &middot; {(() => {
+                {entry.date} · {(() => {
                   const authorName = entry.author.trim().replace(/^@+/, "");
                   return entry.slackId ? <SlackMention name={authorName} id={entry.slackId} /> : entry.author;
                 })()}
               </span>
             </div>
-            {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}
-          </>
-        ))}
-        {recentChangelog.length > 0 && <hr class="changelog-divider" />}
-        <a href="/changelogs/" class="archive-link">All changelogs &rarr;</a>
+          ))}
+        </div>
       </div>
 
-      <div class="front-block acknowledgements-block">
-        <div class="section-label">ACKNOWLEDGEMENTS</div>
-        <hr class="block-rule" />
-        <div class="acknowledgements-grid">
+      <div>
+        <div class="section-header">
+          <h2 class="section-label">Acknowledgements</h2>
+        </div>
+        <hr class="section-rule" />
+        <div class="acknowledgements-list">
           {acknowledgements.map((person) => {
             const userName = person.name.trim().replace(/^@+/, "");
             return (
@@ -140,7 +189,6 @@ const acknowledgements = await getAcknowledgements();
             );
           })}
         </div>
-        <a href="/acknowledgements/" class="archive-link">All acknowledgements &rarr;</a>
       </div>
     </div>
   </div>
