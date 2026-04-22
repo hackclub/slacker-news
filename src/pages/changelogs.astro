@@ -9,18 +9,20 @@ const changelogEntries = await getChangelogEntries();
 
 <BaseLayout title="Changelogs Archive" siteTitle={site.title} siteDescription={site.description}>
   <div class="archive-page">
-    <div class="section-label">CHANGELOG</div>
+    <div class="section-header">
+      <h1 class="section-label">Changelog</h1>
+    </div>
     <hr class="section-rule" />
     <div class="archive-list">
       {changelogEntries.map((entry) => (
-        <div class="front-block story-block">
-          <h3 class="story-block-title">{entry.change}</h3>
-          <p class="story-block-excerpt">
-            {entry.date} &middot; {(() => {
+        <div class="archive-card">
+          <h3 class="archive-card-title">{entry.change}</h3>
+          <div class="archive-card-meta">
+            {entry.date} · {(() => {
               const authorName = entry.author.trim().replace(/^@+/, "");
               return entry.slackId ? <SlackMention name={authorName} id={entry.slackId} /> : entry.author;
             })()}
-          </p>
+          </div>
         </div>
       ))}
     </div>

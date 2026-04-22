@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { getPosts, getSiteConfig, truncateWords } from "../lib/content";
+import { getPosts, getSiteConfig, truncateWords, formatStoryDate } from "../lib/content";
 
 const site = await getSiteConfig();
 const opinionPosts = (await getPosts()).filter((post) => post.category === "opinion");
@@ -8,13 +8,20 @@ const opinionPosts = (await getPosts()).filter((post) => post.category === "opin
 
 <BaseLayout title="Opinion Archive" siteTitle={site.title} siteDescription={site.description}>
   <div class="archive-page">
-    <div class="section-label">OPINION</div>
+    <div class="section-header">
+      <h1 class="section-label">Opinion</h1>
+    </div>
     <hr class="section-rule" />
     <div class="archive-list">
       {opinionPosts.map((post) => (
-        <a href={post.url} class="front-block story-block">
-          <h3 class="story-block-title">{post.title}</h3>
-          <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
+        <a href={post.url} class="archive-card">
+          <h3 class="archive-card-title">{post.title}</h3>
+          <p class="archive-card-excerpt">{truncateWords(post.excerpt, 24)}</p>
+          <div class="archive-card-meta">
+            {post.author && <span>By {post.author}</span>}
+            {post.author && <span> · </span>}
+            <time>{formatStoryDate(new Date(post.date))}</time>
+          </div>
         </a>
       ))}
     </div>
