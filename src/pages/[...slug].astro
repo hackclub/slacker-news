@@ -14,7 +14,16 @@ const { post } = Astro.props;
 const { Content } = await post.entry.render();
 ---
 
-<BaseLayout title={post.title} siteTitle={site.title} siteDescription={site.description}>
+<BaseLayout
+  title={post.title}
+  description={post.excerpt}
+  siteTitle={site.title}
+  siteDescription={site.description}
+  openGraphType="article"
+  openGraphImage={post.leadingImage?.src}
+  openGraphImageAlt={post.leadingImage?.alt}
+  articlePublishedTime={new Date(post.date).toISOString()}
+>
   <article class="story-page">
     <header class="story-header">
       <h1 class="story-title">{post.title}</h1>
