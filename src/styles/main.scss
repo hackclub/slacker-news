@@ -102,7 +102,7 @@ img {
 
 .nav-bar {
   border-top: 3px solid $color-border;
-  border-bottom: 2px solid $color-border-soft;
+  border-bottom: 1px solid $color-border-soft;
   padding: 8px 0;
 }
 
@@ -317,7 +317,7 @@ img {
 
 .section-rule {
   border: none;
-  border-top: 2px solid $color-border;
+  border-top: 1px solid $color-border;
   margin: 0 0 16px;
 }
 
@@ -418,7 +418,7 @@ img {
   display: block;
   color: $color-text;
   padding: 10px 0;
-  border-bottom: 2px solid $color-border-soft;
+  border-bottom: 1px solid $color-border-soft;
 
   &:last-child {
     border-bottom: none;
@@ -456,7 +456,7 @@ img {
 
 .sidebar-divider {
   border: none;
-  border-top: 2px solid $color-border-soft;
+  border-top: 1px solid $color-border-soft;
   margin: 4px 0;
 }
 
@@ -488,11 +488,11 @@ img {
   display: block;
   color: $color-text;
   padding: 14px 16px;
-  border-bottom: 2px solid $color-border-soft;
+  border-bottom: 1px solid $color-border-soft;
   transition: background 0.12s;
 
   &:nth-child(odd) {
-    border-right: 2px solid $color-border-soft;
+    border-right: 1px solid $color-border-soft;
   }
 
   &:hover {
@@ -637,7 +637,7 @@ img {
 
   .story-rule {
     border: none;
-    border-top: 2px solid $color-border-soft;
+    border-top: 1px solid $color-border-soft;
     margin: 0;
   }
 
@@ -731,7 +731,7 @@ img {
   .story-footer {
     margin-top: 40px;
     padding-top: 16px;
-    border-top: 2px solid $color-border-soft;
+    border-top: 1px solid $color-border-soft;
     font-size: 0.85rem;
 
     a {
@@ -813,7 +813,7 @@ img {
 .archive-card {
   display: block;
   padding: 16px 0;
-  border-bottom: 2px solid $color-border-soft;
+  border-bottom: 1px solid $color-border-soft;
   color: $color-text;
 
   &:first-child {
