@@ -6,10 +6,12 @@ const site = await getSiteConfig();
 ---
 
 <BaseLayout title="404" siteTitle={site.title} siteDescription={site.description}>
-  <div class="container">
-    <h1>404</h1>
-
-    <p><strong>Page not found :(</strong></p>
-    <p>The requested page could not be found.</p>
+  <div class="story-page" style="text-align: center;">
+    <h1 class="story-title" style="font-size: 4rem; margin-bottom: 8px;">404</h1>
+    <p style="font-size: 1.2rem; color: #4a4a4a; margin-bottom: 24px;"><strong>Page not found</strong></p>
+    <p style="font-size: 1rem; color: #4a4a4a;">The requested page could not be found.</p>
+    <p style="margin-top: 32px;">
+      <a href="/" style="text-decoration: underline;">&larr; Back to front page</a>
+    </p>
   </div>
 </BaseLayout>
