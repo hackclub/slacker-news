@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
+import { render } from "astro:content";
 
 export async function getStaticPaths() {
   return (await getPosts()).map((post) => ({
@@ -11,7 +12,7 @@ export async function getStaticPaths() {
 
 const site = await getSiteConfig();
 const { post } = Astro.props;
-const { Content } = await post.entry.render();
+const { Content } = await render(post.entry);
 ---
 
 <BaseLayout
