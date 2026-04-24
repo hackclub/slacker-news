@@ -1,0 +1,27 @@
+---
+import { generateAbacusKey, getAbacusHitUrl } from "../lib/abacus";
+
+interface Props {
+  pathname: string;
+}
+
+const { pathname } = Astro.props;
+const abacusKey = generateAbacusKey(pathname);
+const abacusUrl = getAbacusHitUrl(abacusKey);
+---
+
+<script is:inline define:vars={{ abacusUrl, abacusKey }}>
+  fetch(abacusUrl)
+    .then(response => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error(`Abacus API error: ${response.status}`);
+    })
+    .then(data => {
+      console.debug(`Page views for '${abacusKey}': ${data.value}`);
+    })
+    .catch(error => {
+      console.warn(`Failed to update page counter: ${error.message}`);
+    });
+</script>
