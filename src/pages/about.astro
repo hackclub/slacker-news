@@ -1,10 +1,11 @@
 ---
 import PageLayout from "../layouts/PageLayout.astro";
 import { getPageEntry, getSiteConfig } from "../lib/content";
+import { render } from "astro:content";
 
 const site = await getSiteConfig();
 const page = await getPageEntry("about");
-const { Content } = await page.render();
+const { Content } = await render(page);
 ---
 
 <PageLayout

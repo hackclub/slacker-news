@@ -148,19 +148,19 @@ export async function getPosts(): Promise<Post[]> {
     return posts
         .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
         .map((entry) => {
-            const bodyBlocks = getBodyBlocks(entry.body);
+            const bodyBlocks = getBodyBlocks(entry.body!);
             const leadingImage = extractImageFromBlock(bodyBlocks[0] ?? "");
-            const paragraphs = extractTextBlocks(entry.body);
-            const [category] = entry.slug.split("/", 1);
+            const paragraphs = extractTextBlocks(entry.body!);
+            const [category] = entry.id.split("/", 1);
 
             return {
-                slug: entry.slug,
-                url: `/${entry.slug}/`,
+                slug: entry.id,
+                url: `/${entry.id}/`,
                 title: entry.data.title,
                 author: entry.data.author,
                 category,
                 date: entry.data.date,
-                excerpt: toExcerpt(entry),
+                excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
                 paragraphs,
                 leadingImage,
                 entry
