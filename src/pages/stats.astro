@@ -1,0 +1,499 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { generateAbacusKey, getAbacusGetUrl } from "../lib/abacus";
+import { getPosts, getSiteConfig } from "../lib/content";
+
+const site = await getSiteConfig();
+const posts = await getPosts();
+
+type CounterRow = {
+  key: string;
+  path: string;
+  label: string;
+  kind: "page" | "article";
+  url: string;
+};
+
+const staticPaths = ["/", "/about/", "/submissions/", "/acknowledgements/", "/changelogs/", "/news/", "/opinion/", "/essays/", "/stats/"];
+
+const pageRows: CounterRow[] = staticPaths.map((path) => {
+  const key = generateAbacusKey(path);
+  return {
+    key,
+    path,
+    label: path === "/" ? "Homepage" : `Page: ${path.replace(/^\//, "").replace(/\/$/, "")}`,
+    kind: "page",
+    url: getAbacusGetUrl(key)
+  };
+});
+
+const articleRows: CounterRow[] = posts.map((post) => {
+  const key = generateAbacusKey(post.url);
+  return {
+    key,
+    path: post.url,
+    label: `Article: ${post.title}`,
+    kind: "article",
+    url: getAbacusGetUrl(key)
+  };
+});
+
+const rowsByKey = new Map<string, CounterRow>();
+for (const row of [...pageRows, ...articleRows]) {
+  if (!rowsByKey.has(row.key)) {
+    rowsByKey.set(row.key, row);
+  }
+}
+
+const counterRows = Array.from(rowsByKey.values());
+---
+
+<BaseLayout title="Pageview Stats" siteTitle={site.title} siteDescription={site.description}>
+  <section class="stats-page">
+    <h1>Pageview Stats</h1>
+    <p class="stats-note">Live pageview totals from Abacus, grouped by category with subtotal rows.</p>
+
+    <div class="stats-sections">
+      <section class="stats-block stats-block-total">
+        <h2>All Tracked Views</h2>
+        <div class="stats-table-wrap">
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th scope="col">Views</th>
+                <th scope="col">Visual</th>
+                <th scope="col">Type</th>
+                <th scope="col">Path</th>
+                <th scope="col">Key</th>
+                <th scope="col">Title</th>
+              </tr>
+            </thead>
+            <tbody id="abacus-total-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="stats-block stats-block-page">
+        <h2>Pages</h2>
+        <div class="stats-table-wrap">
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th scope="col">Views</th>
+                <th scope="col">Visual</th>
+                <th scope="col">Type</th>
+                <th scope="col">Path</th>
+                <th scope="col">Key</th>
+                <th scope="col">Title</th>
+              </tr>
+            </thead>
+            <tbody id="abacus-pages-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="stats-block stats-block-news">
+        <h2>News Articles</h2>
+        <div class="stats-table-wrap">
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th scope="col">Views</th>
+                <th scope="col">Visual</th>
+                <th scope="col">Type</th>
+                <th scope="col">Path</th>
+                <th scope="col">Key</th>
+                <th scope="col">Title</th>
+              </tr>
+            </thead>
+            <tbody id="abacus-news-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="stats-block stats-block-article">
+        <h2>Other Articles</h2>
+        <div class="stats-table-wrap">
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th scope="col">Views</th>
+                <th scope="col">Visual</th>
+                <th scope="col">Type</th>
+                <th scope="col">Path</th>
+                <th scope="col">Key</th>
+                <th scope="col">Title</th>
+              </tr>
+            </thead>
+            <tbody id="abacus-other-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <noscript>
+      <p>Enable JavaScript to view live stats.</p>
+    </noscript>
+  </section>
+
+  <script is:inline define:vars={{ counterRows }}>
+    function formatNumber(value) {
+      return new Intl.NumberFormat("en-US").format(value);
+    }
+
+    async function getCounterValue(row) {
+      try {
+        const response = await fetchWithRetry(row.url);
+        if (!response.ok) {
+          return { ...row, value: null, error: `HTTP ${response.status}` };
+        }
+
+        const data = await response.json();
+        const parsed = Number(data?.value);
+        return { ...row, value: Number.isFinite(parsed) ? parsed : 0, error: null };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Request failed";
+        return { ...row, value: null, error: message };
+      }
+    }
+
+    async function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function fetchWithRetry(url, maxAttempts = 3) {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const response = await fetch(url);
+        if (response.status !== 429 || attempt === maxAttempts) {
+          return response;
+        }
+
+        const retryAfterMs = Number(response.headers.get("Retry-After")) || 1000;
+        await wait(Math.min(5000, Math.max(250, retryAfterMs)));
+      }
+
+      return fetch(url);
+    }
+
+    function appendCell(rowElement, text) {
+      const cell = document.createElement("td");
+      cell.textContent = text;
+      rowElement.appendChild(cell);
+      return cell;
+    }
+
+    function sumValues(rows) {
+      return rows.reduce((total, row) => total + (row.value ?? 0), 0);
+    }
+
+    function loadedRows(rows) {
+      return rows.filter((row) => row.value !== null);
+    }
+
+    function createBarNode(value, maxValue, tone) {
+      const wrap = document.createElement("div");
+      wrap.className = "table-bar-wrap";
+
+      const bar = document.createElement("div");
+      bar.className = `table-bar table-bar-${tone}`;
+      const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+      bar.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+      wrap.appendChild(bar);
+      return wrap;
+    }
+
+    function createViewsCell(value, maxValue) {
+      const cell = document.createElement("td");
+      cell.className = "views-cell";
+
+      const text = document.createElement("span");
+      text.className = "views-value";
+
+      if (value === null) {
+        text.textContent = "n/a";
+        cell.classList.add("views-cell-na");
+        cell.appendChild(text);
+        return cell;
+      }
+
+      const ratio = maxValue > 0 ? value / maxValue : 0;
+      const alpha = 0.12 + ratio * 0.5;
+      text.textContent = formatNumber(value);
+      cell.style.backgroundColor = `rgba(37, 99, 235, ${Math.min(0.8, alpha).toFixed(3)})`;
+      cell.style.color = ratio > 0.45 ? "#fff" : "#0b2c5f";
+      cell.style.fontWeight = "700";
+      cell.appendChild(text);
+      return cell;
+    }
+
+    function createSubtotalRow(label, value, tone, maxValue) {
+      const row = document.createElement("tr");
+      row.className = `stats-subtotal stats-subtotal-${tone}`;
+
+      row.appendChild(createViewsCell(value, maxValue));
+
+      const barCell = document.createElement("td");
+      barCell.appendChild(createBarNode(value, maxValue, tone));
+      row.appendChild(barCell);
+
+      appendCell(row, tone === "total" ? "total" : "group");
+      appendCell(row, "-");
+      appendCell(row, "-");
+      appendCell(row, label);
+
+      return row;
+    }
+
+    function createDataRow(result, tone, maxValue) {
+      const row = document.createElement("tr");
+      row.className = `stats-row stats-row-${tone}`;
+
+      const value = result.value ?? 0;
+      row.appendChild(createViewsCell(result.value, maxValue));
+
+      const barCell = document.createElement("td");
+      barCell.appendChild(createBarNode(value, maxValue, tone));
+      row.appendChild(barCell);
+
+      appendCell(row, result.kind);
+
+      const pathCell = document.createElement("td");
+      const pathLink = document.createElement("a");
+      pathLink.href = result.path;
+      pathLink.textContent = result.path;
+      pathCell.appendChild(pathLink);
+      row.appendChild(pathCell);
+
+      appendCell(row, result.key);
+      appendCell(row, result.label);
+
+      if (result.error) {
+        row.title = result.error;
+      }
+
+      return row;
+    }
+
+    function appendSection(body, options) {
+      const { label, tone, rows, maxValue } = options;
+      const total = sumValues(loadedRows(rows));
+      body.appendChild(createSubtotalRow(label, total, tone, maxValue));
+
+      for (const row of rows) {
+        body.appendChild(createDataRow(row, tone, maxValue));
+      }
+    }
+
+    async function loadStats() {
+      const totalBody = document.getElementById("abacus-total-body");
+      const pagesBody = document.getElementById("abacus-pages-body");
+      const newsBody = document.getElementById("abacus-news-body");
+      const otherBody = document.getElementById("abacus-other-body");
+      const status = document.getElementById("abacus-stats-status");
+
+      if (!totalBody || !pagesBody || !newsBody || !otherBody) return;
+
+      const results = await Promise.all(counterRows.map(getCounterValue));
+
+      const pages = results.filter((row) => row.kind === "page").sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+      const articleRows = results.filter((row) => row.kind === "article").sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+      const news = articleRows.filter((row) => row.path.startsWith("/news/"));
+      const nonNewsArticles = articleRows.filter((row) => !row.path.startsWith("/news/"));
+      const loaded = loadedRows(results);
+      const maxValue = Math.max(sumValues(loaded), ...loaded.map((row) => row.value ?? 0), 1);
+
+      totalBody.textContent = "";
+      pagesBody.textContent = "";
+      newsBody.textContent = "";
+      otherBody.textContent = "";
+
+      totalBody.appendChild(createSubtotalRow("All Tracked Views", sumValues(loaded), "total", maxValue));
+      appendSection(pagesBody, { label: "Pages Total", tone: "page", rows: pages, maxValue });
+      appendSection(newsBody, { label: "News Total", tone: "news", rows: news, maxValue });
+      appendSection(otherBody, { label: "Other Articles Total", tone: "article", rows: nonNewsArticles, maxValue });
+   
+    }
+
+    loadStats();
+  </script>
+</BaseLayout>
+
+<style>
+  .stats-note,
+  .stats-status {
+    margin: 0.5rem 0 1rem;
+  }
+  .stats-legend {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .stats-sections {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .stats-block {
+    border: 1px solid #ddd;
+    border-top-width: 4px;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background: #fff;
+  }
+
+  .stats-block h2 {
+    font-size: 1rem;
+    margin: 0 0 0.55rem;
+  }
+
+  .stats-block-total {
+    border-top-color: #7f63c9;
+  }
+
+  .stats-block-page {
+    border-top-color: #4ea5d9;
+  }
+
+  .stats-block-news {
+    border-top-color: #3ea060;
+  }
+
+  .stats-block-article {
+    border-top-color: #c58c2b;
+  }
+
+  .legend-chip {
+    border-radius: 999px;
+    font-size: 0.82rem;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid transparent;
+  }
+
+  .legend-page {
+    background: #e3f4ff;
+    border-color: #81c8f1;
+  }
+
+  .legend-article {
+    background: #f5efe2;
+    border-color: #dab977;
+  }
+
+  .legend-news {
+    background: #e8f8ea;
+    border-color: #8fd49e;
+  }
+
+  .legend-total {
+    background: #f0e8ff;
+    border-color: #baa1ef;
+  }
+
+  .table-bar-wrap {
+    width: 100%;
+    height: 0.7rem;
+    border-radius: 999px;
+    background: #f0f0f0;
+    overflow: hidden;
+    min-width: 8rem;
+  }
+
+  .table-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 320ms ease;
+    background: #999;
+  }
+
+  .table-bar-page {
+    background: linear-gradient(90deg, #4ea5d9, #8dd1f2);
+  }
+
+  .table-bar-article {
+    background: linear-gradient(90deg, #c58c2b, #e8c37e);
+  }
+
+  .table-bar-news {
+    background: linear-gradient(90deg, #3ea060, #8cd6a2);
+  }
+
+  .table-bar-total {
+    background: linear-gradient(90deg, #7f63c9, #b19df0);
+  }
+
+  .stats-table-wrap {
+    overflow-x: auto;
+  }
+
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 42rem;
+  }
+
+  .stats-table th,
+  .stats-table td {
+    border-bottom: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: left;
+    vertical-align: top;
+    white-space: nowrap;
+  }
+
+  .stats-table th {
+    font-weight: 700;
+    background: #f7f7f7;
+  }
+
+  .stats-subtotal {
+    font-weight: 700;
+  }
+
+  .stats-subtotal td {
+    background: #fbfbfb;
+    border-top: 2px solid #e6e6e6;
+  }
+
+  .views-cell {
+    transition: background-color 220ms ease;
+  }
+
+  .views-cell-na {
+    background: #f3f4f6;
+    color: #4b5563;
+    font-weight: 600;
+  }
+
+  .views-value {
+    display: inline-block;
+    min-width: 3ch;
+  }
+
+  .stats-subtotal-total td {
+    background: #f6f1ff;
+  }
+
+  .stats-subtotal-page td {
+    background: #eef8ff;
+  }
+
+  .stats-subtotal-news td {
+    background: #edf9ef;
+  }
+
+  .stats-subtotal-article td {
+    background: #fbf5e9;
+  }
+
+  @media (max-width: 720px) {
+    .stats-table {
+      min-width: 34rem;
+    }
+
+    .stats-block {
+      padding: 0.6rem;
+    }
+  }
+</style>
