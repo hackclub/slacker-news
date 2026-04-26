@@ -51,20 +51,17 @@ const counterRows = Array.from(rowsByKey.values());
 <BaseLayout title="Pageview Stats" siteTitle={site.title} siteDescription={site.description}>
   <section class="stats-page">
     <h1>Pageview Stats</h1>
-    <p class="stats-note">Live pageview totals from Abacus, grouped by category with subtotal rows.</p>
+    <p>Live totals for all tracked pages and articles.</p>
 
     <div class="stats-sections">
-      <section class="stats-block stats-block-total">
-        <h2>All Tracked Views</h2>
+      <section class="stats-block">
+        <h2>All Views</h2>
         <div class="stats-table-wrap">
           <table class="stats-table">
             <thead>
               <tr>
                 <th scope="col">Views</th>
-                <th scope="col">Visual</th>
-                <th scope="col">Type</th>
                 <th scope="col">Path</th>
-                <th scope="col">Key</th>
                 <th scope="col">Title</th>
               </tr>
             </thead>
@@ -73,17 +70,14 @@ const counterRows = Array.from(rowsByKey.values());
         </div>
       </section>
 
-      <section class="stats-block stats-block-page">
+      <section class="stats-block">
         <h2>Pages</h2>
         <div class="stats-table-wrap">
           <table class="stats-table">
             <thead>
               <tr>
                 <th scope="col">Views</th>
-                <th scope="col">Visual</th>
-                <th scope="col">Type</th>
                 <th scope="col">Path</th>
-                <th scope="col">Key</th>
                 <th scope="col">Title</th>
               </tr>
             </thead>
@@ -92,17 +86,14 @@ const counterRows = Array.from(rowsByKey.values());
         </div>
       </section>
 
-      <section class="stats-block stats-block-news">
-        <h2>News Articles</h2>
+      <section class="stats-block">
+        <h2>News</h2>
         <div class="stats-table-wrap">
           <table class="stats-table">
             <thead>
               <tr>
                 <th scope="col">Views</th>
-                <th scope="col">Visual</th>
-                <th scope="col">Type</th>
                 <th scope="col">Path</th>
-                <th scope="col">Key</th>
                 <th scope="col">Title</th>
               </tr>
             </thead>
@@ -111,17 +102,14 @@ const counterRows = Array.from(rowsByKey.values());
         </div>
       </section>
 
-      <section class="stats-block stats-block-article">
-        <h2>Other Articles</h2>
+      <section class="stats-block">
+        <h2>Essays</h2>
         <div class="stats-table-wrap">
           <table class="stats-table">
             <thead>
               <tr>
                 <th scope="col">Views</th>
-                <th scope="col">Visual</th>
-                <th scope="col">Type</th>
                 <th scope="col">Path</th>
-                <th scope="col">Key</th>
                 <th scope="col">Title</th>
               </tr>
             </thead>
@@ -190,21 +178,12 @@ const counterRows = Array.from(rowsByKey.values());
       return rows.filter((row) => row.value !== null);
     }
 
-    function createBarNode(value, maxValue, tone) {
-      const wrap = document.createElement("div");
-      wrap.className = "table-bar-wrap";
-
-      const bar = document.createElement("div");
-      bar.className = `table-bar table-bar-${tone}`;
-      const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
-      bar.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
-      wrap.appendChild(bar);
-      return wrap;
-    }
-
     function createViewsCell(value, maxValue) {
       const cell = document.createElement("td");
       cell.className = "views-cell";
+
+      const valueWrap = document.createElement("div");
+      valueWrap.className = "views-value-wrap";
 
       const text = document.createElement("span");
       text.className = "views-value";
@@ -212,50 +191,45 @@ const counterRows = Array.from(rowsByKey.values());
       if (value === null) {
         text.textContent = "n/a";
         cell.classList.add("views-cell-na");
-        cell.appendChild(text);
+        valueWrap.appendChild(text);
+        cell.appendChild(valueWrap);
         return cell;
       }
 
-      const ratio = maxValue > 0 ? value / maxValue : 0;
-      const alpha = 0.12 + ratio * 0.5;
       text.textContent = formatNumber(value);
-      cell.style.backgroundColor = `rgba(37, 99, 235, ${Math.min(0.8, alpha).toFixed(3)})`;
-      cell.style.color = ratio > 0.45 ? "#fff" : "#0b2c5f";
-      cell.style.fontWeight = "700";
-      cell.appendChild(text);
+
+      const barWrap = document.createElement("div");
+      barWrap.className = "views-bar-wrap";
+
+      const bar = document.createElement("div");
+      bar.className = "views-bar";
+      const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+      bar.style.width = `${Math.max(8, Math.min(100, percentage))}%`;
+      barWrap.appendChild(bar);
+
+      valueWrap.appendChild(text);
+      valueWrap.appendChild(barWrap);
+      cell.appendChild(valueWrap);
       return cell;
     }
 
-    function createSubtotalRow(label, value, tone, maxValue) {
+    function createSubtotalRow(label, value, maxValue) {
       const row = document.createElement("tr");
-      row.className = `stats-subtotal stats-subtotal-${tone}`;
+      row.className = "stats-subtotal";
 
       row.appendChild(createViewsCell(value, maxValue));
 
-      const barCell = document.createElement("td");
-      barCell.appendChild(createBarNode(value, maxValue, tone));
-      row.appendChild(barCell);
-
-      appendCell(row, tone === "total" ? "total" : "group");
-      appendCell(row, "-");
       appendCell(row, "-");
       appendCell(row, label);
 
       return row;
     }
 
-    function createDataRow(result, tone, maxValue) {
+    function createDataRow(result, maxValue) {
       const row = document.createElement("tr");
-      row.className = `stats-row stats-row-${tone}`;
+      row.className = "stats-row";
 
-      const value = result.value ?? 0;
       row.appendChild(createViewsCell(result.value, maxValue));
-
-      const barCell = document.createElement("td");
-      barCell.appendChild(createBarNode(value, maxValue, tone));
-      row.appendChild(barCell);
-
-      appendCell(row, result.kind);
 
       const pathCell = document.createElement("td");
       const pathLink = document.createElement("a");
@@ -264,7 +238,6 @@ const counterRows = Array.from(rowsByKey.values());
       pathCell.appendChild(pathLink);
       row.appendChild(pathCell);
 
-      appendCell(row, result.key);
       appendCell(row, result.label);
 
       if (result.error) {
@@ -275,12 +248,12 @@ const counterRows = Array.from(rowsByKey.values());
     }
 
     function appendSection(body, options) {
-      const { label, tone, rows, maxValue } = options;
+      const { label, rows, maxValue } = options;
       const total = sumValues(loadedRows(rows));
-      body.appendChild(createSubtotalRow(label, total, tone, maxValue));
+      body.appendChild(createSubtotalRow(label, total, maxValue));
 
       for (const row of rows) {
-        body.appendChild(createDataRow(row, tone, maxValue));
+        body.appendChild(createDataRow(row, maxValue));
       }
     }
 
@@ -289,7 +262,6 @@ const counterRows = Array.from(rowsByKey.values());
       const pagesBody = document.getElementById("abacus-pages-body");
       const newsBody = document.getElementById("abacus-news-body");
       const otherBody = document.getElementById("abacus-other-body");
-      const status = document.getElementById("abacus-stats-status");
 
       if (!totalBody || !pagesBody || !newsBody || !otherBody) return;
 
@@ -307,11 +279,11 @@ const counterRows = Array.from(rowsByKey.values());
       newsBody.textContent = "";
       otherBody.textContent = "";
 
-      totalBody.appendChild(createSubtotalRow("All Tracked Views", sumValues(loaded), "total", maxValue));
-      appendSection(pagesBody, { label: "Pages Total", tone: "page", rows: pages, maxValue });
-      appendSection(newsBody, { label: "News Total", tone: "news", rows: news, maxValue });
-      appendSection(otherBody, { label: "Other Articles Total", tone: "article", rows: nonNewsArticles, maxValue });
-   
+      totalBody.appendChild(createSubtotalRow("All Tracked Views", sumValues(loaded), maxValue));
+      appendSection(pagesBody, { label: "Pages Total", rows: pages, maxValue });
+      appendSection(newsBody, { label: "News Total", rows: news, maxValue });
+      appendSection(otherBody, { label: "Other Articles Total", rows: nonNewsArticles, maxValue });
+
     }
 
     loadStats();
@@ -319,108 +291,19 @@ const counterRows = Array.from(rowsByKey.values());
 </BaseLayout>
 
 <style>
-  .stats-note,
-  .stats-status {
-    margin: 0.5rem 0 1rem;
-  }
-  .stats-legend {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-  }
-
   .stats-sections {
     display: grid;
-    gap: 1rem;
+    gap: 1.5rem;
   }
 
   .stats-block {
-    border: 1px solid #ddd;
-    border-top-width: 4px;
-    border-radius: 0.5rem;
     padding: 0.75rem;
-    background: #fff;
   }
 
   .stats-block h2 {
     font-size: 1rem;
-    margin: 0 0 0.55rem;
-  }
-
-  .stats-block-total {
-    border-top-color: #7f63c9;
-  }
-
-  .stats-block-page {
-    border-top-color: #4ea5d9;
-  }
-
-  .stats-block-news {
-    border-top-color: #3ea060;
-  }
-
-  .stats-block-article {
-    border-top-color: #c58c2b;
-  }
-
-  .legend-chip {
-    border-radius: 999px;
-    font-size: 0.82rem;
-    padding: 0.2rem 0.55rem;
-    border: 1px solid transparent;
-  }
-
-  .legend-page {
-    background: #e3f4ff;
-    border-color: #81c8f1;
-  }
-
-  .legend-article {
-    background: #f5efe2;
-    border-color: #dab977;
-  }
-
-  .legend-news {
-    background: #e8f8ea;
-    border-color: #8fd49e;
-  }
-
-  .legend-total {
-    background: #f0e8ff;
-    border-color: #baa1ef;
-  }
-
-  .table-bar-wrap {
-    width: 100%;
-    height: 0.7rem;
-    border-radius: 999px;
-    background: #f0f0f0;
-    overflow: hidden;
-    min-width: 8rem;
-  }
-
-  .table-bar {
-    height: 100%;
-    border-radius: 999px;
-    transition: width 320ms ease;
-    background: #999;
-  }
-
-  .table-bar-page {
-    background: linear-gradient(90deg, #4ea5d9, #8dd1f2);
-  }
-
-  .table-bar-article {
-    background: linear-gradient(90deg, #c58c2b, #e8c37e);
-  }
-
-  .table-bar-news {
-    background: linear-gradient(90deg, #3ea060, #8cd6a2);
-  }
-
-  .table-bar-total {
-    background: linear-gradient(90deg, #7f63c9, #b19df0);
+    margin: 0 0 0.75rem;
+    color: #444;
   }
 
   .stats-table-wrap {
@@ -430,40 +313,38 @@ const counterRows = Array.from(rowsByKey.values());
   .stats-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 42rem;
+    min-width: 32rem;
   }
 
   .stats-table th,
   .stats-table td {
-    border-bottom: 1px solid #ddd;
-    padding: 0.5rem;
+    padding: 0.4rem 0.5rem;
     text-align: left;
     vertical-align: top;
     white-space: nowrap;
   }
 
   .stats-table th {
-    font-weight: 700;
-    background: #f7f7f7;
+    font-weight: 600;
+    color: #666;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .stats-table td {
+    border-bottom: 1px solid #eee;
+  }
+
+  .stats-row td {
+    color: #333;
   }
 
   .stats-subtotal {
-    font-weight: 700;
+    font-weight: 600;
   }
 
   .stats-subtotal td {
-    background: #fbfbfb;
-    border-top: 2px solid #e6e6e6;
-  }
-
-  .views-cell {
-    transition: background-color 220ms ease;
-  }
-
-  .views-cell-na {
-    background: #f3f4f6;
-    color: #4b5563;
-    font-weight: 600;
+    border-top: 2px solid #ccc;
+    background: #fafafa;
   }
 
   .views-value {
@@ -471,29 +352,34 @@ const counterRows = Array.from(rowsByKey.values());
     min-width: 3ch;
   }
 
-  .stats-subtotal-total td {
-    background: #f6f1ff;
+  .views-cell-na {
+    color: #888;
   }
 
-  .stats-subtotal-page td {
-    background: #eef8ff;
+  .views-value-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .stats-subtotal-news td {
-    background: #edf9ef;
+  .views-bar-wrap {
+    min-width: 6rem;
+    max-width: 8rem;
+    height: 0.4rem;
+    background: #eee;
+    border-radius: 2px;
+    overflow: hidden;
   }
 
-  .stats-subtotal-article td {
-    background: #fbf5e9;
+  .views-bar {
+    height: 100%;
+    background: #666;
+    border-radius: 2px;
   }
 
   @media (max-width: 720px) {
     .stats-table {
-      min-width: 34rem;
-    }
-
-    .stats-block {
-      padding: 0.6rem;
+      min-width: 28rem;
     }
   }
 </style>
