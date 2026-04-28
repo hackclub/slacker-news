@@ -3,15 +3,33 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
 
 export async function getStaticPaths() {
-  return (await getPosts()).map((post) => ({
+  const allPosts = await getPosts();
+  return allPosts.map((post) => ({
     params: { slug: post.slug },
-    props: { post }
+    props: { slug: post.slug }
   }));
 }
 
 const site = await getSiteConfig();
-const { post } = Astro.props;
+const { slug } = Astro.props;
+const allPosts = await getPosts();
+const post = allPosts.find((p) => p.slug === slug);
+
+if (!post) {
+  return Astro.redirect("/404");
+}
+
 const { Content } = await post.entry.render();
+
+const responseLinks = post.responseTo?.map((slug) => {
+  const target = allPosts.find((p) => p.slug === slug);
+  return target ? { slug: target.slug, title: target.title, url: target.url } : null;
+}).filter(Boolean) ?? [];
+
+const followUpLinks = post.followUpTo?.map((slug) => {
+  const target = allPosts.find((p) => p.slug === slug);
+  return target ? { slug: target.slug, title: target.title, url: target.url } : null;
+}).filter(Boolean) ?? [];
 ---
 
 <BaseLayout
@@ -36,6 +54,65 @@ const { Content } = await post.entry.render();
       <hr class="story-rule" />
     </header>
 
+    {post.series && (
+      <div class="story-series-banner">
+        <strong>Part of series:</strong> {post.series.name}
+        {post.series.description && ` — ${post.series.description}`}
+        {post.series.order && ` (Part ${post.series.order})`}
+        {post.seriesPosts && post.seriesPosts.length > 0 && (
+          <div class="series-links">
+            {post.seriesPosts.map((sp) => (
+              <a href={sp.url} class="series-link">{sp.title}</a>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
+    {responseLinks.length > 0 && (
+      <div class="story-response-banner">
+        <strong>This is a response to:</strong>
+        <ul class="response-links">
+          {responseLinks.map((link) => (
+            <li><a href={link.url}>{link.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {followUpLinks.length > 0 && (
+      <div class="story-followup-banner">
+        <strong>This is a follow-up to:</strong>
+        <ul class="followup-links">
+          {followUpLinks.map((link) => (
+            <li><a href={link.url}>{link.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {post.responses && post.responses.length > 0 && (
+      <div class="story-responses-banner">
+        <strong>Responses to this piece:</strong>
+        <ul class="response-links">
+          {post.responses.map((resp) => (
+            <li><a href={resp.url}>{resp.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {post.followUps && post.followUps.length > 0 && (
+      <div class="story-followups-banner">
+        <strong>Follow-ups to this piece:</strong>
+        <ul class="followup-links">
+          {post.followUps.map((fu) => (
+            <li><a href={fu.url}>{fu.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
     <div class="story-body">
       <Content />
     </div>
@@ -45,3 +122,56 @@ const { Content } = await post.entry.render();
     </footer>
   </article>
 </BaseLayout>
+
+<style>
+  .story-series-banner,
+  .story-response-banner,
+  .story-followup-banner,
+  .story-responses-banner,
+  .story-followups-banner {
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-left: 4px solid #ccc;
+    background: #f9f9f9;
+    font-size: 0.9rem;
+  }
+
+  .story-series-banner {
+    border-color: #4a90d9;
+    background: #f0f7ff;
+  }
+
+  .story-response-banner,
+  .story-responses-banner {
+    border-color: #e67e22;
+    background: #fef5e7;
+  }
+
+  .story-followup-banner,
+  .story-followups-banner {
+    border-color: #27ae60;
+    background: #eafaf1;
+  }
+
+  .series-links,
+  .response-links,
+  .followup-links {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+  }
+
+  .series-links li,
+  .response-links li,
+  .followup-links li {
+    display: inline;
+    margin-right: 1rem;
+  }
+
+  .series-link,
+  .response-links a,
+  .followup-links a {
+    color: inherit;
+    text-decoration: underline;
+  }
+</style>

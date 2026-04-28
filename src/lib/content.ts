@@ -9,6 +9,12 @@ export type SiteConfig = {
     description: string;
 };
 
+export type PostReference = {
+    slug: string;
+    url: string;
+    title: string;
+};
+
 export type Post = {
     slug: string;
     url: string;
@@ -23,6 +29,16 @@ export type Post = {
         alt: string;
     };
     entry: CollectionEntry<"posts">;
+    responseTo?: string[];
+    followUpTo?: string[];
+    series?: {
+        name: string;
+        order?: number;
+        description?: string;
+    };
+    responses?: PostReference[];
+    followUps?: PostReference[];
+    seriesPosts?: PostReference[];
 };
 
 export type ChangelogEntry = {
@@ -145,13 +161,25 @@ export async function getSiteConfig(): Promise<SiteConfig> {
 export async function getPosts(): Promise<Post[]> {
     const posts = await getCollection("posts");
 
-    return posts
+    const processedPosts = posts
         .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
         .map((entry) => {
             const bodyBlocks = getBodyBlocks(entry.body);
             const leadingImage = extractImageFromBlock(bodyBlocks[0] ?? "");
             const paragraphs = extractTextBlocks(entry.body);
             const [category] = entry.slug.split("/", 1);
+
+            const responseTo = entry.data.responseTo
+                ? Array.isArray(entry.data.responseTo)
+                    ? entry.data.responseTo
+                    : [entry.data.responseTo]
+                : undefined;
+
+            const followUpTo = entry.data.followUpTo
+                ? Array.isArray(entry.data.followUpTo)
+                    ? entry.data.followUpTo
+                    : [entry.data.followUpTo]
+                : undefined;
 
             return {
                 slug: entry.slug,
@@ -163,9 +191,47 @@ export async function getPosts(): Promise<Post[]> {
                 excerpt: toExcerpt(entry),
                 paragraphs,
                 leadingImage,
-                entry
+                entry,
+                responseTo,
+                followUpTo,
+                series: entry.data.series
             } satisfies Post;
         });
+
+    for (const post of processedPosts) {
+        if (post.followUpTo) {
+            post.followUps = processedPosts
+                .filter((p) => post.followUpTo!.includes(p.slug))
+                .map((p) => ({ slug: p.slug, url: p.url, title: p.title }));
+        }
+        if (post.series) {
+            post.seriesPosts = processedPosts
+                .filter((p) => p.series?.name === post.series!.name && p.slug !== post.slug)
+                .sort((a, b) => (a.series?.order ?? 0) - (b.series?.order ?? 0))
+                .map((p) => ({ slug: p.slug, url: p.url, title: p.title }));
+        }
+    }
+
+    for (const post of processedPosts) {
+        for (const otherPost of processedPosts) {
+            if (otherPost.responseTo?.includes(post.slug)) {
+                if (!post.responses) post.responses = [];
+                const exists = post.responses.some((r) => r.slug === otherPost.slug);
+                if (!exists) {
+                    post.responses.push({ slug: otherPost.slug, url: otherPost.url, title: otherPost.title });
+                }
+            }
+            if (otherPost.followUpTo?.includes(post.slug)) {
+                if (!post.followUps) post.followUps = [];
+                const exists = post.followUps.some((f) => f.slug === otherPost.slug);
+                if (!exists) {
+                    post.followUps.push({ slug: otherPost.slug, url: otherPost.url, title: otherPost.title });
+                }
+            }
+        }
+    }
+
+    return processedPosts;
 }
 
 export async function getFrontpageData(): Promise<FrontpageData> {

@@ -7,7 +7,14 @@ const posts = defineCollection({
         date: z.coerce.date(),
         author: z.string().optional(),
         category: z.string().optional(),
-        excerpt: z.string().optional()
+        excerpt: z.string().optional(),
+        responseTo: z.union([z.string(), z.array(z.string())]).optional(),
+        followUpTo: z.union([z.string(), z.array(z.string())]).optional(),
+        series: z.object({
+            name: z.string(),
+            order: z.number().int().positive().optional(),
+            description: z.string().optional()
+        }).optional()
     })
 });
 
