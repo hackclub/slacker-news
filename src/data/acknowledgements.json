@@ -1,4 +1,6 @@
 [
+  { "name": "@maxstellar", "slackId": "U07F6FMJ97U" },
+  { "name": "@freddie", "slackId": "U078VN0UU2K" },
   { "name": "@Elliot-entity", "slackId": "U096KJYT1PU" },
   { "name": "@karthik", "slackId": "U04K5EPMZM1" },
   { "name": "@sahil", "slackId": "U08PUHSMW4V" },
@@ -10,5 +12,7 @@
   { "name": "@rowan", "slackId": "U080A3QP42C" },
   { "name": "@lfd", "slackId": "U07UBCSSQH3" },
   { "name": "@indy", "slackId": "UDK5M9Y13" },
-  { "name": "@zrl", "slackId": "U09UE480JHH" }
+  { "name": "@zrl", "slackId": "U09UE480JHH" },
+  { "name": "@eps", "slackId": "U09Q8MLTE58" }
+
 ]
