@@ -29,7 +29,6 @@ export type Post = {
         alt: string;
     };
     entry: CollectionEntry<"posts">;
-    html: string;
     responseTo?: string[];
     followUpTo?: string[];
     responses?: PostReference[];
@@ -176,7 +175,6 @@ export async function getPosts(): Promise<Post[]> {
                     : [entry.data.followUpTo]
                 : undefined;
 
-            const html = entry.rendered?.html ?? entry.body ?? "";
             return {
                 slug: entry.id,
                 url: `/${entry.id}/`,
@@ -188,7 +186,6 @@ export async function getPosts(): Promise<Post[]> {
                 paragraphs,
                 leadingImage,
                 entry,
-                html,
                 responseTo,
                 followUpTo,
             } satisfies Post;
