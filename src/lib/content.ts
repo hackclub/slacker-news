@@ -57,6 +57,8 @@ export type LongChangelogEntry = ChangelogBase & {
         alt: string;
     };
     entry: CollectionEntry<"changelogs">;
+    responseTo?: PostReference[];
+    followUpTo?: PostReference[];
 };
 
 export type ChangelogEntry = ShortChangelogEntry | LongChangelogEntry;
@@ -253,6 +255,16 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
     }));
 
     const longCollection = await getCollection("changelogs");
+    const posts = await getPosts();
+    const resolveSlugs = (raw: string | string[] | undefined): PostReference[] | undefined => {
+        if (!raw) return undefined;
+        const slugs = Array.isArray(raw) ? raw : [raw];
+        const refs = slugs
+            .map((slug) => posts.find((p) => p.slug === slug))
+            .filter((p): p is Post => Boolean(p))
+            .map((p) => ({ slug: p.slug, url: p.url, title: p.title }));
+        return refs.length ? refs : undefined;
+    };
     const longEntries: LongChangelogEntry[] = longCollection.map((entry) => {
         const bodyBlocks = getBodyBlocks(entry.body!);
         const leadingImage = extractImageFromBlock(bodyBlocks[0] ?? "");
@@ -268,7 +280,9 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
             excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
             paragraphs,
             leadingImage,
-            entry
+            entry,
+            responseTo: resolveSlugs(entry.data.responseTo),
+            followUpTo: resolveSlugs(entry.data.followUpTo)
         };
     });
 

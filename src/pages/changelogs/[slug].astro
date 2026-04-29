@@ -49,6 +49,28 @@ const { Content } = await render(changelog.entry);
       <hr class="story-rule" />
     </header>
 
+    {changelog.responseTo && changelog.responseTo.length > 0 && (
+      <div class="story-response-banner">
+        <strong>This is a response to:</strong>
+        <ul class="response-links">
+          {changelog.responseTo.map((link) => (
+            <li><a href={link.url}>{link.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {changelog.followUpTo && changelog.followUpTo.length > 0 && (
+      <div class="story-followup-banner">
+        <strong>This is a follow-up to:</strong>
+        <ul class="followup-links">
+          {changelog.followUpTo.map((link) => (
+            <li><a href={link.url}>{link.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
     <div class="story-body">
       <Content />
     </div>
@@ -58,3 +80,58 @@ const { Content } = await render(changelog.entry);
     </footer>
   </article>
 </BaseLayout>
+
+<style>
+  .story-response-banner,
+  .story-followup-banner {
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    border: 3px double #000;
+    background: #fff;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .story-response-banner strong,
+  .story-followup-banner strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .response-links,
+  .followup-links {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin: 0.5rem 0 0 0;
+  }
+
+  .response-links li,
+  .followup-links li {
+    display: list-item;
+    margin: 0.25rem 0;
+  }
+
+  .response-links a,
+  .followup-links a {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  html.dark .story-response-banner,
+  html.dark .story-followup-banner {
+    border-color: #fff;
+    outline-color: #fff;
+    background: #222;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  html.dark .response-links a,
+  html.dark .followup-links a {
+    color: #fff;
+  }
+</style>
