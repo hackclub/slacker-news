@@ -21,7 +21,8 @@ export async function GET(context) {
                 title: post.title,
                 description: post.excerpt,
                 pubDate: post.date,
-                link: legacyLink
+                link: legacyLink,
+                content: post.html
             };
         })
     });
