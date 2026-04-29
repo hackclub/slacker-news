@@ -31,14 +31,8 @@ export type Post = {
     entry: CollectionEntry<"posts">;
     responseTo?: string[];
     followUpTo?: string[];
-    series?: {
-        name: string;
-        order?: number;
-        description?: string;
-    };
     responses?: PostReference[];
     followUps?: PostReference[];
-    seriesPosts?: PostReference[];
 };
 
 export type ChangelogEntry = {
@@ -194,7 +188,6 @@ export async function getPosts(): Promise<Post[]> {
                 entry,
                 responseTo,
                 followUpTo,
-                series: entry.data.series
             } satisfies Post;
         });
 
@@ -202,12 +195,6 @@ export async function getPosts(): Promise<Post[]> {
         if (post.followUpTo) {
             post.followUps = processedPosts
                 .filter((p) => post.followUpTo!.includes(p.slug))
-                .map((p) => ({ slug: p.slug, url: p.url, title: p.title }));
-        }
-        if (post.series) {
-            post.seriesPosts = processedPosts
-                .filter((p) => p.series?.name === post.series!.name && p.slug !== post.slug)
-                .sort((a, b) => (a.series?.order ?? 0) - (b.series?.order ?? 0))
                 .map((p) => ({ slug: p.slug, url: p.url, title: p.title }));
         }
     }

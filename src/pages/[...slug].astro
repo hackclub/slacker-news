@@ -54,65 +54,6 @@ const followUpLinks = post.followUpTo?.map((slug) => {
       <hr class="story-rule" />
     </header>
 
-    {post.series && (
-      <div class="story-series-banner">
-        <strong>Part of series:</strong> {post.series.name}
-        {post.series.description && ` — ${post.series.description}`}
-        {post.series.order && ` (Part ${post.series.order})`}
-        {post.seriesPosts && post.seriesPosts.length > 0 && (
-          <div class="series-links">
-            {post.seriesPosts.map((sp) => (
-              <a href={sp.url} class="series-link">{sp.title}</a>
-            ))}
-          </div>
-        )}
-      </div>
-    )}
-
-    {post.series && (
-      <div class="article-graph-container" id="graph-container"
-        data-current-slug={post.slug}
-        data-series-posts={JSON.stringify(
-          [{ slug: post.slug, title: post.title, url: post.url, order: post.series?.order },
-           ...(post.seriesPosts?.map(sp => ({
-             ...sp,
-             order: allPosts.find(p => p.slug === sp.slug)?.series?.order
-           })) || [])
-          ]
-        )}
-        data-responses={JSON.stringify(post.responses || [])}
-        data-followups={JSON.stringify(post.followUps || [])}
-        data-responseto={JSON.stringify(
-          post.responseTo?.map(slug => ({
-            slug,
-            title: allPosts.find(p => p.slug === slug)?.title || slug,
-            url: `/${slug}/`
-          })) || []
-        )}
-        data-followupto={JSON.stringify(
-          post.followUpTo?.map(slug => ({
-            slug,
-            title: allPosts.find(p => p.slug === slug)?.title || slug,
-            url: `/${slug}/`
-          })) || []
-        )}
-      >
-        <svg id="article-graph" viewBox="0 0 800 400" class="article-graph">
-          <defs>
-            <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-              <polygon points="0 0, 10 3, 0 6" fill="#666" />
-            </marker>
-            <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-              <polygon points="0 0, 10 3, 0 6" fill="#27ae60" />
-            </marker>
-            <marker id="arrowhead-orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-              <polygon points="0 0, 10 3, 0 6" fill="#e67e22" />
-            </marker>
-          </defs>
-        </svg>
-      </div>
-    )}
-
     {responseLinks.length > 0 && (
       <div class="story-response-banner">
         <strong>This is a response to:</strong>
@@ -168,253 +109,62 @@ const followUpLinks = post.followUpTo?.map((slug) => {
 </BaseLayout>
 
 <style>
-  .story-series-banner,
   .story-response-banner,
   .story-followup-banner,
   .story-responses-banner,
   .story-followups-banner {
-    padding: 0.75rem 1rem;
-    margin: 1rem 0;
-    border-left: 4px solid #ccc;
-    background: #f9f9f9;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    border: 3px double #000;
+    background: #fff;
     font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
-  .story-series-banner {
-    border-color: #4a90d9;
-    background: #f0f7ff;
+  .story-response-banner strong,
+  .story-followup-banner strong,
+  .story-responses-banner strong,
+  .story-followups-banner strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  .story-response-banner,
-  .story-responses-banner {
-    border-color: #e67e22;
-    background: #fef5e7;
-  }
-
-  .story-followup-banner,
-  .story-followups-banner {
-    border-color: #27ae60;
-    background: #eafaf1;
-  }
-
-  .series-links,
   .response-links,
   .followup-links {
-    list-style: none;
-    padding: 0;
+    list-style: disc;
+    padding-left: 1.5rem;
     margin: 0.5rem 0 0 0;
   }
 
-  .series-links li,
   .response-links li,
   .followup-links li {
-    display: inline;
-    margin-right: 1rem;
+    display: list-item;
+    margin: 0.25rem 0;
   }
 
-  .series-link,
   .response-links a,
   .followup-links a {
     color: inherit;
     text-decoration: underline;
+    font-weight: 500;
   }
 
-  .article-graph-container {
-    margin: 1.5rem 0;
-    padding: 1rem;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+  html.dark .story-response-banner,
+  html.dark .story-followup-banner,
+  html.dark .story-responses-banner,
+  html.dark .story-followups-banner {
+    border-color: #fff;
+    outline-color: #fff;
+    background: #222;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
-  .article-graph {
-    width: 100%;
-    height: 400px;
-    display: block;
-  }
-
-  .graph-node {
-    cursor: pointer;
-  }
-
-  .graph-node rect {
-    rx: 4;
-    ry: 4;
-  }
-
-  .graph-node.current rect {
-    stroke-width: 3;
-  }
-
-  .graph-node text {
-    font-size: 12px;
-    fill: #333;
-    pointer-events: none;
+  html.dark .response-links a,
+  html.dark .followup-links a {
+    color: #fff;
   }
 </style>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('graph-container');
-    if (!container) return;
-
-    const currentSlug = container.dataset.currentSlug;
-    const seriesPosts = JSON.parse(container.dataset.seriesPosts || '[]');
-    const responses = JSON.parse(container.dataset.responses || '[]');
-    const followUps = JSON.parse(container.dataset.followups || '[]');
-    const responseTo = JSON.parse(container.dataset.responseto || '[]');
-    const followUpTo = JSON.parse(container.dataset.followupto || '[]');
-
-    const svg = document.getElementById('article-graph');
-    if (!svg) return;
-
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const nodeWidth = 140;
-    const nodeHeight = 40;
-    const xSpacing = 180;
-
-    const allNodes = new Map();
-    const edges = [];
-
-    const sortedSeries = seriesPosts
-      .filter(function(p) { return p.order; })
-      .sort(function(a, b) { return a.order - b.order; });
-
-    sortedSeries.forEach(function(post, i) {
-      allNodes.set(post.slug, {
-        slug: post.slug,
-        title: post.title,
-        url: post.url,
-        x: 50 + i * xSpacing,
-        y: 180,
-        type: 'series'
-      });
-    });
-
-    responseTo.forEach(function(target) {
-      const source = allNodes.get(currentSlug);
-      const targetNode = allNodes.get(target.slug);
-      if (source && targetNode) {
-        edges.push({
-          from: source,
-          to: targetNode,
-          type: 'response-to',
-          color: '#e67e22'
-        });
-      }
-    });
-
-    responses.forEach(function(resp) {
-      const source = allNodes.get(resp.slug);
-      const target = allNodes.get(currentSlug);
-      if (source && target) {
-        edges.push({
-          from: source,
-          to: target,
-          type: 'response',
-          color: '#e67e22'
-        });
-      }
-    });
-
-    followUpTo.forEach(function(target) {
-      const source = allNodes.get(currentSlug);
-      const targetNode = allNodes.get(target.slug);
-      if (source && targetNode) {
-        edges.push({
-          from: source,
-          to: targetNode,
-          type: 'followup-to',
-          color: '#27ae60'
-        });
-      }
-    });
-
-    followUps.forEach(function(fu) {
-      const source = allNodes.get(fu.slug);
-      const target = allNodes.get(currentSlug);
-      if (source && target) {
-        edges.push({
-          from: source,
-          to: target,
-          type: 'followup',
-          color: '#27ae60'
-        });
-      }
-    });
-
-    edges.forEach(function(edge) {
-      const line = document.createElementNS(svgNS, 'line');
-      const marker = edge.color === '#e67e22' ? 'url(#arrowhead-orange)' : 'url(#arrowhead-green)';
-      line.setAttribute('x1', edge.from.x + nodeWidth / 2);
-      line.setAttribute('y1', edge.from.y + nodeHeight / 2);
-      line.setAttribute('x2', edge.to.x + nodeWidth / 2);
-      line.setAttribute('y2', edge.to.y + nodeHeight / 2);
-      line.setAttribute('stroke', edge.color);
-      line.setAttribute('stroke-width', '2');
-      line.setAttribute('marker-end', marker);
-      svg.appendChild(line);
-    });
-
-    allNodes.forEach(function(node) {
-      const g = document.createElementNS(svgNS, 'g');
-      g.setAttribute('class', 'graph-node' + (node.slug === currentSlug ? ' current' : ''));
-      g.setAttribute('transform', 'translate(' + node.x + ', ' + node.y + ')');
-
-      const rect = document.createElementNS(svgNS, 'rect');
-      rect.setAttribute('width', nodeWidth);
-      rect.setAttribute('height', nodeHeight);
-      rect.setAttribute('fill', node.slug === currentSlug ? '#4a90d9' : '#fff');
-      rect.setAttribute('stroke', node.slug === currentSlug ? '#2c5f8a' : '#4a90d9');
-      rect.setAttribute('stroke-width', '2');
-
-      const text = document.createElementNS(svgNS, 'text');
-      text.setAttribute('x', nodeWidth / 2);
-      text.setAttribute('y', nodeHeight / 2 + 5);
-      text.setAttribute('text-anchor', 'middle');
-      text.textContent = node.title.length > 20 ? node.title.substring(0, 18) + '...' : node.title;
-
-      g.appendChild(rect);
-      g.appendChild(text);
-
-      if (node.slug !== currentSlug) {
-        const a = document.createElementNS(svgNS, 'a');
-        a.setAttribute('href', node.url);
-        a.appendChild(g);
-        svg.appendChild(a);
-      } else {
-        svg.appendChild(g);
-      }
-    });
-
-    const legend = document.createElementNS(svgNS, 'g');
-    legend.setAttribute('transform', 'translate(10, 10)');
-
-    const items = [
-      { label: 'Series', color: '#4a90d9' },
-      { label: 'Response', color: '#e67e22' },
-      { label: 'Follow-up', color: '#27ae60' }
-    ];
-
-    items.forEach(function(item, i) {
-      const y = i * 20;
-      const rect = document.createElementNS(svgNS, 'rect');
-      rect.setAttribute('x', '0');
-      rect.setAttribute('y', y.toString());
-      rect.setAttribute('width', '12');
-      rect.setAttribute('height', '12');
-      rect.setAttribute('fill', item.color);
-
-      const text = document.createElementNS(svgNS, 'text');
-      text.setAttribute('x', '18');
-      text.setAttribute('y', (y + 10).toString());
-      text.setAttribute('font-size', '11');
-      text.textContent = item.label;
-
-      legend.appendChild(rect);
-      legend.appendChild(text);
-    });
-
-    svg.appendChild(legend);
-  });
-</script>
