@@ -17,5 +17,6 @@ export const legacyRedirects = {
     "/three-futures-slack": "/essays/three-futures-slack",
     "/tragedy-anticommons": "/opinion/tragedy-anticommons",
     "/transparency-debate": "/news/transparency-debate",
-    "/welcome-to-slacker-news": "/news/welcome-to-slacker-news"
+    "/welcome-to-slacker-news": "/news/welcome-to-slacker-news",
+    "/changelog/ysws-progress-report-1": "/changelogs/ysws-progress-report-1"
 };

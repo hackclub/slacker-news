@@ -261,7 +261,7 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
         return {
             kind: "long",
             slug: entry.id,
-            url: `/changelog/${entry.id}/`,
+            url: `/changelogs/${entry.id}/`,
             title: entry.data.title,
             date: dateString,
             author: entry.data.author,
