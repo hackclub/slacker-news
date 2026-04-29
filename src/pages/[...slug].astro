@@ -4,15 +4,31 @@ import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
 import { render } from "astro:content";
 
 export async function getStaticPaths() {
-  const allPosts = await getPosts();
-  return allPosts.map((post) => ({
+  const posts = await getPosts();
+  return posts.map((post) => ({
     params: { slug: post.slug },
     props: { slug: post.slug }
   }));
 }
 
 const site = await getSiteConfig();
-const { post } = Astro.props;
+const allPosts = await getPosts();
+const slugParam = Astro.props?.slug ?? Astro.params.slug;
+const slug = Array.isArray(slugParam)
+  ? slugParam.join("/")
+  : typeof slugParam === "string"
+    ? slugParam
+    : "";
+
+if (!slug) {
+  throw new Error("Missing slug for story page");
+}
+
+const post = allPosts.find((entry) => entry.slug === slug);
+if (!post) {
+  throw new Error(`No story found for slug "${slug}"`);
+}
+
 const { Content } = await render(post.entry);
 
 const responseLinks = post.responseTo?.map((slug) => {

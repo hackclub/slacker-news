@@ -1,4 +1,4 @@
-import { getCollection, getEntry } from "astro:content";
+import { getCollection, getEntry, type CollectionEntry } from "astro:content";
 import siteData from "../data/site.json";
 import frontpageData from "../data/frontpage.json";
 import changelogData from "../data/changelog.json";
@@ -28,7 +28,7 @@ export type Post = {
         src: string;
         alt: string;
     };
-    entry: any;
+    entry: CollectionEntry<"posts">;
     responseTo?: string[];
     followUpTo?: string[];
     responses?: PostReference[];
@@ -155,7 +155,7 @@ export async function getSiteConfig(): Promise<SiteConfig> {
 export async function getPosts(): Promise<Post[]> {
     const posts = await getCollection("posts");
 
-    const processedPosts = posts
+    const processedPosts : Post[] = posts
         .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
         .map((entry) => {
             const bodyBlocks = getBodyBlocks(entry.body!);
@@ -176,7 +176,7 @@ export async function getPosts(): Promise<Post[]> {
                 : undefined;
 
             return {
-                slug: entry.slug,
+                slug: entry.id,
                 url: `/${entry.id}/`,
                 title: entry.data.title,
                 author: entry.data.author,
