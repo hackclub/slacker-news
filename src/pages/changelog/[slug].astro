@@ -1,0 +1,60 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatStoryDate, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../../lib/content";
+import { render } from "astro:content";
+
+export async function getStaticPaths() {
+  const entries = await getChangelogEntries();
+  return entries
+    .filter((entry): entry is LongChangelogEntry => entry.kind === "long")
+    .map((entry) => ({
+      params: { slug: entry.slug },
+      props: { slug: entry.slug }
+    }));
+}
+
+const site = await getSiteConfig();
+const entries = await getChangelogEntries();
+const slug = Astro.props?.slug ?? Astro.params.slug;
+
+const changelog = entries.find(
+  (entry): entry is LongChangelogEntry => entry.kind === "long" && entry.slug === slug
+);
+if (!changelog) {
+  throw new Error(`No longform changelog found for slug "${slug}"`);
+}
+
+const { Content } = await render(changelog.entry);
+---
+
+<BaseLayout
+  title={changelog.title}
+  description={changelog.excerpt}
+  siteTitle={site.title}
+  siteDescription={site.description}
+  openGraphType="article"
+  openGraphImage={changelog.leadingImage?.src}
+  openGraphImageAlt={changelog.leadingImage?.alt}
+  articlePublishedTime={new Date(`${changelog.date}T00:00:00Z`).toISOString()}
+>
+  <article class="story-page">
+    <header class="story-header">
+      <h1 class="story-title">{changelog.title}</h1>
+      <div class="story-meta">
+        <span class="story-category">CHANGELOG</span>
+        <span class="story-author">By {changelog.author}</span>
+        {" — "}
+        <time>{formatStoryDate(new Date(`${changelog.date}T00:00:00Z`))}</time>
+      </div>
+      <hr class="story-rule" />
+    </header>
+
+    <div class="story-body">
+      <Content />
+    </div>
+
+    <footer class="story-footer">
+      <a href="/changelogs/">&larr; All changelogs</a>
+    </footer>
+  </article>
+</BaseLayout>

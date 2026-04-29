@@ -112,12 +112,13 @@ const acknowledgements = await getAcknowledgements();
         {recentChangelog.map((entry, index) => (
           <>
             <div class="changelog-item">
-              <span class="changelog-change">{entry.change}</span>
+              {entry.kind === "long" ? (
+                <a href={entry.url} class="changelog-change changelog-change-link">{entry.title}</a>
+              ) : (
+                <span class="changelog-change">{entry.change}</span>
+              )}
               <span class="changelog-meta">
-                {entry.date} &middot; {(() => {
-                  const authorName = entry.author.trim().replace(/^@+/, "");
-                  return entry.slackId ? <SlackMention name={authorName} id={entry.slackId} /> : entry.author;
-                })()}
+                {entry.date} &middot; {entry.author}
               </span>
             </div>
             {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}

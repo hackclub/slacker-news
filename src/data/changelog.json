@@ -2,19 +2,16 @@
   {
     "change": "Astronomical potential",
     "date": "2026-04-15",
-    "author": "@matmanna",
-    "slackId": "U07VA44DNBA"
+    "author": "@matmanna"
   },
   {
     "change": "Added RSS feed",
     "date": "2026-03-18",
-    "author": "@rowan",
-    "slackId": "U080A3QP42C"
+    "author": "@rowan"
   },
   {
     "change": "Site launched",
     "date": "2026-03-09",
-    "author": "@eps",
-    "slackId": "U09Q8MLTE58"
+    "author": "@eps"
   }
 ]

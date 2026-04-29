@@ -1,0 +1,63 @@
+---
+title: "YSWS Quality & Integrity Progress Report #1"
+date: '2026-04-29'
+author: "@lfd"
+---
+**What happened**
+
+Since March, 20,630 projects have gone through the spot check pipeline. Most of that is automated, a script doing the tedious work of checking fields and flagging obvious issues. The numbers are: 426 rejected on first review, 97 fines issued, 207 projects eliminated from the database.
+
+**How spot checks work now**
+
+When I started doing this, the process was basically: open a project, look at it, decide if it's real. That works when you have fifty projects. It does not work when you have twenty thousand.
+
+So I split it into three passes.
+
+The first pass is automated. A script runs through every project and checks it against the rules at [hack.club/ysws-rules](https://hack.club/ysws-rules). Missing fields, incomplete data, hours that don't add up, obvious red flags.
+
+The second pass is where I come back in. The automated process isn't perfect. It flags things that turn out to be edge cases, and occasionally it misses things that aren't. So I re-review every conflict the script surfaced, correct the false positives, and catch what slipped through.
+
+The third pass is the real work. I open the repo. I read the commits. I look at the Hackatime heartbeats. And I decide whether the hours someone logged actually match the work that's there. This is the pass that catches hour inflation, projects that look polished on the surface but have three commits and forty hours logged, projects where the code was clearly generated in an afternoon but the approved hours say otherwise.
+
+14,236 checks happened in March. 6,393 so far in April. The volume is high because we're working through the backlog program by program, and there are a lot of programs.
+
+**Programs in 2026**
+
+Right now, ten programs account for the bulk of approved projects this year. Here's where each one stands in the spot check process:
+
+| Program                | Checked | Rejected | Fined | Eliminated |
+| ---------------------- | ------: | -------: | ----: | ---------: |
+| Campfire Satellites \* |   2,561 |       40 |     0 |          0 |
+| Blueprint \*           |   1,652 |       13 |     0 |          0 |
+| Siege                  |   1,255 |       12 |     2 |          3 |
+| Flavortown             |   1,160 |       28 |     1 |          2 |
+| Midnight               |     592 |        0 |     1 |          6 |
+| Sleepover              |     441 |        0 |     1 |          2 |
+| Construct \*           |     369 |       10 |     0 |          0 |
+| Milkyway               |     340 |        0 |     0 |          3 |
+| Stasis                 |     320 |        0 |     4 |         43 |
+| HC: The Game           |     271 |        0 |     1 |          3 |
+
+<small>\* Only the first automated pass is complete. Second and third passes have not started yet.</small>
+
+Not every program has been through all three passes. Campfire Satellites, Blueprint, and Construct have only had the automated check so far. Their rejection, fine, and elimination numbers are going to change once I actually sit down with the repos and the commit histories. The programs further down the table, like Stasis, Midnight, and Flavortown, have been partially through the full process, and that's where you see the fines and eliminations showing up.
+
+These numbers are going to look different in a few weeks. There are a lot of projects still waiting for a human to actually look at them.
+
+**Fines**
+
+97 fines have been issued so far. That's 742 hours removed from the database and $2,527 in fine money collected.
+
+Here's how the math works. When a spot check finds hours that shouldn't be in the database, those hours get removed and the program gets fined $12 per hour. The program can earn $8.50 of that back by properly re-processing the project: going back to the submitter, getting the issue fixed, and re-submitting it through the normal review flow. The remaining $3.50 is permanent.
+
+**Eliminations**
+
+207 projects have been eliminated from the database. These are projects that were approved but shouldn't have been at all: fraudulent submissions, duplicates, projects that didn't meet the minimum bar. 1,328 hours removed in 2026.
+
+The elimination rate is about 2.7% of this year's approvals. Low enough that fraud isn't a systemic problem, but high enough that it clearly exists and needs to be actively watched.
+
+**What's next**
+
+There are thousands of projects sitting in the queue waiting for a human to open the repo and actually look. That's going to take a while, and the numbers in this report are going to shift as it happens. :)
+
+---

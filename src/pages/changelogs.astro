@@ -1,7 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import SlackMention from "../components/SlackMention.astro";
-import { getChangelogEntries, getSiteConfig } from "../lib/content";
+import { getChangelogEntries, getSiteConfig, truncateWords } from "../lib/content";
 
 const site = await getSiteConfig();
 const changelogEntries = await getChangelogEntries();
@@ -12,17 +11,52 @@ const changelogEntries = await getChangelogEntries();
     <div class="section-label">CHANGELOG</div>
     <hr class="section-rule" />
     <div class="archive-list">
-      {changelogEntries.map((entry) => (
-        <div class="front-block story-block">
-          <h3 class="story-block-title">{entry.change}</h3>
-          <p class="story-block-excerpt">
-            {entry.date} &middot; {(() => {
-              const authorName = entry.author.trim().replace(/^@+/, "");
-              return entry.slackId ? <SlackMention name={authorName} id={entry.slackId} /> : entry.author;
-            })()}
-          </p>
-        </div>
-      ))}
+      {changelogEntries.map((entry) => {
+        if (entry.kind === "long") {
+          return (
+            <a href={entry.url} class="front-block story-block">
+              <h3 class="story-block-title">{entry.title}</h3>
+              <p class="story-block-excerpt">{truncateWords(entry.excerpt, 18)}</p>
+              <p class="story-block-excerpt">{entry.date} &middot; {entry.author}</p>
+            </a>
+          );
+        }
+
+        return (
+          <div class="changelog-archive-item">
+            <span class="changelog-change">{entry.change}</span>
+            <span class="changelog-meta">
+              {entry.date} &middot; {entry.author}
+            </span>
+          </div>
+        );
+      })}
     </div>
   </div>
 </BaseLayout>
+
+<style>
+  .changelog-archive-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .changelog-archive-item .changelog-change {
+    font-size: 1rem;
+    font-weight: bold;
+    line-height: 1.3;
+  }
+
+  .changelog-archive-item .changelog-meta {
+    font-size: 0.82rem;
+    color: #555;
+    letter-spacing: 0.04em;
+  }
+
+  html.dark .changelog-archive-item {
+    border-bottom-color: #444;
+  }
+</style>

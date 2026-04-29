@@ -35,12 +35,31 @@ export type Post = {
     followUps?: PostReference[];
 };
 
-export type ChangelogEntry = {
-    change: string;
+type ChangelogBase = {
     date: string;
     author: string;
-    slackId?: string;
 };
+
+export type ShortChangelogEntry = ChangelogBase & {
+    kind: "short";
+    change: string;
+};
+
+export type LongChangelogEntry = ChangelogBase & {
+    kind: "long";
+    slug: string;
+    url: string;
+    title: string;
+    excerpt: string;
+    paragraphs: string[];
+    leadingImage?: {
+        src: string;
+        alt: string;
+    };
+    entry: CollectionEntry<"changelogs">;
+};
+
+export type ChangelogEntry = ShortChangelogEntry | LongChangelogEntry;
 
 export type Acknowledgement = {
     name: string;
@@ -226,7 +245,36 @@ export async function getFrontpageData(): Promise<FrontpageData> {
 }
 
 export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
-    return changelogData;
+    const shortEntries: ShortChangelogEntry[] = changelogData.map((entry) => ({
+        kind: "short",
+        change: entry.change,
+        date: entry.date,
+        author: entry.author
+    }));
+
+    const longCollection = await getCollection("changelogs");
+    const longEntries: LongChangelogEntry[] = longCollection.map((entry) => {
+        const bodyBlocks = getBodyBlocks(entry.body!);
+        const leadingImage = extractImageFromBlock(bodyBlocks[0] ?? "");
+        const paragraphs = extractTextBlocks(entry.body!);
+        const dateString = entry.data.date.toISOString().slice(0, 10);
+        return {
+            kind: "long",
+            slug: entry.id,
+            url: `/changelog/${entry.id}/`,
+            title: entry.data.title,
+            date: dateString,
+            author: entry.data.author,
+            excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
+            paragraphs,
+            leadingImage,
+            entry
+        };
+    });
+
+    return [...shortEntries, ...longEntries].sort(
+        (a, b) => new Date(`${b.date}T00:00:00Z`).getTime() - new Date(`${a.date}T00:00:00Z`).getTime()
+    );
 }
 
 export async function getAcknowledgements(): Promise<Acknowledgement[]> {
