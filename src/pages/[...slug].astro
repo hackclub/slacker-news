@@ -4,15 +4,42 @@ import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
 import { render } from "astro:content";
 
 export async function getStaticPaths() {
-  return (await getPosts()).map((post) => ({
+  const posts = await getPosts();
+  return posts.map((post) => ({
     params: { slug: post.slug },
-    props: { post }
+    props: { slug: post.slug }
   }));
 }
 
 const site = await getSiteConfig();
-const { post } = Astro.props;
+const allPosts = await getPosts();
+const slugParam = Astro.props?.slug ?? Astro.params.slug;
+const slug = Array.isArray(slugParam)
+  ? slugParam.join("/")
+  : typeof slugParam === "string"
+    ? slugParam
+    : "";
+
+if (!slug) {
+  throw new Error("Missing slug for story page");
+}
+
+const post = allPosts.find((entry) => entry.slug === slug);
+if (!post) {
+  throw new Error(`No story found for slug "${slug}"`);
+}
+
 const { Content } = await render(post.entry);
+
+const responseLinks = post.responseTo?.map((slug) => {
+  const target = allPosts.find((p) => p.slug === slug);
+  return target ? { slug: target.slug, title: target.title, url: target.url } : null;
+}).filter(Boolean) ?? [];
+
+const followUpLinks = post.followUpTo?.map((slug) => {
+  const target = allPosts.find((p) => p.slug === slug);
+  return target ? { slug: target.slug, title: target.title, url: target.url } : null;
+}).filter(Boolean) ?? [];
 ---
 
 <BaseLayout
@@ -37,6 +64,50 @@ const { Content } = await render(post.entry);
       <hr class="story-rule" />
     </header>
 
+    {responseLinks.length > 0 && (
+      <div class="story-response-banner">
+        <strong>This is a response to:</strong>
+        <ul class="response-links">
+          {responseLinks.map((link) => (
+            <li><a href={link.url}>{link.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {followUpLinks.length > 0 && (
+      <div class="story-followup-banner">
+        <strong>This is a follow-up to:</strong>
+        <ul class="followup-links">
+          {followUpLinks.map((link) => (
+            <li><a href={link.url}>{link.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {post.responses && post.responses.length > 0 && (
+      <div class="story-responses-banner">
+        <strong>Responses to this piece:</strong>
+        <ul class="response-links">
+          {post.responses.map((resp) => (
+            <li><a href={resp.url}>{resp.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {post.followUps && post.followUps.length > 0 && (
+      <div class="story-followups-banner">
+        <strong>Follow-ups to this piece:</strong>
+        <ul class="followup-links">
+          {post.followUps.map((fu) => (
+            <li><a href={fu.url}>{fu.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
     <div class="story-body">
       <Content />
     </div>
@@ -46,3 +117,64 @@ const { Content } = await render(post.entry);
     </footer>
   </article>
 </BaseLayout>
+
+<style>
+  .story-response-banner,
+  .story-followup-banner,
+  .story-responses-banner,
+  .story-followups-banner {
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    border: 3px double #000;
+    background: #fff;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .story-response-banner strong,
+  .story-followup-banner strong,
+  .story-responses-banner strong,
+  .story-followups-banner strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .response-links,
+  .followup-links {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin: 0.5rem 0 0 0;
+  }
+
+  .response-links li,
+  .followup-links li {
+    display: list-item;
+    margin: 0.25rem 0;
+  }
+
+  .response-links a,
+  .followup-links a {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  html.dark .story-response-banner,
+  html.dark .story-followup-banner,
+  html.dark .story-responses-banner,
+  html.dark .story-followups-banner {
+    border-color: #fff;
+    outline-color: #fff;
+    background: #222;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  html.dark .response-links a,
+  html.dark .followup-links a {
+    color: #fff;
+  }
+</style>
