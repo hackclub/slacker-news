@@ -1,4 +1,4 @@
-import { getCollection, getEntry, type CollectionEntry } from "astro:content";
+import { getCollection, getEntry } from "astro:content";
 import siteData from "../data/site.json";
 import frontpageData from "../data/frontpage.json";
 import changelogData from "../data/changelog.json";
@@ -28,7 +28,7 @@ export type Post = {
         src: string;
         alt: string;
     };
-    entry: CollectionEntry<"posts">;
+    entry: any;
     responseTo?: string[];
     followUpTo?: string[];
     responses?: PostReference[];
@@ -158,10 +158,10 @@ export async function getPosts(): Promise<Post[]> {
     const processedPosts = posts
         .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
         .map((entry) => {
-            const bodyBlocks = getBodyBlocks(entry.body);
+            const bodyBlocks = getBodyBlocks(entry.body!);
             const leadingImage = extractImageFromBlock(bodyBlocks[0] ?? "");
-            const paragraphs = extractTextBlocks(entry.body);
-            const [category] = entry.slug.split("/", 1);
+            const paragraphs = extractTextBlocks(entry.body!);
+            const [category] = entry.id.split("/", 1);
 
             const responseTo = entry.data.responseTo
                 ? Array.isArray(entry.data.responseTo)
@@ -177,12 +177,12 @@ export async function getPosts(): Promise<Post[]> {
 
             return {
                 slug: entry.slug,
-                url: `/${entry.slug}/`,
+                url: `/${entry.id}/`,
                 title: entry.data.title,
                 author: entry.data.author,
                 category,
                 date: entry.data.date,
-                excerpt: toExcerpt(entry),
+                excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
                 paragraphs,
                 leadingImage,
                 entry,

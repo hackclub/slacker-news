@@ -12,6 +12,7 @@ scorecard.png
 review-import.json
 .turbo
 .next
+.vercel/
 
 .env
 .env.local

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
+import { render } from "astro:content";
 
 export async function getStaticPaths() {
   const allPosts = await getPosts();
@@ -11,15 +12,8 @@ export async function getStaticPaths() {
 }
 
 const site = await getSiteConfig();
-const { slug } = Astro.props;
-const allPosts = await getPosts();
-const post = allPosts.find((p) => p.slug === slug);
-
-if (!post) {
-  return Astro.redirect("/404");
-}
-
-const { Content } = await post.entry.render();
+const { post } = Astro.props;
+const { Content } = await render(post.entry);
 
 const responseLinks = post.responseTo?.map((slug) => {
   const target = allPosts.find((p) => p.slug === slug);

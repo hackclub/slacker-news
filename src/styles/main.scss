@@ -436,6 +436,22 @@ a {
       margin-top: 0;
       margin-bottom: 1.2em;
     }
+
+    blockquote {
+      margin: 0 0 1.2em;
+      padding: 0.2em 0 0.2em 1.2em;
+      border-left: 3px solid #000;
+      color: #333;
+      font-style: italic;
+
+      p, ul, ol {
+        margin-bottom: 0.8em;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
   }
 
   .story-footer {

@@ -1,4 +1,6 @@
 ---
+import AbacusCounter from "../components/AbacusCounter.astro";
+
 interface Props {
   title?: string;
   description?: string;
@@ -36,7 +38,7 @@ function toAbsoluteURL(input: string): string {
 }
 
 const canonicalURL = toAbsoluteURL(canonicalPath ?? Astro.url.pathname);
-const socialImageURL = toAbsoluteURL(openGraphImage ?? "/og-default.png");
+const socialImageURL = toAbsoluteURL(openGraphImage ?? "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png");
 const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 ---
 
@@ -50,6 +52,12 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     <meta name="description" content={pageDescription} />
     <link rel="canonical" href={canonicalURL} />
 
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title ?? siteTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+    <meta name="twitter:image" content={socialImageURL} />
+    <meta name="twitter:image:alt" content={socialImageAlt} />
+
     <meta property="og:title" content={title ?? siteTitle} />
     <meta property="og:description" content={pageDescription} />
     <meta property="og:url" content={canonicalURL} />
@@ -59,11 +67,6 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     <meta property="og:image" content={socialImageURL} />
     <meta property="og:image:alt" content={socialImageAlt} />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title ?? siteTitle} />
-    <meta name="twitter:description" content={pageDescription} />
-    <meta name="twitter:image" content={socialImageURL} />
-    <meta name="twitter:image:alt" content={socialImageAlt} />
 
     {openGraphType === "article" && articlePublishedTime && (
       <meta property="article:published_time" content={articlePublishedTime} />
@@ -155,6 +158,8 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             <a class="page-link" href="https://hackclub.com">Hack Club</a>
             <span class="nav-pip">|</span>
             <a class="page-link" href="/feed.xml">RSS</a>
+            <span class="nav-pip">|</span>
+            <a class="page-link" href="/stats/">Stats</a>
             <span class="nav-pip js-only">|</span>
             <button class="page-link theme-toggle js-only" id="theme-toggle" type="button">Dark Mode</button>
           </div>
@@ -167,5 +172,6 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         <slot />
       </div>
     </main>
+    <AbacusCounter pathname={Astro.url.pathname} />
   </body>
 </html>

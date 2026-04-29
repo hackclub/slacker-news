@@ -11,12 +11,12 @@
     "check": "astro check"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4.0.5",
-    "@astrojs/rss": "^4.0.11",
-    "astro": "^5.5.5"
+    "@astrojs/mdx": "^5.0.4",
+    "@astrojs/rss": "^4.0.18",
+    "astro": "^6.1.9"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "sass": "^1.86.3"
+    "@types/node": "^22.19.17",
+    "sass": "^1.99.0"
   }
 }
