@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { generateAbacusKey, getAbacusGetUrl } from "../lib/abacus";
-import { getPosts, getSiteConfig } from "../lib/content";
+import { getChangelogEntries, getPosts, getSiteConfig, type ChangelogEntry } from "../lib/content";
 
 const site = await getSiteConfig();
 const posts = await getPosts();
@@ -10,7 +10,7 @@ type CounterRow = {
   key: string;
   path: string;
   label: string;
-  kind: "page" | "article";
+  kind: "page" | "article" | "changelog";
   url: string;
 };
 
@@ -38,8 +38,21 @@ const articleRows: CounterRow[] = posts.map((post) => {
   };
 });
 
+const changelogRows: CounterRow[] = (await getChangelogEntries())
+  .filter((entry): entry is Extract<ChangelogEntry, { kind: "long" }> => entry.kind === "long")
+  .map((entry) => {
+    const key = generateAbacusKey(entry.url);
+    return {
+      key,
+      path: entry.url,
+      label: `Changelog: ${entry.title}`,
+      kind: "changelog",
+      url: getAbacusGetUrl(key)
+    };
+  });
+
 const rowsByKey = new Map<string, CounterRow>();
-for (const row of [...pageRows, ...articleRows]) {
+for (const row of [...pageRows, ...articleRows, ...changelogRows]) {
   if (!rowsByKey.has(row.key)) {
     rowsByKey.set(row.key, row);
   }
@@ -51,7 +64,7 @@ const counterRows = Array.from(rowsByKey.values());
 <BaseLayout title="Pageview Stats" siteTitle={site.title} siteDescription={site.description}>
   <section class="stats-page">
     <h1>Pageview Stats</h1>
-    <p>Live totals for all tracked pages and articles.</p>
+    <p>Live totals for all tracked pages, articles, and longform changelogs.</p>
 
     <div class="stats-sections">
       <section class="stats-block">
@@ -114,6 +127,22 @@ const counterRows = Array.from(rowsByKey.values());
               </tr>
             </thead>
             <tbody id="abacus-other-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="stats-block">
+        <h2>Changelogs</h2>
+        <div class="stats-table-wrap">
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th scope="col">Views</th>
+                <th scope="col">Path</th>
+                <th scope="col">Title</th>
+              </tr>
+            </thead>
+            <tbody id="abacus-changelogs-body"></tbody>
           </table>
         </div>
       </section>
@@ -262,13 +291,15 @@ const counterRows = Array.from(rowsByKey.values());
       const pagesBody = document.getElementById("abacus-pages-body");
       const newsBody = document.getElementById("abacus-news-body");
       const otherBody = document.getElementById("abacus-other-body");
+      const changelogsBody = document.getElementById("abacus-changelogs-body");
 
-      if (!totalBody || !pagesBody || !newsBody || !otherBody) return;
+      if (!totalBody || !pagesBody || !newsBody || !otherBody || !changelogsBody) return;
 
       const results = await Promise.all(counterRows.map(getCounterValue));
 
       const pages = results.filter((row) => row.kind === "page").sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
       const articleRows = results.filter((row) => row.kind === "article").sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+      const changelogs = results.filter((row) => row.kind === "changelog").sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
       const news = articleRows.filter((row) => row.path.startsWith("/news/"));
       const nonNewsArticles = articleRows.filter((row) => !row.path.startsWith("/news/"));
       const loaded = loadedRows(results);
@@ -278,11 +309,13 @@ const counterRows = Array.from(rowsByKey.values());
       pagesBody.textContent = "";
       newsBody.textContent = "";
       otherBody.textContent = "";
+      changelogsBody.textContent = "";
 
       totalBody.appendChild(createSubtotalRow("All Tracked Views", sumValues(loaded), maxValue));
       appendSection(pagesBody, { label: "Pages Total", rows: pages, maxValue });
       appendSection(newsBody, { label: "News Total", rows: news, maxValue });
       appendSection(otherBody, { label: "Other Articles Total", rows: nonNewsArticles, maxValue });
+      appendSection(changelogsBody, { label: "Changelog Total", rows: changelogs, maxValue });
 
     }
 
