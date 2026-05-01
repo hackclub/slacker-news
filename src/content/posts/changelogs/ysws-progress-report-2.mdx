@@ -1,0 +1,60 @@
+---
+title: "YSWS Quality & Integrity Weekly Update #2"
+date: '2026-05-01'
+author: "@lfd"
+---
+
+**What happened this week**
+
+550 projects were approved across YSWS programs between April 24 and May 1. Of those, 529 have been through at least the first spot check pass. 434 passed cleanly, 82 were flagged for changes, and 13 were rejected outright. 13 fines were issued and 8 projects were eliminated.
+
+**Coverage**
+
+The pipeline is still three passes. First pass is automated, every project goes through it. Second pass is me resolving conflicts and correcting false positives. Third pass is the deep dive: open the repo, read the commits, cross-reference Hackatime heartbeats against logged hours.
+
+Of the 550 approved this week: 78.9% passed the automated check cleanly, 14.9% were flagged for changes, and 2.4% were rejected outright. 14% made it to the second pass, and 9.6% went all the way to the third. The target for third pass coverage is at least 5%, but I'm aiming for around 15%.
+
+**Cumulative totals**
+
+Since the spot check pipeline started: 21,268 total checks, 110 fines issued, 223 projects eliminated.
+
+**Breakdown by program**
+
+| Program | 1st P | 1st NC | 1st R | 2nd P | 2nd NC | 2nd R | 3rd P | 3rd NC | 3rd R | Total | Fines |
+| ------------- | ----: | -----: | ----: | ----: | -----: | ----: | ----: | -----: | ----: | ----: | ----: |
+| Stasis | 77 | 2 | 0 | 2 | 0 | 0 | 7 | 0 | 0 | 79 | 2 |
+| Flavortown | 62 | 1 | 2 | 2 | 0 | 0 | 8 | 0 | 0 | 65 | 2 |
+| Construct | 60 | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 | 62 | 0 |
+| Ember | 3 | 50 | 2 | 50 | 0 | 0 | 5 | 0 | 0 | 55 | 0 |
+| HC: The Game | 30 | 11 | 0 | 9 | 0 | 0 | 3 | 0 | 0 | 41 | 1 |
+| Milkyway | 31 | 0 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 31 | 0 |
+| Boba Drops | 29 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 31 | 1 |
+| Ceiling | 28 | 2 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 30 | 3 |
+| Vibes | 21 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 21 | 0 |
+| Sleepover | 19 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 19 | 2 |
+| beest | 14 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 15 | 0 |
+| Blueprint | 14 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 14 | 0 |
+| Horizons | 8 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 0 |
+| BakeBuild | 0 | 9 | 0 | 9 | 0 | 0 | 8 | 0 | 0 | 9 | 0 |
+| Swirl | 8 | 0 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 8 | 0 |
+| Fallout | 7 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 7 | 0 |
+| Resolution | 5 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 1 |
+| Hackcraft ME | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
+| Sprig | 0 | 0 | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
+| Carnival | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 0 |
+| Polygon | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 0 |
+| Macondo | 2 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 1 |
+| Riceathon | 2 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 2 | 0 |
+| Homelab | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+| Pull Quests | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| wacky files | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| Infill | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| **Total** | **434** | **82** | **13** | **77** | **0** | **0** | **53** | **0** | **0** | **529** | **13** |
+
+<small>P = Passed, NC = Needs Changes, R = Rejected. Projects approved April 24 to May 1, 2026.</small>
+
+**Ember**: 50 of its 55 projects were flagged on first pass because they are updates to previous Campfire projects and were mistakenly marked as duplicates by the automated check. All 50 passed on second review once the false positive was corrected. The projects themselves are fine.
+
+**BakeBuild** is similar: all 9 projects were flagged because the repo format didn't match what the automated check expected.
+
+---
