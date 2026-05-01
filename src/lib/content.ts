@@ -1,12 +1,12 @@
 import { getCollection, getEntry, type CollectionEntry } from "astro:content";
 import siteData from "../data/site.json";
-import frontpageData from "../data/frontpage.json";
 import changelogData from "../data/changelog.json";
 import acknowledgementsData from "../data/acknowledgements.json";
 
 export type SiteConfig = {
     title: string;
     description: string;
+    headlineOverride: string | null;
 };
 
 export type PostReference = {
@@ -66,10 +66,6 @@ export type ChangelogEntry = ShortChangelogEntry | LongChangelogEntry;
 export type Acknowledgement = {
     name: string;
     slackId?: string;
-};
-
-type FrontpageData = {
-    headline?: string[];
 };
 
 function normalizeWhitespace(input: string): string {
@@ -169,7 +165,8 @@ function toExcerpt(entry: { body: string; data: { excerpt?: string } }): string 
 export async function getSiteConfig(): Promise<SiteConfig> {
     return {
         title: siteData.title,
-        description: siteData.description
+        description: siteData.description,
+        headlineOverride: siteData.headlineOverride ?? null
     };
 }
 
@@ -240,10 +237,6 @@ export async function getPosts(): Promise<Post[]> {
     }
 
     return processedPosts;
-}
-
-export async function getFrontpageData(): Promise<FrontpageData> {
-    return frontpageData;
 }
 
 export async function getChangelogEntries(): Promise<ChangelogEntry[]> {

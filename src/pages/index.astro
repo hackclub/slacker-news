@@ -4,7 +4,6 @@ import SlackMention from "../components/SlackMention.astro";
 import {
   getAcknowledgements,
   getChangelogEntries,
-  getFrontpageData,
   getPosts,
   getSiteConfig,
   truncateWords
@@ -12,16 +11,17 @@ import {
 
 const site = await getSiteConfig();
 const posts = await getPosts();
-const frontpage = await getFrontpageData();
 
-const headlineSlug = frontpage.headline?.[0];
-const headline = posts.find((post) => post.slug === headlineSlug);
+const allNews = posts.filter((post) => post.category === "news");
+const overrideHeadline = site.headlineOverride
+  ? posts.find((post) => post.slug === site.headlineOverride)
+  : undefined;
+const headline = overrideHeadline ?? allNews[0];
 const headlineExcerpts = headline?.paragraphs.slice(0, headline?.leadingImage ? 1 : 2) ?? [];
 
 const displayOpinion = posts.filter((post) => post.category === "opinion").slice(0, 3);
 
-const allNews = posts.filter((post) => post.category === "news");
-const displayNews = allNews.filter((post) => post.slug !== headlineSlug).slice(0, 8);
+const displayNews = allNews.filter((post) => post.slug !== headline?.slug).slice(0, 8);
 
 const allEssays = posts.filter((post) => post.category === "essays");
 const displayEssays = allEssays.slice(0, 4);
