@@ -90,7 +90,7 @@ const acknowledgements = await getAcknowledgements();
       <>
         <hr class="section-rule" />
 
-        <div class="front-essays">
+        <div class={`front-essays ${displayEssays.length < 4 ? `front-essays--${displayEssays.length}` : ""}`}>
           {displayEssays.map((post) => (
             <a href={post.url} class="front-block story-block essay-block">
               <h3 class="story-block-title">{post.title}</h3>

@@ -335,11 +335,19 @@ a {
 
 .front-essays {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  &--1 { grid-template-columns: 1fr; }
+  &--2 { grid-template-columns: repeat(2, 1fr); }
+  &--3 { grid-template-columns: repeat(3, 1fr); }
 
   @media screen and (max-width: 700px) {
     grid-template-columns: 1fr;
+
+    &--1, &--2, &--3 {
+      grid-template-columns: 1fr;
+    }
   }
 }
 
