@@ -8,7 +8,7 @@ export async function getStaticPaths() {
   const posts = await getPosts();
   return posts.map((post) => ({
     params: { slug: post.slug },
-    props: { slug: post.slug }
+    props: { slug: post.slug },
   }));
 }
 
@@ -32,15 +32,25 @@ if (!post) {
 
 const { Content } = await render(post.entry);
 
-const responseLinks = post.responseTo?.map((slug) => {
-  const target = allPosts.find((p) => p.slug === slug);
-  return target ? { slug: target.slug, title: target.title, url: target.url } : null;
-}).filter(Boolean) ?? [];
+const responseLinks =
+  post.responseTo
+    ?.map((slug) => {
+      const target = allPosts.find((p) => p.slug === slug);
+      return target
+        ? { slug: target.slug, title: target.title, url: target.url }
+        : null;
+    })
+    .filter(Boolean) ?? [];
 
-const followUpLinks = post.followUpTo?.map((slug) => {
-  const target = allPosts.find((p) => p.slug === slug);
-  return target ? { slug: target.slug, title: target.title, url: target.url } : null;
-}).filter(Boolean) ?? [];
+const followUpLinks =
+  post.followUpTo
+    ?.map((slug) => {
+      const target = allPosts.find((p) => p.slug === slug);
+      return target
+        ? { slug: target.slug, title: target.title, url: target.url }
+        : null;
+    })
+    .filter(Boolean) ?? [];
 ---
 
 <BaseLayout
@@ -57,61 +67,95 @@ const followUpLinks = post.followUpTo?.map((slug) => {
     <header class="story-header">
       <h1 class="story-title">{post.title}</h1>
       <div class="story-meta">
-        {post.category && <span class="story-category">{post.category.toUpperCase()}</span>}
-        {post.author && (
-          <span class="story-author">
-            By {post.authorSlackId ? <SlackMention name={post.author.replace(/^@+/, "")} id={post.authorSlackId} /> : post.author}
-          </span>
-        )}
+        {
+          post.category && (
+            <span class="story-category">
+              <a class="page-link" href={`/${post.category}`}>
+                {post.category.toUpperCase()}{" "}
+              </a>
+            </span>
+          )
+        }
+        {
+          post.author && (
+            <span class="story-author">
+              By{" "}
+              {post.authorSlackId ? (
+                <SlackMention
+                  name={post.author.replace(/^@+/, "")}
+                  id={post.authorSlackId}
+                />
+              ) : (
+                post.author
+              )}
+            </span>
+          )
+        }
         {post.author && " — "}
         <time>{formatStoryDate(new Date(post.date))}</time>
       </div>
       <hr class="story-rule" />
     </header>
 
-    {responseLinks.length > 0 && (
-      <div class="story-response-banner">
-        <strong>This is a response to:</strong>
-        <ul class="response-links">
-          {responseLinks.map((link) => (
-            <li><a href={link.url}>{link.title}</a></li>
-          ))}
-        </ul>
-      </div>
-    )}
+    {
+      responseLinks.length > 0 && (
+        <div class="story-response-banner">
+          <strong>This is a response to:</strong>
+          <ul class="response-links">
+            {responseLinks.map((link) => (
+              <li>
+                <a href={link.url}>{link.title}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
 
-    {followUpLinks.length > 0 && (
-      <div class="story-followup-banner">
-        <strong>This is a follow-up to:</strong>
-        <ul class="followup-links">
-          {followUpLinks.map((link) => (
-            <li><a href={link.url}>{link.title}</a></li>
-          ))}
-        </ul>
-      </div>
-    )}
+    {
+      followUpLinks.length > 0 && (
+        <div class="story-followup-banner">
+          <strong>This is a follow-up to:</strong>
+          <ul class="followup-links">
+            {followUpLinks.map((link) => (
+              <li>
+                <a href={link.url}>{link.title}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
 
-    {post.responses && post.responses.length > 0 && (
-      <div class="story-responses-banner">
-        <strong>Responses to this piece:</strong>
-        <ul class="response-links">
-          {post.responses.map((resp) => (
-            <li><a href={resp.url}>{resp.title}</a></li>
-          ))}
-        </ul>
-      </div>
-    )}
+    {
+      post.responses && post.responses.length > 0 && (
+        <div class="story-responses-banner">
+          <strong>Responses to this piece:</strong>
+          <ul class="response-links">
+            {post.responses.map((resp) => (
+              <li>
+                <a href={resp.url}>{resp.title}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
 
-    {post.followUps && post.followUps.length > 0 && (
-      <div class="story-followups-banner">
-        <strong>Follow-ups to this piece:</strong>
-        <ul class="followup-links">
-          {post.followUps.map((fu) => (
-            <li><a href={fu.url}>{fu.title}</a></li>
-          ))}
-        </ul>
-      </div>
-    )}
+    {
+      post.followUps && post.followUps.length > 0 && (
+        <div class="story-followups-banner">
+          <strong>Follow-ups to this piece:</strong>
+          <ul class="followup-links">
+            {post.followUps.map((fu) => (
+              <li>
+                <a href={fu.url}>{fu.title}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
 
     <div class="story-body">
       <Content />
