@@ -1,13 +1,29 @@
 # Slacker News
 
-Official news from the Hack Club Slack; built with [Astro](https://astro.build); highlighting stories that matter to hackers and makers. Run by [Hack Club](https://hackclub.com).
+Official news from the [Hack Club](https://hackclub.com?uwu) Slack, highlighting stories that matter to hackers and makers.
 
-## Prerequisites
+![cover image](https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png)
+
+## About
+
+As of now, some of the cool things Slacker News has include:
+- Distinct content columns including news, opinion, essays, and changelogs
+- Response and follow-up posts
+- RSS Feeds
+- Headline Images
+- Dynamic OpenGraph Metadata
+- Light/dark mode
+- Slack channel/user tagging
+- Privacy-concious analytics (abacus)
+
+## Technical Contributions
+
+### Prerequisites
 
 - **Bun** 1.2.9 or later ([install](https://bun.sh))
 - **Node.js** 18+ (optional, for compatibility)
 
-## Installation
+### Installation
 
 Clone the repository and install dependencies:
 
@@ -17,7 +33,7 @@ cd slacker-news
 bun install
 ```
 
-## Development
+### Development
 
 Start the development server with hot reload:
 
@@ -31,7 +47,7 @@ Styles are authored in `src/styles/main.scss` and bundled by Astro.
 
 Posts live in `src/content/posts/` as MDX files. Slack user mentions use the shared `SlackMention` component inside post bodies.
 
-## Building for Production
+### Building for Production
 
 Create an optimized production build:
 
@@ -47,7 +63,7 @@ Preview the production build locally:
 bun run preview
 ```
 
-## Project Structure
+### Project Structure
 
 ```
 src/
@@ -68,7 +84,7 @@ src/
 public/                 # Static assets
 ```
 
-## Adding Content
+## Content Contributions
 
 ### Posts
 
