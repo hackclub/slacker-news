@@ -17,7 +17,21 @@ const overrideHeadline = site.headlineOverride
   ? posts.find((post) => post.slug === site.headlineOverride)
   : undefined;
 const headline = overrideHeadline ?? allNews[0];
-const headlineExcerpts = headline?.paragraphs ?? [];
+const headlineExcerpts = (() => {
+  const paras = headline?.paragraphs ?? [];
+  const filtered = paras.filter((p) => {
+    const s = p.replace(/\s+/g, " ").trim();
+    if (!s) return false;
+    if (/^#{1,6}\s+/.test(s)) return false;
+    if (/^[=-]{3,}\s*$/.test(s)) return false;
+    const words = s.split(/\s+/).length;
+    if (words < 6) return false;
+    if (s.length < 40) return false;
+    return true;
+  });
+
+  return filtered.slice(0, headline?.leadingImage ? 1 : 2);
+})();
 
 const displayOpinion = posts.filter((post) => post.category === "opinion").slice(0, 3);
 
@@ -51,7 +65,7 @@ const acknowledgements = await getAcknowledgements();
             <hr class="block-rule" />
             <div class="block-excerpts">
               {headlineExcerpts.map((paragraph) => (
-                <p class="block-excerpt">{headline.leadingImage ? paragraph : truncateWords(paragraph, 28)}</p>
+                <p class="block-excerpt">{headline.leadingImage ? paragraph : truncateWords(paragraph, 120)}</p>
               ))}
             </div>
           </div>

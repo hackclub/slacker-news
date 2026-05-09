@@ -139,6 +139,7 @@ a {
   display: block;
   color: #000;
   transition: background 0.15s;
+  overflow: hidden;
 
   &:hover {
     background: #f0f0eb;
@@ -188,11 +189,10 @@ a {
   .block-excerpts {
     flex: 1;
     min-height: 0;
-    max-height: calc(1.6em * 10);
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 10;
-    line-clamp: 10;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -200,10 +200,7 @@ a {
     font-size: 1rem;
     line-height: 1.6;
     color: #222;
-    margin: 0;
-  }
-  .block-excerpt + .block-excerpt {
-    margin-top: 0.8em;
+    margin: 0 0 1.2em 0;
   }
 }
 

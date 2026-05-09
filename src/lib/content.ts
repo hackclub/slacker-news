@@ -170,14 +170,29 @@ function extractTextBlocks(body: string): string[] {
 
     return blocks
         .slice(leadingImage ? 1 : 0)
+        .filter((block) => {
+            if (/^#{1,6}\s+/.test(block.trim())) return false;
+            if (/^[=-]{3,}\s*$/.test(block.trim())) return false;
+            return true;
+        })
         .map((block) => stripMarkdown(block))
         .filter(Boolean);
 }
 
 function toExcerpt(entry: { body: string; data: { excerpt?: string } }): string {
     const explicitExcerpt = entry.data.excerpt;
-    const source = explicitExcerpt ?? extractTextBlocks(entry.body)[0] ?? "";
+    if (explicitExcerpt) {
+        return stripMarkdown(explicitExcerpt);
+    }
 
+    const blocks = extractTextBlocks(entry.body);
+    const substantial = blocks.find((b) => {
+        const cleaned = stripMarkdown(b);
+        const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+        return wordCount >= 8 && cleaned.length >= 60;
+    });
+
+    const source = substantial ?? blocks[0] ?? "";
     return stripMarkdown(source);
 }
 
