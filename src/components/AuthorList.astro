@@ -1,0 +1,36 @@
+---
+import SlackMention from "./SlackMention.astro";
+
+interface Props {
+  authors: string | string[];
+  slackIds?: string[];
+}
+
+const { authors, slackIds } = Astro.props;
+
+const authorArray = Array.isArray(authors) ? authors : [authors];
+
+function normalizeHandle(handle: string): string {
+  return handle.trim().replace(/^@+/, "");
+}
+---
+
+{
+  authorArray.map((author, index) => (
+    <>
+      {slackIds && slackIds[index] ? (
+        <SlackMention
+          name={normalizeHandle(author)}
+          id={slackIds[index]}
+        />
+      ) : (
+        normalizeHandle(author)
+      )}
+      {index < authorArray.length - 1 && (
+        <span>
+          {index === authorArray.length - 2 ? " & " : ", "}
+        </span>
+      )}
+    </>
+  ))
+}

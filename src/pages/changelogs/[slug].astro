@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import SlackMention from "../../components/SlackMention.astro";
+import AuthorList from "../../components/AuthorList.astro";
 import { formatStoryDate, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../../lib/content";
 import { render } from "astro:content";
 
@@ -44,7 +44,7 @@ const { Content } = await render(changelog.entry);
       <div class="story-meta">
         <span class="story-category">CHANGELOG</span>
         <span class="story-author">
-          By {changelog.slackId ? <SlackMention name={changelog.author.replace(/^@+/, "")} id={changelog.slackId} /> : changelog.author}
+          By <AuthorList authors={changelog.author} slackIds={changelog.slackIds} />
         </span>
         {" — "}
         <time>{formatStoryDate(new Date(`${changelog.date}T00:00:00Z`))}</time>

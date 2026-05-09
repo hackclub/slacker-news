@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import SlackMention from "../components/SlackMention.astro";
+import AuthorList from "../components/AuthorList.astro";
 import { getChangelogEntries, getSiteConfig, truncateWords } from "../lib/content";
 
 const site = await getSiteConfig();
@@ -19,7 +19,7 @@ const changelogEntries = await getChangelogEntries();
               <h3 class="story-block-title">{entry.title}</h3>
               <p class="story-block-excerpt">{truncateWords(entry.excerpt, 18)}</p>
               <p class="story-block-excerpt">
-                {entry.date} &middot; {entry.slackId ? <SlackMention name={entry.author.replace(/^@+/, "")} id={entry.slackId} /> : entry.author}
+                {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
               </p>
             </a>
           );
@@ -29,7 +29,7 @@ const changelogEntries = await getChangelogEntries();
           <div class="changelog-archive-item">
             <span class="changelog-change">{entry.change}</span>
             <span class="changelog-meta">
-              {entry.date} &middot; {entry.slackId ? <SlackMention name={entry.author.replace(/^@+/, "")} id={entry.slackId} /> : entry.author}
+              {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
             </span>
           </div>
         );

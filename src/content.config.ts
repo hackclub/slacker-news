@@ -6,7 +6,7 @@ const posts = defineCollection({
     schema: z.object({
         title: z.string(),
         date: z.coerce.date(),
-        author: z.string().optional(),
+        author: z.union([z.string(), z.array(z.string())]).optional(),
         category: z.string().optional(),
         excerpt: z.string().optional(),
         responseTo: z.union([z.string(), z.array(z.string())]).optional(),
@@ -26,7 +26,7 @@ const changelogs = defineCollection({
     schema: z.object({
         title: z.string(),
         date: z.coerce.date(),
-        author: z.string(),
+        author: z.union([z.string(), z.array(z.string())]),
         excerpt: z.string().optional(),
         responseTo: z.union([z.string(), z.array(z.string())]).optional(),
         followUpTo: z.union([z.string(), z.array(z.string())]).optional()

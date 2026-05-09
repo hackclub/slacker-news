@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import SlackMention from "../components/SlackMention.astro";
+import AuthorList from "../components/AuthorList.astro";
 import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
 import { render } from "astro:content";
 
@@ -79,15 +79,7 @@ const followUpLinks =
         {
           post.author && (
             <span class="story-author">
-              By{" "}
-              {post.authorSlackId ? (
-                <SlackMention
-                  name={post.author.replace(/^@+/, "")}
-                  id={post.authorSlackId}
-                />
-              ) : (
-                post.author
-              )}
+              By <AuthorList authors={post.author} slackIds={post.authorSlackIds} />
             </span>
           )
         }

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import AuthorList from "../components/AuthorList.astro";
 import SlackMention from "../components/SlackMention.astro";
 import {
   getAcknowledgements,
@@ -132,7 +133,7 @@ const acknowledgements = await getAcknowledgements();
                 <span class="changelog-change">{entry.change}</span>
               )}
               <span class="changelog-meta">
-                {entry.date} &middot; {entry.slackId ? <SlackMention name={entry.author.replace(/^@+/, "")} id={entry.slackId} /> : entry.author}
+                {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
               </span>
             </div>
             {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}
