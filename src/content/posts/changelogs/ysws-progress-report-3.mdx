@@ -1,0 +1,66 @@
+---
+title: "YSWS Quality & Integrity Weekly Update #3"
+date: '2026-05-11'
+author: "@lfd"
+---
+
+**What happened this week**
+
+849 projects were approved across YSWS programs between May 1 and May 8. Of those. 769 passed cleanly, 49 were flagged for changes, and 21 were rejected. 58 fines were issued and 58 projects were eliminated.
+
+**Coverage**
+
+Of the 839 checked this week: 91.7% passed the automated check cleanly, 5.8% were flagged for changes, and 2.5% were rejected. 6.4% were reviwed in a second pass, and 9.5% of them were reviewed thoroughly in a third pass. This is where I check the repo,demo and hearbeats, and make sure the hours approved correlate with the project. I'm aiming to scale this part of the process to around 15% by the end of the month.
+
+**Cumulative totals**
+
+Since the spot check pipeline started: 22,133 total checks, 173 fines issued, 286 projects eliminated.
+
+**Breakdown by program**
+
+| Program | 1st P | 1st NC | 1st R | 2nd P | 2nd NC | 2nd R | 3rd P | 3rd NC | 3rd R | Total | Fines |
+| ------------- | ----: | -----: | ----: | ----: | -----: | ----: | ----: | -----: | ----: | ----: | ----: |
+| Flavortown | 360 | 3 | 14 | 8 | 0 | 0 | 11 | 0 | 2 | 377 | 0 |
+| Macondo | 99 | 6 | 0 | 3 | 0 | 3 | 4 | 0 | 0 | 105 | 2 |
+| Resolution | 69 | 8 | 0 | 1 | 0 | 6 | 0 | 36 | 3 | 77 | 50 |
+| Stasis | 64 | 1 | 1 | 1 | 0 | 1 | 1 | 0 | 0 | 66 | 1 |
+| HC: The Game | 53 | 11 | 0 | 11 | 0 | 0 | 7 | 0 | 1 | 64 | 1 |
+| beest | 24 | 4 | 0 | 3 | 0 | 1 | 0 | 0 | 0 | 28 | 0 |
+| Sleepover | 24 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 24 | 0 |
+| Boba Drops | 18 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 19 | 1 |
+| Jackpot | 16 | 0 | 2 | 0 | 0 | 0 | 2 | 0 | 0 | 18 | 0 |
+| Fallout | 15 | 2 | 0 | 1 | 0 | 1 | 3 | 0 | 0 | 17 | 1 |
+| BakeBuild | 0 | 9 | 0 | 9 | 0 | 0 | 5 | 0 | 0 | 9 | 0 |
+| Vibes | 6 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 6 | 0 |
+| Forge | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 |
+| Riceathon | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 |
+| Hackcraft ME | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 |
+| Remixed | 2 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 3 | 1 |
+| flavorless | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 0 |
+| Sprig | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+| Polygon | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| Waffles | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| Homelab | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 0 | 0 | 1 | 0 |
+| trailit | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| Swirl | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 1 | 0 |
+| Infill | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| Campfire Flagship | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| **Total** | **769** | **49** | **21** | **40** | **0** | **14** | **36** | **36** | **8** | **839** | **58** |
+
+<small>P = Passed, NC = Needs Changes, R = Rejected. Projects approved May 1 to May 8, 2026.</small>
+
+**Resolution**: 50 of its 77 projects were fined this week. 36 of them were flagged as Needs Changes on third pass and 3 were rejected, with 6 rejected on second pass. 
+
+**BakeBuild** continues to have the same issue as last week: all 9 projects were flagged on first pass because the repo format didn't match what the automated check expected. All 9 passed on second review.
+
+**HC: The Game**: 11 of its 64 projects were flagged on first pass. All 11 passed on second review as they were correctly justified.
+
+---
+
+**Hardware stuff**
+
+@notaroomba is running experiments to detect cases of double-dipping on hardware projects, where the same physical build gets submitted to multiple YSWS programs. This is a gap in the current pipeline since the automated checks are optimized for software repos and don't handle hardware project they way they should be.
+
+I'm also trying to figure out a better way to track hardware projects in general. If you have ideas on how to improve hardware project tracking and verification, please DM me at @lfd on Slack.
+
+---
