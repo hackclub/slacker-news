@@ -5,13 +5,13 @@
     "": {
       "name": "slacker-news-astro",
       "dependencies": {
-        "@astrojs/mdx": "latest",
-        "@astrojs/rss": "latest",
-        "astro": "latest",
+        "@astrojs/mdx": "^5.0.4",
+        "@astrojs/rss": "^4.0.18",
+        "astro": "^6.1.9",
       },
       "devDependencies": {
-        "@types/node": "latest",
-        "sass": "latest",
+        "@types/node": "^25.6.0",
+        "sass": "^1.99.0",
       },
     },
   },
