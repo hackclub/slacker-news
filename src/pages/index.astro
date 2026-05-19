@@ -18,6 +18,7 @@ const overrideHeadline = site.headlineOverride
   ? posts.find((post) => post.slug === site.headlineOverride)
   : undefined;
 const headline = overrideHeadline ?? allNews[0];
+const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
   const paras = headline?.paragraphs ?? [];
   const filtered = paras.filter((p) => {
@@ -31,8 +32,9 @@ const headlineExcerpts = (() => {
     return true;
   });
 
-  return filtered.slice(0, headline?.leadingImage ? 1 : 2);
+  return filtered.slice(0, headline?.leadingImage ? 2 : 3);
 })();
+const headlineExcerptText = headlineExcerpts.join("\n\n");
 
 const displayOpinion = posts.filter((post) => post.category === "opinion").slice(0, 3);
 
@@ -65,9 +67,13 @@ const acknowledgements = await getAcknowledgements();
             <h2 class="block-headline">{headline.title}</h2>
             <hr class="block-rule" />
             <div class="block-excerpts">
-              {headlineExcerpts.map((paragraph) => (
-                <p class="block-excerpt">{headline.leadingImage ? paragraph : truncateWords(paragraph, 120)}</p>
-              ))}
+              <p
+                id="headline-excerpt"
+                class="block-excerpt"
+                data-source={headlineExcerptText}
+              >
+                {truncateWords(headlineExcerptText, headlineExcerptWordLimit)}
+              </p>
             </div>
           </div>
         </a>
@@ -163,4 +169,129 @@ const acknowledgements = await getAcknowledgements();
       </div>
     </div>
   </div>
+
+  <script>
+    import { layout, prepare } from "@chenglou/pretext";
+
+    const excerpt = document.getElementById("headline-excerpt");
+
+    if (excerpt instanceof HTMLElement) {
+      const source = excerpt.dataset.source ?? "";
+      const sourceWords = source.trim().split(/\s+/).filter(Boolean);
+
+      if (sourceWords.length > 0) {
+        const sourceParagraphs = source.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
+        let frame = 0;
+
+        function splitSentences(paragraph: string): string[] {
+          if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
+            const segmenter = new Intl.Segmenter(undefined, { granularity: "sentence" });
+            return Array.from(segmenter.segment(paragraph), (segment) => segment.segment.trim()).filter(Boolean);
+          }
+
+          return paragraph
+            .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
+            ?.map((sentence) => sentence.trim())
+            .filter(Boolean) ?? [paragraph];
+        }
+
+        const paragraphSentenceGroups = sourceParagraphs.map((paragraph) => splitSentences(paragraph));
+
+        const buildCandidate = (sentenceCount: number) => {
+          let remaining = sentenceCount;
+          const chunks = [];
+
+          for (const paragraphSentences of paragraphSentenceGroups) {
+            if (remaining <= 0) {
+              break;
+            }
+
+            const take = Math.min(remaining, paragraphSentences.length);
+            if (take > 0) {
+              chunks.push(paragraphSentences.slice(0, take).join(" "));
+              remaining -= take;
+            }
+
+            if (remaining > 0 && take === paragraphSentences.length) {
+              chunks.push("\n\n");
+            } else {
+              break;
+            }
+          }
+
+          return chunks.join("");
+        };
+
+        const fitExcerpt = () => {
+          const excerptBox = excerpt.parentElement;
+
+          if (!(excerptBox instanceof HTMLElement)) {
+            return;
+          }
+
+          const maxWidth = excerptBox.clientWidth;
+          const maxHeight = excerptBox.clientHeight;
+
+          if (maxWidth <= 0 || maxHeight <= 0) {
+            return;
+          }
+
+          const style = getComputedStyle(excerpt);
+          const fontSize = Number.parseFloat(style.fontSize);
+          const lineHeight = Number.parseFloat(style.lineHeight);
+          const resolvedLineHeight = Number.isFinite(lineHeight) && lineHeight > 0
+            ? lineHeight
+            : Math.round(fontSize * 1.5);
+          const font = `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+            .replace(/\s+/g, " ")
+            .trim();
+          const cache = new Map();
+
+          const fits = (sentenceCount: number) => {
+            const cached = cache.get(sentenceCount);
+
+            if (cached !== undefined) {
+              return cached <= maxHeight;
+            }
+
+            const candidate = buildCandidate(sentenceCount);
+            const prepared = prepare(candidate, font, { whiteSpace: "pre-wrap" });
+            const measured = layout(prepared, maxWidth, resolvedLineHeight).height;
+            cache.set(sentenceCount, measured);
+            return measured <= maxHeight;
+          };
+
+          let lo = 1;
+          let hi = paragraphSentenceGroups.reduce((total, paragraphSentences) => total + paragraphSentences.length, 0);
+          let best = 0;
+
+          while (lo <= hi) {
+            const mid = Math.floor((lo + hi) / 2);
+
+            if (fits(mid)) {
+              best = mid;
+              lo = mid + 1;
+            } else {
+              hi = mid - 1;
+            }
+          }
+
+          excerpt.textContent = buildCandidate(best);
+        };
+
+        const scheduleFit = () => {
+          window.cancelAnimationFrame(frame);
+          frame = window.requestAnimationFrame(fitExcerpt);
+        };
+
+        scheduleFit();
+
+        window.addEventListener("resize", scheduleFit);
+
+        if (document.fonts) {
+          void document.fonts.ready.then(scheduleFit);
+        }
+      }
+    }
+  </script>
 </BaseLayout>

@@ -189,18 +189,14 @@ a {
   .block-excerpts {
     flex: 1;
     min-height: 0;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 6;
-    line-clamp: 6;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
   .block-excerpt {
     font-size: 1rem;
-    line-height: 1.6;
+    line-height: 1.55;
     color: #222;
-    margin: 0 0 1.2em 0;
+    margin: 0;
+    white-space: pre-wrap;
   }
 }
 
