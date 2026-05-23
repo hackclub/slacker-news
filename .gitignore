@@ -19,3 +19,17 @@ review-import.json
 .env.development
 .env.test
 .env.production
+
+# Payload default media upload directory
+public/media/
+public/robots.txt
+public/sitemap*.xml
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Next.js
+next-env.d.ts

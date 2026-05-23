@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sn_cms
+      POSTGRES_USER: sn_cms
+      POSTGRES_PASSWORD: sn_cms
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sn_cms"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cms:
+    build:
+      context: .
+      dockerfile: apps/cms/Dockerfile
+      target: dev
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://sn_cms:sn_cms@postgres:5432/sn_cms
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:-6995edc626d1895603aaa92c}
+      ASTRO_URL: http://web:80
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - cms
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
