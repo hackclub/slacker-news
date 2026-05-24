@@ -253,14 +253,28 @@ export interface Post {
     image?: (number | null) | Media;
     description?: string | null;
   };
+  /**
+   * If enabled, readers will need to sign in to view this post on the Astro frontend.
+   */
+  loginRequired?: boolean | null;
   publishedAt?: string | null;
-  authors?: (number | User)[] | null;
-  populatedAuthors?:
+  /**
+   * Name(s) of the author(s). Use one entry per author.
+   */
+  authors?:
     | {
+        name: string;
         id?: string | null;
-        name?: string | null;
       }[]
     | null;
+  /**
+   * Slug of the post this article responds to
+   */
+  responseTo?: string | null;
+  /**
+   * Slug of the post this article is a follow-up to
+   */
+  followUpTo?: string | null;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -412,36 +426,6 @@ export interface Category {
     | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  name?: string | null;
-  approved?: boolean | null;
-  hackclubSubject?: string | null;
-  hackclubSlackId?: string | null;
-  hackclubVerificationStatus?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -784,6 +768,36 @@ export interface Form {
     | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name?: string | null;
+  approved?: boolean | null;
+  hackclubSubject?: string | null;
+  hackclubSlackId?: string | null;
+  hackclubVerificationStatus?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1209,14 +1223,16 @@ export interface PostsSelect<T extends boolean = true> {
         image?: T;
         description?: T;
       };
+  loginRequired?: T;
   publishedAt?: T;
-  authors?: T;
-  populatedAuthors?:
+  authors?:
     | T
     | {
-        id?: T;
         name?: T;
+        id?: T;
       };
+  responseTo?: T;
+  followUpTo?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
