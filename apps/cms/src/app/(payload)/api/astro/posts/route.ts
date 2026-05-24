@@ -43,14 +43,12 @@ export async function GET() {
             : ''
         ).filter(Boolean)
       : [],
-    authors: Array.isArray(doc.populatedAuthors)
-      ? doc.populatedAuthors.map((a: unknown) =>
-          typeof a === 'object' && a && 'name' in a
-            ? (a as { name: string }).name
-            : ''
-        ).filter(Boolean)
+    authors: Array.isArray(doc.authors)
+      ? (doc.authors as { name: string }[]).map((a) => a.name).filter(Boolean)
       : [],
     loginRequired: doc.loginRequired ?? false,
+    responseTo: (doc.responseTo as string | null)?.replace(/^(news|opinion|essays)\//, '') || null,
+    followUpTo: (doc.followUpTo as string | null)?.replace(/^(news|opinion|essays)\//, '') || null,
     contentHtml: lexicalToHtml(doc.content, MEDIA_BASE_URL),
   }))
 

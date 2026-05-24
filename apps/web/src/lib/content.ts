@@ -168,6 +168,8 @@ function cmsPostToPost(cmsPost: CmsPost): Post {
         leadingImage,
         contentHtml: cmsPost.contentHtml,
         loginRequired: cmsPost.loginRequired,
+        responseTo: cmsPost.responseTo ? [cmsPost.responseTo] : undefined,
+        followUpTo: cmsPost.followUpTo ? [cmsPost.followUpTo] : undefined,
     };
 }
 
@@ -183,10 +185,24 @@ export async function getPosts(): Promise<Post[]> {
     const cmsPosts = await fetchPosts();
 
     const processedPosts: Post[] = cmsPosts
-        .map((cmsPost) => cmsPostToPost(cmsPost))
-        .sort((a, b) => b.date.getTime() - a.date.getTime());
+        .map((cmsPost) => cmsPostToPost(cmsPost));
 
-    return processedPosts;
+    const resolveSlugs = (raw: string | string[] | undefined): PostReference[] | undefined => {
+        if (!raw) return undefined;
+        const slugs = Array.isArray(raw) ? raw : [raw];
+        const refs = slugs
+            .map((slug) => processedPosts.find((p) => p.slug === slug))
+            .filter((p): p is Post => Boolean(p))
+            .map((p) => ({ slug: p.slug, url: p.url, title: p.title }));
+        return refs.length ? refs : undefined;
+    };
+
+    for (const post of processedPosts) {
+        post.responses = resolveSlugs(post.responseTo);
+        post.followUps = resolveSlugs(post.followUpTo);
+    }
+
+    return processedPosts.sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
 export async function getChangelogEntries(): Promise<ChangelogEntry[]> {

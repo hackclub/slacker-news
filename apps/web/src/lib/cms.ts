@@ -10,6 +10,8 @@ export type CmsPost = {
   categories: string[]
   authors: string[]
   loginRequired: boolean
+  responseTo: string | null
+  followUpTo: string | null
   contentHtml: string
 }
 

@@ -6,11 +6,14 @@ import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
 const site = await getSiteConfig();
 const allPosts = await getPosts();
 const slugParam = Astro.params.slug;
-const slug = Array.isArray(slugParam)
+const rawSlug = Array.isArray(slugParam)
   ? slugParam.join("/")
   : typeof slugParam === "string"
     ? slugParam
     : "";
+
+// Strip category prefix (e.g., "news/welcome-to-slacker-news" -> "welcome-to-slacker-news")
+const slug = rawSlug.replace(/^(news|opinion|essays)\//, "");
 
 if (!slug) {
   return Astro.redirect("/");

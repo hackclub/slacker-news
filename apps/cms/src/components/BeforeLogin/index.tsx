@@ -9,8 +9,8 @@ const BeforeLogin: React.FC = () => {
     <div className="space-y-4">
       <style>{`.login__form { display: none !important; }`}</style>
       <p className="max-w-md text-sm leading-6 text-muted-foreground">
-        <b>Welcome to your dashboard!</b>
-        {' This is where site admins will log in to manage your website.'}
+        <b>Welcome to the Slacker Newsroom!</b>
+        {'For now, only site admins can log in to manage the content and management/delivery system settings. '}
       </p>
       {hasHackClubAuth ? (
         <Button asChild className="bg-[#ec3750] text-white shadow-lg shadow-[#ec3750]/25 hover:bg-[#d92e46] hover:text-white">
