@@ -162,6 +162,16 @@ export const Posts: CollectionConfig<'posts'> = {
       ],
     },
     {
+      name: 'loginRequired',
+      type: 'checkbox',
+      label: 'Require login to read',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: 'If enabled, readers will need to sign in to view this post on the Astro frontend.',
+      },
+    },
+    {
       name: 'publishedAt',
       type: 'date',
       admin: {

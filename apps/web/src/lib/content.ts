@@ -2,6 +2,7 @@ import { getCollection, getEntry, type CollectionEntry } from "astro:content";
 import siteData from "../data/site.json";
 import changelogData from "../data/changelog.json";
 import acknowledgementsData from "../data/acknowledgements.json";
+import { fetchPosts, type CmsPost } from "./cms";
 
 export type SiteConfig = {
     title: string;
@@ -30,7 +31,8 @@ export type Post = {
         src: string;
         alt: string;
     };
-    entry: CollectionEntry<"posts">;
+    contentHtml: string;
+    loginRequired: boolean;
     responseTo?: string[];
     followUpTo?: string[];
     responses?: PostReference[];
@@ -113,100 +115,60 @@ function getAuthorSlackIds(authors: string | string[] | undefined): string[] {
         .filter((id): id is string => Boolean(id));
 }
 
-function replaceSlackMentionComponents(input: string): string {
-    return input.replace(/<SlackMention\s+name="([^"]+)"\s+id="([^"]+)"\s*\/?>/g, (_match, name) => `@${name}`);
+function stripHtml(input: string): string {
+    return normalizeWhitespace(input.replace(/<[^>]+>/g, " "));
 }
 
-function replaceSlackChannelComponents(input: string): string {
-    return input.replace(/<SlackChannel\s+id="([^"]+)"\s*\/?>/g, (_match, id) => `#${id}`);
-}
-
-function stripMarkdown(input: string): string {
-    return normalizeWhitespace(
-        replaceSlackChannelComponents(replaceSlackMentionComponents(input))
-            .replace(/^import\s.+$/gm, "")
-            .replace(/^export\s.+$/gm, "")
-            .replace(/^#{1,6}\s+/gm, "")
-            .replace(/^\s*[-*+]\s+/gm, "")
-            .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "$1")
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
-            .replace(/`([^`]+)`/g, "$1")
-            .replace(/\*\*([^*]+)\*\*/g, "$1")
-            .replace(/\*([^*]+)\*/g, "$1")
-            .replace(/_{1,2}([^_]+)_{1,2}/g, "$1")
-            .replace(/<[^>]+>/g, " ")
-    );
-}
-
-function getBodyBlocks(body: string): string[] {
-    return body
-        .replace(/^import\s.+$/gm, "")
-        .replace(/^export\s.+$/gm, "")
-        .split(/\n{2,}/)
-        .map((block) => block.trim())
-        .filter(Boolean);
-}
-
-function getAttributeValue(tag: string, attribute: string): string | undefined {
-    return tag.match(new RegExp(`${attribute}=["']([^"']*)["']`, "i"))?.[1];
-}
-
-function extractImageFromBlock(block: string): { src: string; alt: string } | undefined {
-    const markdownImage = block.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)$/s);
-    if (markdownImage) {
-        return {
-            alt: markdownImage[1],
-            src: markdownImage[2]
-        };
+function extractParagraphsFromHtml(html: string): string[] {
+    const paragraphs: string[] = [];
+    const blockTags = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "li", "pre"];
+    for (const tag of blockTags) {
+        const regex = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\/${tag}>`, "gi");
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+            const text = stripHtml(match[1]);
+            if (text) paragraphs.push(text);
+        }
     }
+    return paragraphs;
+}
 
-    const imgTag = block.match(/<img\b[^>]*>/i);
-    if (!imgTag) {
-        return undefined;
+function extractImageFromHtml(html: string): { src: string; alt: string } | undefined {
+    const match = html.match(/<img\s[^>]*src=["']([^"']+)["'][^>]*alt=["']([^"']*)["']/i);
+    if (match) {
+        return { src: match[1], alt: match[2] };
     }
+    const simpleMatch = html.match(/<img\s[^>]*src=["']([^"']+)["']/i);
+    if (simpleMatch) {
+        return { src: simpleMatch[1], alt: "" };
+    }
+    return undefined;
+}
 
-    const tag = imgTag[0];
-    const src = getAttributeValue(tag, "src");
-    if (!src) {
-        return undefined;
-    }
+function cmsPostToPost(cmsPost: CmsPost): Post {
+    const paragraphs = extractParagraphsFromHtml(cmsPost.contentHtml);
+    const leadingImage = cmsPost.heroImage?.url
+        ? { src: cmsPost.heroImage.url, alt: cmsPost.heroImage.alt }
+        : extractImageFromHtml(cmsPost.contentHtml);
+
+    const wordCount = paragraphs.reduce((sum, p) => sum + p.split(/\s+/).filter(Boolean).length, 0);
+    const category = cmsPost.categories[0]?.toLowerCase() || undefined;
 
     return {
-        src,
-        alt: getAttributeValue(tag, "alt") ?? ""
+        slug: cmsPost.slug,
+        url: `/${cmsPost.slug}/`,
+        title: cmsPost.title,
+        author: cmsPost.authors.length > 0 ? (cmsPost.authors.length === 1 ? cmsPost.authors[0] : cmsPost.authors) : undefined,
+        authorSlackIds: getAuthorSlackIds(cmsPost.authors),
+        category,
+        date: cmsPost.publishedAt ? new Date(cmsPost.publishedAt) : new Date(),
+        excerpt: cmsPost.excerpt || stripHtml(paragraphs[0] || ""),
+        paragraphs,
+        readingTime: Math.max(1, Math.ceil(wordCount / 200)),
+        leadingImage,
+        contentHtml: cmsPost.contentHtml,
+        loginRequired: cmsPost.loginRequired,
     };
-}
-
-function extractTextBlocks(body: string): string[] {
-    const blocks = getBodyBlocks(body);
-    const leadingImage = extractImageFromBlock(blocks[0] ?? "");
-
-    return blocks
-        .slice(leadingImage ? 1 : 0)
-        .filter((block) => {
-            if (/^#{1,6}\s+/.test(block.trim())) return false;
-            if (/^[=-]{3,}\s*$/.test(block.trim())) return false;
-            return true;
-        })
-        .map((block) => stripMarkdown(block))
-        .filter(Boolean);
-}
-
-function toExcerpt(entry: { body: string; data: { excerpt?: string } }): string {
-    const explicitExcerpt = entry.data.excerpt;
-    if (explicitExcerpt) {
-        return stripMarkdown(explicitExcerpt);
-    }
-
-    const blocks = extractTextBlocks(entry.body);
-    const substantial = blocks.find((b) => {
-        const cleaned = stripMarkdown(b);
-        const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
-        return wordCount >= 8 && cleaned.length >= 60;
-    });
-
-    const source = substantial ?? blocks[0] ?? "";
-    return stripMarkdown(source);
 }
 
 export async function getSiteConfig(): Promise<SiteConfig> {
@@ -218,74 +180,11 @@ export async function getSiteConfig(): Promise<SiteConfig> {
 }
 
 export async function getPosts(): Promise<Post[]> {
-    const posts = await getCollection("posts");
+    const cmsPosts = await fetchPosts();
 
-    const processedPosts : Post[] = posts
-        .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
-        .map((entry) => {
-            const bodyBlocks = getBodyBlocks(entry.body!);
-            const leadingImage = extractImageFromBlock(bodyBlocks[0] ?? "");
-            const paragraphs = extractTextBlocks(entry.body!);
-            const [category] = entry.id.split("/", 1);
-
-            const responseTo = entry.data.responseTo
-                ? Array.isArray(entry.data.responseTo)
-                    ? entry.data.responseTo
-                    : [entry.data.responseTo]
-                : undefined;
-
-            const followUpTo = entry.data.followUpTo
-                ? Array.isArray(entry.data.followUpTo)
-                    ? entry.data.followUpTo
-                    : [entry.data.followUpTo]
-                : undefined;
-
-            const wordCount = paragraphs.reduce((sum, p) => sum + p.split(/\s+/).filter(Boolean).length, 0);
-
-            return {
-                slug: entry.id,
-                url: `/${entry.id}/`,
-                title: entry.data.title,
-                author: entry.data.author,
-                authorSlackIds: getAuthorSlackIds(entry.data.author),
-                category,
-                date: entry.data.date,
-                excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
-                paragraphs,
-                readingTime: Math.max(1, Math.ceil(wordCount / 200)),
-                leadingImage,
-                entry,
-                responseTo,
-                followUpTo,
-            } satisfies Post;
-        });
-
-    for (const post of processedPosts) {
-        if (post.followUpTo) {
-            post.followUps = processedPosts
-                .filter((p) => post.followUpTo!.includes(p.slug))
-                .map((p) => ({ slug: p.slug, url: p.url, title: p.title }));
-        }
-    }
-
-    for (const post of processedPosts) {
-        for (const otherPost of processedPosts) {
-            if (otherPost.responseTo?.includes(post.slug)) {
-                if (!post.responses) post.responses = [];
-                const exists = post.responses.some((r) => r.slug === otherPost.slug);
-                if (!exists) {
-                    post.responses.push({ slug: otherPost.slug, url: otherPost.url, title: otherPost.title });
-                }
-            }
-            if (otherPost.followUpTo?.includes(post.slug)) {
-                if (!post.followUps) post.followUps = [];
-                const exists = post.followUps.some((f) => f.slug === otherPost.slug);
-                if (!exists) {
-                    post.followUps.push({ slug: otherPost.slug, url: otherPost.url, title: otherPost.title });
-                }
-            }
-        }
-    }
+    const processedPosts: Post[] = cmsPosts
+        .map((cmsPost) => cmsPostToPost(cmsPost))
+        .sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return processedPosts;
 }
@@ -366,3 +265,101 @@ export async function getPageEntry(slug: string): Promise<CollectionEntry<"pages
 }
 
 export { truncateWords };
+
+// Keep local helpers for changelogs (unchanged from original)
+
+function replaceSlackMentionComponents(input: string): string {
+    return input.replace(/<SlackMention\s+name="([^"]+)"\s+id="([^"]+)"\s*\/?>/g, (_match, name) => `@${name}`);
+}
+
+function replaceSlackChannelComponents(input: string): string {
+    return input.replace(/<SlackChannel\s+id="([^"]+)"\s*\/?>/g, (_match, id) => `#${id}`);
+}
+
+function stripMarkdown(input: string): string {
+    return normalizeWhitespace(
+        replaceSlackChannelComponents(replaceSlackMentionComponents(input))
+            .replace(/^import\s.+$/gm, "")
+            .replace(/^export\s.+$/gm, "")
+            .replace(/^#{1,6}\s+/gm, "")
+            .replace(/^\s*[-*+]\s+/gm, "")
+            .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "$1")
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+            .replace(/`([^`]+)`/g, "$1")
+            .replace(/\*\*([^*]+)\*\*/g, "$1")
+            .replace(/\*([^*]+)\*/g, "$1")
+            .replace(/_{1,2}([^_]+)_{1,2}/g, "$1")
+            .replace(/<[^>]+>/g, " ")
+    );
+}
+
+function toExcerpt(entry: { body: string; data: { excerpt?: string } }): string {
+    const explicitExcerpt = entry.data.excerpt;
+    if (explicitExcerpt) {
+        return stripMarkdown(explicitExcerpt);
+    }
+
+    const blocks = extractTextBlocks(entry.body);
+    const substantial = blocks.find((b) => {
+        const cleaned = stripMarkdown(b);
+        const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+        return wordCount >= 8 && cleaned.length >= 60;
+    });
+
+    const source = substantial ?? blocks[0] ?? "";
+    return stripMarkdown(source);
+}
+
+function getBodyBlocks(body: string): string[] {
+    return body
+        .replace(/^import\s.+$/gm, "")
+        .replace(/^export\s.+$/gm, "")
+        .split(/\n{2,}/)
+        .map((block) => block.trim())
+        .filter(Boolean);
+}
+
+function extractImageFromBlock(block: string): { src: string; alt: string } | undefined {
+    const markdownImage = block.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)$/s);
+    if (markdownImage) {
+        return {
+            alt: markdownImage[1],
+            src: markdownImage[2]
+        };
+    }
+
+    const imgTag = block.match(/<img\b[^>]*>/i);
+    if (!imgTag) {
+        return undefined;
+    }
+
+    const tag = imgTag[0];
+    const src = getAttributeValue(tag, "src");
+    if (!src) {
+        return undefined;
+    }
+
+    return {
+        src,
+        alt: getAttributeValue(tag, "alt") ?? ""
+    };
+}
+
+function getAttributeValue(tag: string, attribute: string): string | undefined {
+    return tag.match(new RegExp(`${attribute}=["']([^"']*)["']`, "i"))?.[1];
+}
+
+function extractTextBlocks(body: string): string[] {
+    const blocks = getBodyBlocks(body);
+    const leadingImage = extractImageFromBlock(blocks[0] ?? "");
+
+    return blocks
+        .slice(leadingImage ? 1 : 0)
+        .filter((block) => {
+            if (/^#{1,6}\s+/.test(block.trim())) return false;
+            if (/^[=-]{3,}\s*$/.test(block.trim())) return false;
+            return true;
+        })
+        .map((block) => stripMarkdown(block))
+        .filter(Boolean);
+}

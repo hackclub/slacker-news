@@ -4,25 +4,15 @@ import AuthorList from "../../components/AuthorList.astro";
 import { formatStoryDate, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../../lib/content";
 import { render } from "astro:content";
 
-export async function getStaticPaths() {
-  const entries = await getChangelogEntries();
-  return entries
-    .filter((entry): entry is LongChangelogEntry => entry.kind === "long")
-    .map((entry) => ({
-      params: { slug: entry.slug },
-      props: { slug: entry.slug }
-    }));
-}
-
 const site = await getSiteConfig();
 const entries = await getChangelogEntries();
-const slug = Astro.props?.slug ?? Astro.params.slug;
+const slug = Astro.params.slug;
 
 const changelog = entries.find(
   (entry): entry is LongChangelogEntry => entry.kind === "long" && entry.slug === slug
 );
 if (!changelog) {
-  throw new Error(`No longform changelog found for slug "${slug}"`);
+  return Astro.redirect("/changelogs/");
 }
 
 const { Content } = await render(changelog.entry);

@@ -34,6 +34,10 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        CMS_URL: http://cms:3000
+    environment:
+      CMS_URL: http://cms:3000
     ports:
       - "8080:80"
     depends_on:
