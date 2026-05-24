@@ -17,7 +17,7 @@ services:
     build:
       context: .
       dockerfile: apps/cms/Dockerfile
-      target: dev
+      # target: dev
     ports:
       - "3000:3000"
     environment:
