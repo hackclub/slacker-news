@@ -24,7 +24,7 @@ COPY apps/cms/ apps/cms/
 COPY packages/ packages/
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_OPTIONS="--max-old-space-size=4096 --no-deprecation"
-RUN cd apps/cms && npx next build
+RUN cd apps/cms && bun run build
 
 FROM base AS runner
 WORKDIR /app/apps/cms
@@ -39,4 +39,4 @@ COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 USER nextjs
 EXPOSE 3000
 ENV PORT 3000
-CMD ["npx", "next", "start"]
+CMD ["bun", "run", "start"]
