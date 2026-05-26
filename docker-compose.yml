@@ -14,6 +14,7 @@ services:
       retries: 5
 
   cms:
+    image: slacker-news-cms:prod
     build:
       context: .
       dockerfile: apps/cms/Dockerfile
@@ -22,8 +23,11 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: postgres://sn_cms:sn_cms@postgres:5432/sn_cms
-      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-https://newsroom.matmanna.dev}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:-6995edc626d1895603aaa92c}
+      HACKCLUB_CLIENT_ID: ${HACKCLUB_CLIENT_ID}
+      HACKCLUB_CLIENT_SECRET: ${HACKCLUB_CLIENT_SECRET}
+      HACKCLUB_REDIRECT_URI: ${HACKCLUB_REDIRECT_URI:-https://newsroom.matmanna.dev/admin/auth/hackclub/callback}
       ASTRO_URL: http://web:80
     depends_on:
       postgres:
@@ -40,6 +44,13 @@ services:
       CMS_URL: http://cms:3000
     ports:
       - "8080:80"
+    depends_on:
+      - cms
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARED_TOKEN:?Set CLOUDFLARED_TOKEN in .env}
     depends_on:
       - cms
     restart: unless-stopped
