@@ -119,15 +119,6 @@ export const Posts: CollectionConfig<'posts'> = {
               hasMany: true,
               relationTo: 'posts',
             },
-            {
-              name: 'categories',
-              type: 'relationship',
-              admin: {
-                position: 'sidebar',
-              },
-              hasMany: true,
-              relationTo: 'categories',
-            },
           ],
           label: 'Meta',
         },
@@ -159,6 +150,17 @@ export const Posts: CollectionConfig<'posts'> = {
           ],
         },
       ],
+    },
+    {
+      name: 'categories',
+      type: 'relationship',
+      admin: {
+        position: 'sidebar',
+        description: 'Choose where this post appears on the homepage.',
+      },
+      hasMany: true,
+      relationTo: 'categories',
+      required: true,
     },
     {
       name: 'loginRequired',
