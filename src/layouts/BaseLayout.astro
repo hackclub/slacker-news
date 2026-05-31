@@ -1,6 +1,4 @@
 ---
-import AbacusCounter from "../components/AbacusCounter.astro";
-
 interface Props {
   title?: string;
   description?: string;
@@ -165,7 +163,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             <span class="nav-pip">|</span>
             <a class="page-link" href="/feed.xml">RSS</a>
             <span class="nav-pip">|</span>
-            <a class="page-link" href="/stats/">Stats</a>
+            <a class="page-link" href="https://plausible.io/news.hackclub.com">Stats</a>
             <span class="nav-pip js-only">|</span>
             <button class="page-link theme-toggle js-only" id="theme-toggle" type="button">Dark Mode</button>
           </div>
@@ -178,6 +176,5 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         <slot />
       </div>
     </main>
-    <AbacusCounter pathname={Astro.url.pathname} />
   </body>
 </html>
