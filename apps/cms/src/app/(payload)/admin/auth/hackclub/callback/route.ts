@@ -3,8 +3,10 @@ import { NextResponse } from 'next/server'
 import { generatePayloadCookie } from 'payload'
 
 import { buildHackClubProfile, getHackClubNonceCookieName, getHackClubSession, getHackClubStateCookieName, getHackClubTokenExchange, verifyHackClubIdToken } from '@/utilities/hackclubOidc'
+import { getServerSideURL } from '@/utilities/getURL'
 
 const secureCookie = process.env.NEXT_PUBLIC_SERVER_URL?.startsWith('https://') ?? false
+const getAdminURL = (path: string) => new URL(path, getServerSideURL())
 
 const clearHackClubCookies = (response: NextResponse) => {
   response.cookies.set(getHackClubNonceCookieName(), '', {
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
   const state = url.searchParams.get('state')
 
   if (error || !code || !state) {
-    const response = NextResponse.redirect(new URL('/admin/login?oidc=failed', request.url))
+    const response = NextResponse.redirect(getAdminURL('/admin/login?oidc=failed'))
     clearHackClubCookies(response)
     return response
   }
@@ -36,7 +38,7 @@ export async function GET(request: Request) {
   const nonce = cookieHeader.match(new RegExp(`${getHackClubNonceCookieName()}=([^;]+)`))?.[1]
 
   if (!expectedState || !nonce || expectedState !== state) {
-    const response = NextResponse.redirect(new URL('/admin/login?oidc=state_mismatch', request.url))
+    const response = NextResponse.redirect(getAdminURL('/admin/login?oidc=state_mismatch'))
     clearHackClubCookies(response)
     return response
   }
@@ -47,7 +49,7 @@ export async function GET(request: Request) {
     const profile = buildHackClubProfile(claims)
     const { authConfig, cookiePrefix, token } = await getHackClubSession(profile)
 
-    const response = NextResponse.redirect(new URL('/admin', request.url))
+    const response = NextResponse.redirect(getAdminURL('/admin'))
     const payloadCookie = generatePayloadCookie({
       collectionAuthConfig: authConfig,
       cookiePrefix,
@@ -70,7 +72,7 @@ export async function GET(request: Request) {
 
     return response
   } catch (error) {
-    const response = NextResponse.redirect(new URL('/admin/login?oidc=error', request.url))
+    const response = NextResponse.redirect(getAdminURL('/admin/login?oidc=error'))
     clearHackClubCookies(response)
     return response
   }

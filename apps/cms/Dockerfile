@@ -23,7 +23,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY apps/cms/ apps/cms/
 COPY packages/ packages/
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_OPTIONS="--max-old-space-size=4096 --no-deprecation"
+ENV NODE_OPTIONS="--max-old-space-size=1536 --no-deprecation"
+ENV NEXT_PRIVATE_BUILD_WORKER=1
 RUN cd apps/cms && bun run build
 
 FROM base AS runner
