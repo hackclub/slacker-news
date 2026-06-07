@@ -42,6 +42,9 @@ export type HackClubAuthProfile = {
 
 const stateCookieName = 'hackclub-oidc-state'
 const nonceCookieName = 'hackclub-oidc-nonce'
+const hackClubAdminEmailAllowlist = new Set(['hc@matmanna.dev', 'eps@hackclub.com'])
+
+const isHackClubAdmin = (email: string) => hackClubAdminEmailAllowlist.has(email.toLowerCase())
 
 const requireEnv = (name: 'HACKCLUB_CLIENT_ID' | 'HACKCLUB_CLIENT_SECRET') => {
   const value = process.env[name]
@@ -201,6 +204,7 @@ export const getHackClubSession = async (profile: HackClubAuthProfile) => {
     user = await payload.update({
       collection: 'users',
       data: {
+        approved: isHackClubAdmin(profile.email) || user.approved,
         email: profile.email,
         hackclubSlackId: profile.slackId,
         hackclubSubject: profile.sub,
@@ -216,6 +220,7 @@ export const getHackClubSession = async (profile: HackClubAuthProfile) => {
     user = await payload.create({
       collection: 'users',
       data: {
+        approved: isHackClubAdmin(profile.email),
         email: profile.email,
         hackclubSlackId: profile.slackId,
         hackclubSubject: profile.sub,

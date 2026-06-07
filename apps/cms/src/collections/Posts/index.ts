@@ -181,6 +181,17 @@ export const Posts: CollectionConfig<'posts'> = {
       relationTo: 'posts',
     },
     {
+      name: 'categories',
+      type: 'relationship',
+      admin: {
+        position: 'sidebar',
+        description: 'Choose where this post appears on the homepage.',
+      },
+      hasMany: true,
+      relationTo: 'categories',
+      required: true,
+    },
+    {
       name: 'loginRequired',
       type: 'checkbox',
       label: 'Require login to read',
