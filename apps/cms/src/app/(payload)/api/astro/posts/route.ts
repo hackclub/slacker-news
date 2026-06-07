@@ -5,6 +5,21 @@ import { lexicalToHtml } from '@/utilities/lexicalToHtml'
 
 const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
 
+const normalizePostSlug = (value: unknown) => {
+  if (!value) return null
+
+  if (typeof value === 'string') {
+    return value.replace(/^(news|opinion|essays)\//, '') || null
+  }
+
+  if (typeof value === 'object' && value && 'slug' in value) {
+    const slug = (value as { slug?: string | null }).slug
+    return slug ? slug.replace(/^(news|opinion|essays)\//, '') || null : null
+  }
+
+  return null
+}
+
 export async function GET() {
   const payload = await getPayload({ config })
 
@@ -47,8 +62,8 @@ export async function GET() {
       ? (doc.authors as { name: string }[]).map((a) => a.name).filter(Boolean)
       : [],
     loginRequired: doc.loginRequired ?? false,
-    responseTo: (doc.responseTo as string | null)?.replace(/^(news|opinion|essays)\//, '') || null,
-    followUpTo: (doc.followUpTo as string | null)?.replace(/^(news|opinion|essays)\//, '') || null,
+    responseTo: normalizePostSlug(doc.responseTo),
+    followUpTo: normalizePostSlug(doc.followUpTo),
     contentHtml: lexicalToHtml(doc.content, MEDIA_BASE_URL),
   }))
 

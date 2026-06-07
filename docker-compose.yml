@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: sn_cms
       POSTGRES_USER: sn_cms
@@ -17,7 +18,6 @@ services:
     build:
       context: .
       dockerfile: apps/cms/Dockerfile
-      # target: dev
     ports:
       - "3000:3000"
     environment:
@@ -40,6 +40,15 @@ services:
       CMS_URL: http://cms:3000
     ports:
       - "8080:80"
+    depends_on:
+      - cms
+    restart: unless-stopped
+
+  cloudflared:
+    profiles:
+      - tunnel
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARED_TOKEN}
     depends_on:
       - cms
     restart: unless-stopped

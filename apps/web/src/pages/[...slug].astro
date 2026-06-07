@@ -145,16 +145,16 @@ const followUpLinks:
     }
 
     <div class="story-body">
-      {
+      <!-- {
         post.loginRequired ? (
           <div class="login-gate">
             <h2>Login required</h2>
             <p>You need to sign in to read this post.</p>
           </div>
-        ) : (
+        ) : ( -->
           <Fragment set:html={post.contentHtml} />
-        )
-      }
+        <!-- )
+      } -->
     </div>
 
     <footer class="story-footer">

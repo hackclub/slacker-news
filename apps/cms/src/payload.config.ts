@@ -22,7 +22,7 @@ export default buildConfig({
   admin: {
     components: {
       beforeLogin: ['@/components/BeforeLogin'],
-      beforeDashboard: ['@/components/BeforeDashboard'],
+      // beforeDashboard: ['@/components/BeforeDashboard'],
       graphics: {
         Logo: '@/components/CmsLogo',
         Icon: '@/components/CmsIcon',
@@ -55,8 +55,7 @@ export default buildConfig({
       ],
     },
   },
-  // This config helps us configure global or default features that the other editors can inherit
-  editor: defaultLexical,
+e  editor: defaultLexical,
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || '',

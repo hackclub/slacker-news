@@ -76,11 +76,6 @@ export const Posts: CollectionConfig<'posts'> = {
         {
           fields: [
             {
-              name: 'heroImage',
-              type: 'upload',
-              relationTo: 'media',
-            },
-            {
               name: 'content',
               type: 'richText',
               editor: lexicalEditor({
@@ -100,36 +95,6 @@ export const Posts: CollectionConfig<'posts'> = {
             },
           ],
           label: 'Content',
-        },
-        {
-          fields: [
-            {
-              name: 'relatedPosts',
-              type: 'relationship',
-              admin: {
-                position: 'sidebar',
-              },
-              filterOptions: ({ id }) => {
-                return {
-                  id: {
-                    not_in: [id],
-                  },
-                }
-              },
-              hasMany: true,
-              relationTo: 'posts',
-            },
-            {
-              name: 'categories',
-              type: 'relationship',
-              admin: {
-                position: 'sidebar',
-              },
-              hasMany: true,
-              relationTo: 'categories',
-            },
-          ],
-          label: 'Meta',
         },
         {
           name: 'meta',
@@ -160,14 +125,69 @@ export const Posts: CollectionConfig<'posts'> = {
         },
       ],
     },
+    // {
+    //   name: 'relatedPosts',
+    //   type: 'relationship',
+    //   admin: {
+    //     position: 'sidebar',
+    //   },
+    //   filterOptions: ({ id }) => {
+    //     return {
+    //       id: {
+    //         not_in: [id],
+    //       },
+    //     }
+    //   },
+    //   hasMany: true,
+    //   relationTo: 'posts',
+    // },
+    {
+      name: 'categories',
+      type: 'relationship',
+      admin: {
+        position: 'sidebar',
+      },
+      hasMany: true,
+      relationTo: 'categories',
+    },
+    {
+      name: 'responseTo',
+      type: 'relationship',
+      admin: {
+        position: 'sidebar',
+      },
+      filterOptions: ({ id }) => {
+        return {
+          id: {
+            not_in: [id],
+          },
+        }
+      },
+      relationTo: 'posts',
+    },
+    {
+      name: 'followUpTo',
+      type: 'relationship',
+      admin: {
+        position: 'sidebar',
+      },
+      filterOptions: ({ id }) => {
+        return {
+          id: {
+            not_in: [id],
+          },
+        }
+      },
+      relationTo: 'posts',
+    },
     {
       name: 'loginRequired',
       type: 'checkbox',
       label: 'Require login to read',
       defaultValue: false,
       admin: {
-        position: 'sidebar',
         description: 'If enabled, readers will need to sign in to view this post on the Astro frontend.',
+        hidden: true,
       },
     },
     {
@@ -204,22 +224,6 @@ export const Posts: CollectionConfig<'posts'> = {
           required: true,
         },
       ],
-    },
-    {
-      name: 'responseTo',
-      type: 'text',
-      admin: {
-        position: 'sidebar',
-        description: 'Slug of the post this article responds to',
-      },
-    },
-    {
-      name: 'followUpTo',
-      type: 'text',
-      admin: {
-        position: 'sidebar',
-        description: 'Slug of the post this article is a follow-up to',
-      },
     },
     slugField(),
   ],
