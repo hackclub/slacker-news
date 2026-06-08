@@ -227,7 +227,6 @@ export interface Page {
 export interface Post {
   id: number;
   title: string;
-  heroImage?: (number | null) | Media;
   content: {
     root: {
       type: string;
@@ -243,8 +242,6 @@ export interface Post {
     };
     [k: string]: unknown;
   };
-  relatedPosts?: (number | Post)[] | null;
-  categories?: (number | Category)[] | null;
   meta?: {
     title?: string | null;
     /**
@@ -253,6 +250,10 @@ export interface Post {
     image?: (number | null) | Media;
     description?: string | null;
   };
+  /**
+   * Choose where this post appears on the homepage.
+   */
+  categories: (number | Category)[];
   /**
    * If enabled, readers will need to sign in to view this post on the Astro frontend.
    */
@@ -267,14 +268,8 @@ export interface Post {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Slug of the post this article responds to
-   */
-  responseTo?: string | null;
-  /**
-   * Slug of the post this article is a follow-up to
-   */
-  followUpTo?: string | null;
+  responseTo?: (number | null) | Post;
+  followUpTo?: (number | null) | Post;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -1212,10 +1207,7 @@ export interface FormBlockSelect<T extends boolean = true> {
  */
 export interface PostsSelect<T extends boolean = true> {
   title?: T;
-  heroImage?: T;
   content?: T;
-  relatedPosts?: T;
-  categories?: T;
   meta?:
     | T
     | {
@@ -1223,6 +1215,7 @@ export interface PostsSelect<T extends boolean = true> {
         image?: T;
         description?: T;
       };
+  categories?: T;
   loginRequired?: T;
   publishedAt?: T;
   authors?:

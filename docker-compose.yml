@@ -6,6 +6,8 @@ services:
       POSTGRES_DB: sn_cms
       POSTGRES_USER: sn_cms
       POSTGRES_PASSWORD: sn_cms
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +26,7 @@ services:
     environment:
       DATABASE_URL: postgres://sn_cms:sn_cms@postgres:5432/sn_cms
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-https://newsroom.matmanna.dev}
-      PAYLOAD_SECRET: ${PAYLOAD_SECRET:-6995edc626d1895603aaa92c}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Set PAYLOAD_SECRET in .env}
       HACKCLUB_CLIENT_ID: ${HACKCLUB_CLIENT_ID}
       HACKCLUB_CLIENT_SECRET: ${HACKCLUB_CLIENT_SECRET}
       HACKCLUB_REDIRECT_URI: ${HACKCLUB_REDIRECT_URI:-https://newsroom.matmanna.dev/admin/auth/hackclub/callback}

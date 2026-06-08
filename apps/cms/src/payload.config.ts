@@ -55,7 +55,7 @@ export default buildConfig({
       ],
     },
   },
-e  editor: defaultLexical,
+  editor: defaultLexical,
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
