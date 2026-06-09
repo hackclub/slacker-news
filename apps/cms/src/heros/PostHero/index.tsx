@@ -3,21 +3,20 @@ import React from 'react'
 
 import type { Post } from '@/payload-types'
 
-import { Media } from '@/components/Media'
 import { formatAuthors } from '@/utilities/formatAuthors'
 
 export const PostHero: React.FC<{
   post: Post
 }> = ({ post }) => {
-  const { categories, heroImage, authors, publishedAt, title } = post
+  const { categories, authors, publishedAt, title } = post
 
   const hasAuthors =
     authors && authors.length > 0 && formatAuthors(authors) !== ''
 
   return (
-    <div className="relative -mt-[10.4rem] flex items-end">
-      <div className="container z-10 relative lg:grid lg:grid-cols-[1fr_48rem_1fr] text-white pb-8">
-        <div className="col-start-1 col-span-1 md:col-start-2 md:col-span-2">
+    <div className="pt-24 pb-8">
+      <div className="container">
+        <div className="max-w-[48rem] mx-auto">
           <div className="uppercase text-sm mb-6">
             {categories?.map((category, index) => {
               if (typeof category === 'object' && category !== null) {
@@ -38,9 +37,7 @@ export const PostHero: React.FC<{
             })}
           </div>
 
-          <div className="">
-            <h1 className="mb-6 text-3xl md:text-5xl lg:text-6xl">{title}</h1>
-          </div>
+          <h1 className="mb-6 text-3xl md:text-5xl lg:text-6xl">{title}</h1>
 
           <div className="flex flex-col md:flex-row gap-4 md:gap-16">
             {hasAuthors && (
@@ -61,12 +58,6 @@ export const PostHero: React.FC<{
             )}
           </div>
         </div>
-      </div>
-      <div className="min-h-[80vh] select-none">
-        {heroImage && typeof heroImage !== 'string' && (
-          <Media fill priority imgClassName="-z-10 object-cover" resource={heroImage} />
-        )}
-        <div className="absolute pointer-events-none left-0 bottom-0 w-full h-1/2 bg-linear-to-t from-black to-transparent" />
       </div>
     </div>
   )
