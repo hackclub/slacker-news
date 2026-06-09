@@ -7,14 +7,15 @@ export type PostArgs = {
   author: User
 }
 
-export const post1: (args: PostArgs) => RequiredDataFromCollectionSlug<'posts'> = ({
+export const post1 = ({
   heroImage,
   blockImage,
   author,
-}) => {
+}: PostArgs) => {
   return {
     slug: 'digital-horizons',
     _status: 'published',
+    categories: [],
     authors: [{ name: author.name || 'Admin' }],
     content: {
       root: {
@@ -302,14 +303,12 @@ export const post1: (args: PostArgs) => RequiredDataFromCollectionSlug<'posts'> 
         version: 1,
       },
     },
-    heroImage: heroImage.id,
     meta: {
       description:
         'Dive into the marvels of modern innovation, where the only constant is change. A journey where pixels and data converge to craft the future.',
       image: heroImage.id,
       title: 'Digital Horizons: A Glimpse into Tomorrow',
     },
-    relatedPosts: [], // this is populated by the seed script
     title: 'Digital Horizons: A Glimpse into Tomorrow',
   }
 }

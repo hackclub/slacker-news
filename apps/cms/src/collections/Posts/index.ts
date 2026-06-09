@@ -125,16 +125,60 @@ export const Posts: CollectionConfig<'posts'> = {
         },
       ],
     },
+    // {
+    //   name: 'relatedPosts',
+    //   type: 'relationship',
+    //   admin: {
+    //     position: 'sidebar',
+    //   },
+    //   filterOptions: ({ id }) => {
+    //     return {
+    //       id: {
+    //         not_in: [id],
+    //       },
+    //     }
+    //   },
+    //   hasMany: true,
+    //   relationTo: 'posts',
+    // },
     {
       name: 'categories',
       type: 'relationship',
       admin: {
         position: 'sidebar',
-        description: 'Choose where this post appears on the homepage.',
       },
       hasMany: true,
       relationTo: 'categories',
-      required: true,
+    },
+    {
+      name: 'responseTo',
+      type: 'relationship',
+      admin: {
+        position: 'sidebar',
+      },
+      filterOptions: ({ id }) => {
+        return {
+          id: {
+            not_in: [id],
+          },
+        }
+      },
+      relationTo: 'posts',
+    },
+    {
+      name: 'followUpTo',
+      type: 'relationship',
+      admin: {
+        position: 'sidebar',
+      },
+      filterOptions: ({ id }) => {
+        return {
+          id: {
+            not_in: [id],
+          },
+        }
+      },
+      relationTo: 'posts',
     },
     {
       name: 'loginRequired',
@@ -142,8 +186,8 @@ export const Posts: CollectionConfig<'posts'> = {
       label: 'Require login to read',
       defaultValue: false,
       admin: {
-        position: 'sidebar',
         description: 'If enabled, readers will need to sign in to view this post on the Astro frontend.',
+        hidden: true,
       },
     },
     {
@@ -180,36 +224,6 @@ export const Posts: CollectionConfig<'posts'> = {
           required: true,
         },
       ],
-    },
-    {
-      name: 'responseTo',
-      type: 'relationship',
-      admin: {
-        position: 'sidebar',
-      },
-      filterOptions: ({ id }) => {
-        return {
-          id: {
-            not_in: [id],
-          },
-        }
-      },
-      relationTo: 'posts',
-    },
-    {
-      name: 'followUpTo',
-      type: 'relationship',
-      admin: {
-        position: 'sidebar',
-      },
-      filterOptions: ({ id }) => {
-        return {
-          id: {
-            not_in: [id],
-          },
-        }
-      },
-      relationTo: 'posts',
     },
     slugField(),
   ],

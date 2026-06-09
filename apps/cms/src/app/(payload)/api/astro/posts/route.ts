@@ -41,16 +41,6 @@ export async function GET() {
     slug: doc.slug,
     publishedAt: doc.publishedAt,
     excerpt: (doc.meta as Record<string, unknown>)?.description as string | undefined,
-    heroImage: doc.heroImage
-      ? {
-          url: typeof doc.heroImage === 'object' && 'url' in doc.heroImage
-            ? `${MEDIA_BASE_URL}${(doc.heroImage as { url: string }).url}`
-            : null,
-          alt: typeof doc.heroImage === 'object' && 'alt' in doc.heroImage
-            ? (doc.heroImage as { alt: string }).alt
-            : '',
-        }
-      : null,
     categories: Array.isArray(doc.categories)
       ? doc.categories.map((c: unknown) =>
           typeof c === 'object' && c && 'title' in c
