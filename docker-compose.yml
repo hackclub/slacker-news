@@ -30,7 +30,8 @@ services:
       HACKCLUB_CLIENT_ID: ${HACKCLUB_CLIENT_ID}
       HACKCLUB_CLIENT_SECRET: ${HACKCLUB_CLIENT_SECRET}
       HACKCLUB_REDIRECT_URI: ${HACKCLUB_REDIRECT_URI:-https://newsroom.matmanna.dev/admin/auth/hackclub/callback}
-      ASTRO_URL: http://web:80
+      ASTRO_URL: ${ASTRO_URL:-http://web:80}
+      PREVIEW_SECRET: ${PREVIEW_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,6 +45,7 @@ services:
         CMS_URL: http://cms:3000
     environment:
       CMS_URL: http://cms:3000
+      PREVIEW_SECRET: ${PREVIEW_SECRET}
     ports:
       - "8080:80"
     depends_on:

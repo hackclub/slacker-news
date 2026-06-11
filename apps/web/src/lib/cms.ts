@@ -15,8 +15,9 @@ export type CmsPost = {
   contentHtml: string
 }
 
-export async function fetchPosts(): Promise<CmsPost[]> {
-  const url = `${CMS_URL()}/api/astro/posts`
+export async function fetchPosts(options?: { draft?: boolean }): Promise<CmsPost[]> {
+  const params = options?.draft ? '?draft=true' : ''
+  const url = `${CMS_URL()}/api/astro/posts${params}`
 
   const res = await fetch(url)
 

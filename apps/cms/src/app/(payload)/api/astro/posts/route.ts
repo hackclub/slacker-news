@@ -1,6 +1,6 @@
 import config from '@payload-config'
 import { getPayload } from 'payload'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { lexicalToHtml } from '@/utilities/lexicalToHtml'
 
 const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
@@ -20,17 +20,20 @@ const normalizePostSlug = (value: unknown) => {
   return null
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const payload = await getPayload({ config })
+
+  const { searchParams } = new URL(request.url)
+  const isDraft = searchParams.get('draft') === 'true'
 
   const result = await payload.find({
     collection: 'posts',
-    draft: false,
+    draft: isDraft,
     depth: 2,
     limit: 1000,
     pagination: false,
     sort: '-publishedAt',
-    where: {
+    where: isDraft ? undefined : {
       _status: { equals: 'published' },
     },
   })

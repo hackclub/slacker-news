@@ -3,8 +3,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import AuthorList from "../components/AuthorList.astro";
 import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
 
+const preview = Astro.cookies.get('preview')?.value === 'true'
 const site = await getSiteConfig();
-const allPosts = await getPosts();
+const allPosts = await getPosts({ draft: preview });
 const slugParam = Astro.params.slug;
 const rawSlug = Array.isArray(slugParam)
   ? slugParam.join("/")

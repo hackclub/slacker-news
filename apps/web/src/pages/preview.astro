@@ -1,0 +1,22 @@
+---
+const secret = Astro.url.searchParams.get('secret')
+const path = Astro.url.searchParams.get('path')
+
+if (secret !== process.env.PREVIEW_SECRET) {
+  return Astro.redirect('/?preview=invalid', 302)
+}
+
+if (!path || !path.startsWith('/')) {
+  return Astro.redirect('/', 302)
+}
+
+Astro.cookies.set('preview', 'true', {
+  path: '/',
+  maxAge: 60 * 5,
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: import.meta.env.PROD,
+})
+
+return Astro.redirect(path, 302)
+---

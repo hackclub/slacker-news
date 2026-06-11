@@ -254,10 +254,11 @@ async function createPost(postData) {
   const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {
+    const { _status, ...createData } = postData;
     const createResponse = await fetch(`${CMS_URL}/api/posts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(postData),
+      body: JSON.stringify(createData),
       signal: controller.signal,
     });
 
@@ -267,7 +268,25 @@ async function createPost(postData) {
       return null;
     }
 
-    return await createResponse.json();
+    const result = await createResponse.json();
+    const postId = result.doc.id;
+
+    if (_status === 'published') {
+      const publishResponse = await fetch(`${CMS_URL}/api/posts/${postId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _status: 'published' }),
+        signal: controller.signal,
+      });
+
+      if (!publishResponse.ok) {
+        console.error(`Publish failed for ${postData.slug}: ${await publishResponse.text()}`);
+      } else {
+        console.log(`  Published: id=${postId}`);
+      }
+    }
+
+    return result;
   } catch (err) {
     console.error(`Fetch error: ${err.message}`);
     return null;

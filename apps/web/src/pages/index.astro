@@ -10,8 +10,9 @@ import {
   truncateWords
 } from "../lib/content";
 
+const preview = Astro.cookies.get('preview')?.value === 'true'
 const site = await getSiteConfig();
-const posts = await getPosts();
+const posts = await getPosts({ draft: preview });
 
 const allNews = posts.filter((post) => post.category === "news");
 const overrideHeadline = site.headlineOverride

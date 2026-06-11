@@ -1,4 +1,3 @@
-import { PreviewSearchParams } from '@/app/(frontend)/next/preview/route'
 import { PayloadRequest, CollectionSlug } from 'payload'
 
 const collectionPrefixMap: Partial<Record<CollectionSlug, string>> = {
@@ -17,15 +16,11 @@ export const generatePreviewPath = ({ collection, slug }: Props) => {
     return null
   }
 
-  // Encode to support slugs with special characters
-  const encodedSlug = encodeURIComponent(slug)
-
+  const astroUrl = process.env.ASTRO_URL || 'http://web:80'
   const encodedParams = new URLSearchParams({
-    path: `${collectionPrefixMap[collection]}/${encodedSlug}`,
-    previewSecret: process.env.PREVIEW_SECRET || '',
-  } satisfies PreviewSearchParams)
+    path: `${collectionPrefixMap[collection]}/${slug}`,
+    secret: process.env.PREVIEW_SECRET || '',
+  })
 
-  const url = `/next/preview?${encodedParams.toString()}`
-
-  return url
+  return `${astroUrl}/preview?${encodedParams.toString()}`
 }

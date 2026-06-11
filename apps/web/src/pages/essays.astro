@@ -2,8 +2,9 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getPosts, getSiteConfig, truncateWords } from "../lib/content";
 
+const preview = Astro.cookies.get('preview')?.value === 'true'
 const site = await getSiteConfig();
-const essaysPosts = (await getPosts()).filter((post) => post.category === "essays");
+const essaysPosts = (await getPosts({ draft: preview })).filter((post) => post.category === "essays");
 ---
 
 <BaseLayout title="Essays Archive" siteTitle={site.title} siteDescription={site.description}>

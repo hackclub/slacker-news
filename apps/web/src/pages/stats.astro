@@ -3,8 +3,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { generateAbacusKey, getAbacusGetUrl } from "../lib/abacus";
 import { getChangelogEntries, getPosts, getSiteConfig, type ChangelogEntry } from "../lib/content";
 
+const preview = Astro.cookies.get('preview')?.value === 'true'
 const site = await getSiteConfig();
-const posts = await getPosts();
+const posts = await getPosts({ draft: preview });
 
 type CounterRow = {
   key: string;

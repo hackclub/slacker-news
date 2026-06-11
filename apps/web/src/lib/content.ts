@@ -181,8 +181,8 @@ export async function getSiteConfig(): Promise<SiteConfig> {
     };
 }
 
-export async function getPosts(): Promise<Post[]> {
-    const cmsPosts = await fetchPosts();
+export async function getPosts(options?: { draft?: boolean }): Promise<Post[]> {
+    const cmsPosts = await fetchPosts(options);
 
     const processedPosts: Post[] = cmsPosts
         .map((cmsPost) => cmsPostToPost(cmsPost));
