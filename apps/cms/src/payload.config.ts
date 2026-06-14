@@ -60,7 +60,7 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
-    push: false,
+    push: process.env.PAYLOAD_AUTO_MIGRATE !== 'false',
   }),
   collections: [Pages, Posts, Media, Categories, Users],
   cors: [getServerSideURL(), process.env.ASTRO_URL || 'http://localhost:4321'].filter(Boolean),

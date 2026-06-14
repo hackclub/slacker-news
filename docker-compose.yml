@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: sn_cms
       POSTGRES_PASSWORD: sn_cms
     ports:
-      - "5432:5432"
+      - "${PG_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,12 +17,12 @@ services:
       retries: 5
 
   cms:
-    image: slacker-news-cms:prod
+    image: matmanna/slacker-news-cms:latest
     build:
       context: .
       dockerfile: apps/cms/Dockerfile
     ports:
-      - "3000:3000"
+      - "${CMS_HOST_PORT:-3000}:3000"
     environment:
       DATABASE_URL: postgres://sn_cms:sn_cms@postgres:5432/sn_cms
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-https://newsroom.matmanna.dev}
@@ -47,7 +47,7 @@ services:
       CMS_URL: http://cms:3000
       PREVIEW_SECRET: ${PREVIEW_SECRET}
     ports:
-      - "8080:80"
+      - "${WEB_HOST_PORT:-8080}:80"
     depends_on:
       - cms
     restart: unless-stopped
@@ -56,7 +56,7 @@ services:
     profiles:
       - tunnel
     image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARED_TOKEN}
+    command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARED_TOKEN:-}
     depends_on:
       - cms
     restart: unless-stopped
