@@ -12,7 +12,7 @@ function escapeHtml(input) {
 }
 
 async function trackFeedView(context) {
-    if (import.meta.env.DEV || !context.site) {
+    if (import.meta.env.DEV || !context.site || context.isPrerendered) {
         return;
     }
 
