@@ -2,8 +2,6 @@ import rss from "@astrojs/rss";
 import { getChangelogEntries, getPosts, getSiteConfig } from "../lib/content";
 import { legacyRedirects } from "../data/legacy-redirects.mjs";
 
-export const prerender = false;
-
 const legacyPaths = new Set(Object.keys(legacyRedirects).map((path) => path.replace(/\/$/, "")));
 
 function escapeHtml(input) {
@@ -14,7 +12,7 @@ function escapeHtml(input) {
 }
 
 async function trackFeedView(context) {
-    if (!context.site || context.isPrerendered) {
+    if (import.meta.env.DEV || !context.site || context.isPrerendered) {
         return;
     }
 
