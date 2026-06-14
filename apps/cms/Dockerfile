@@ -39,8 +39,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next ./.next
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/package.json ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/tsconfig.json ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/src ./src
+COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/scripts/seed-trigger.mjs ./
+COPY apps/web/src/content/posts /app/mdx-posts
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules /app/node_modules
 USER nextjs
 EXPOSE 3000
 ENV PORT 3000
-CMD ["sh", "-c", "/usr/bin/node /app/node_modules/.bin/payload migrate && bun run start"]
+CMD ["sh", "-c", "/usr/bin/node /app/node_modules/.bin/payload migrate && bun run start & sleep 8 && /usr/bin/node seed-trigger.mjs && wait"]

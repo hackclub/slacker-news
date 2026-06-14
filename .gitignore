@@ -33,3 +33,5 @@ public/sitemap*.xml
 
 # Next.js
 next-env.d.ts
+
+apps/web/src/content/posts
