@@ -20,6 +20,7 @@ CMD ["sh", "-c", "bun run dev"]
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/cms/node_modules ./apps/cms/node_modules
 COPY apps/cms/ apps/cms/
 COPY packages/ packages/
 ENV NEXT_TELEMETRY_DISABLED 1
@@ -42,7 +43,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/src ./src
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/scripts/seed-trigger.mjs ./
 COPY apps/web/src/content/posts /app/mdx-posts
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules /app/node_modules
+COPY --from=deps --chown=nextjs:nodejs /app/apps/cms/node_modules /app/apps/cms/node_modules
 USER nextjs
 EXPOSE 3000
 ENV PORT 3000
-CMD ["sh", "-c", "/usr/bin/node /app/node_modules/.bin/payload migrate && bun run start & sleep 8 && /usr/bin/node seed-trigger.mjs && wait"]
+CMD ["sh", "-c", "/usr/bin/node /app/node_modules/.bin/payload migrate && (bun run start &) && sleep 8 && /usr/bin/node seed-trigger.mjs && wait"]
