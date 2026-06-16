@@ -309,6 +309,31 @@ export async function POST(request: Request) {
         const postTitle = data.title || slug
         const authorName = data.author || ''
 
+        const responseToSlug = data.responseTo || null
+        const followUpToSlug = data.followUpTo || null
+
+        let responseToId: string | null = null
+        let followUpToId: string | null = null
+
+        if (responseToSlug) {
+          const ref = await payload.find({
+            collection: 'posts',
+            where: { slug: { equals: responseToSlug } },
+            limit: 1,
+            depth: 0,
+          })
+          if (ref.docs[0]) responseToId = String(ref.docs[0].id)
+        }
+        if (followUpToSlug) {
+          const ref = await payload.find({
+            collection: 'posts',
+            where: { slug: { equals: followUpToSlug } },
+            limit: 1,
+            depth: 0,
+          })
+          if (ref.docs[0]) followUpToId = String(ref.docs[0].id)
+        }
+
         const postData: Record<string, unknown> = {
           title: postTitle,
           slug,
@@ -317,8 +342,8 @@ export async function POST(request: Request) {
           publishedAt: data.date ? new Date(data.date).toISOString() : null,
           _status: 'published',
           loginRequired: false,
-          responseTo: data.responseTo || null,
-          followUpTo: data.followUpTo || null,
+          responseTo: responseToId,
+          followUpTo: followUpToId,
         }
 
         if (categoryIdMap[category]) {
