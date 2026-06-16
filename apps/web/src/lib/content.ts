@@ -109,7 +109,7 @@ function getAuthorSlackIds(authors: string | string[] | undefined): string[] {
     }
 
     const authorArray = Array.isArray(authors) ? authors : [authors];
-    
+
     return authorArray
         .map((author) => getAuthorSlackId(author))
         .filter((id): id is string => Boolean(id));
@@ -119,7 +119,6 @@ function stripHtml(input: string): string {
     return normalizeWhitespace(input.replace(/<[^>]+>/g, " "));
 }
 
-<<<<<<< HEAD:apps/web/src/lib/content.ts
 function extractParagraphsFromHtml(html: string): string[] {
     const paragraphs: string[] = [];
     const blockTags = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "li", "pre"];
@@ -130,49 +129,6 @@ function extractParagraphsFromHtml(html: string): string[] {
             const text = stripHtml(match[1]);
             if (text) paragraphs.push(text);
         }
-=======
-function replaceSlackChannelComponents(input: string): string {
-    return input.replace(/<SlackChannel\s+id="([^"]+)"\s*\/?>/g, (_match, id) => `#${id}`);
-}
-
-function stripMarkdown(input: string): string {
-    return normalizeWhitespace(
-        replaceSlackChannelComponents(replaceSlackMentionComponents(input))
-            .replace(/^import\s.+$/gm, "")
-            .replace(/^export\s.+$/gm, "")
-            .replace(/^#{1,6}\s+/gm, "")
-            .replace(/^\s*[-*+]\s+/gm, "")
-            .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "")
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
-            .replace(/`([^`]+)`/g, "$1")
-            .replace(/\*\*([^*]+)\*\*/g, "$1")
-            .replace(/\*([^*]+)\*/g, "$1")
-            .replace(/_{1,2}([^_]+)_{1,2}/g, "$1")
-            .replace(/<[^>]+>/g, " ")
-    );
-}
-
-function getBodyBlocks(body: string): string[] {
-    return body
-        .replace(/^import\s.+$/gm, "")
-        .replace(/^export\s.+$/gm, "")
-        .split(/\n{2,}/)
-        .map((block) => block.trim())
-        .filter(Boolean);
-}
-
-function getAttributeValue(tag: string, attribute: string): string | undefined {
-    return tag.match(new RegExp(`${attribute}=["']([^"']*)["']`, "i"))?.[1];
-}
-
-function extractImageFromBlock(block: string): { src: string; alt: string } | undefined {
-    const markdownImage = block.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)$/s);
-    if (markdownImage) {
-        return {
-            alt: markdownImage[1],
-            src: markdownImage[2]
-        };
->>>>>>> upstream/master:src/lib/content.ts
     }
     return paragraphs;
 }
@@ -217,90 +173,19 @@ function cmsPostToPost(cmsPost: CmsPost): Post {
     };
 }
 
-<<<<<<< HEAD:apps/web/src/lib/content.ts
-=======
-function isTableBlock(block: string): boolean {
-    return block.split("\n").some((line) => /^\s*\|?[\s\-:|]+\|[\s\-:|]+\|?\s*$/.test(line) && /-/.test(line));
-}
-
-function isListBlock(block: string): boolean {
-    const listLines = block.split("\n").filter((line) => /^\s*([-*+]|\d+\.)\s+/.test(line));
-    return listLines.length >= 2;
-function extractParagraphsFromHtml(html: string): string[] {
-    const paragraphs: string[] = [];
-    const blockTags = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "li", "pre"];
-    for (const tag of blockTags) {
-        const regex = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\/${tag}>`, "gi");
-        let match;
-        while ((match = regex.exec(html)) !== null) {
-            const text = stripHtml(match[1]);
-            if (text) paragraphs.push(text);
-        }
-    }
-    return paragraphs;
-}
-
-function replaceSlackChannelComponents(input: string): string {
-    return input.replace(/<SlackChannel\s+id="([^"']+)"\s*\/?\>/g, (_match, id) => `#${id}`);
-}
-
-function stripMarkdown(input: string): string {
-    return normalizeWhitespace(
-        replaceSlackChannelComponents(replaceSlackMentionComponents(input))
-            .replace(/^import\s.+$/gm, "")
-            .replace(/^export\s.+$/gm, "")
-            .replace(/^#{1,6}\s+/gm, "")
-            .replace(/^\s*[-*+]\s+/gm, "")
-            .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "$1")
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
-            .replace(/`([^`]+)`/g, "$1")
-            .replace(/\*\*([^*]+)\*\*/g, "$1")
-            .replace(/\*([^*]+)\*/g, "$1")
-            .replace(/_{1,2}([^_]+)_{1,2}/g, "$1")
-            .replace(/<[^>]+>/g, " ")
-    );
-}
-
-function getBodyBlocks(body: string): string[] {
-    return body
-        .replace(/^import\s.+$/gm, "")
-        .replace(/^export\s.+$/gm, "")
-        .split(/\n{2,}/)
-        .map((block) => block.trim())
-        .filter(Boolean);
-}
-
-function getAttributeValue(tag: string, attribute: string): string | undefined {
-    return tag.match(new RegExp(`${attribute}=["']([^"']*)["']`, "i"))?.[1];
-}
-
-function extractImageFromBlock(block: string): { src: string; alt: string } | undefined {
-    const markdownImage = block.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)$/s);
-    if (markdownImage) {
-        return {
-            alt: markdownImage[1],
-            src: markdownImage[2]
-        };
-    }
-
-    const imgTag = block.match(/<img\b[^>]*>/i);
-    if (!imgTag) {
-        return undefined;
-    }
-
-    const tag = imgTag[0];
-    const src = getAttributeValue(tag, "src");
-    if (!src) {
-        return undefined;
-    }
-
+export async function getSiteConfig(): Promise<SiteConfig> {
     return {
-        src,
-        alt: getAttributeValue(tag, "alt") ?? ""
+        title: siteData.title,
+        description: siteData.description,
+        headlineOverride: siteData.headlineOverride ?? null
     };
 }
-        return refs.length ? refs : undefined;
-    };
+
+export async function getPosts(options?: { draft?: boolean }): Promise<Post[]> {
+    const cmsPosts = await fetchPosts(options);
+
+    const processedPosts: Post[] = cmsPosts
+        .map((cmsPost) => cmsPostToPost(cmsPost));
 
     for (const post of processedPosts) {
         for (const otherPost of processedPosts) {
@@ -321,7 +206,7 @@ function extractImageFromBlock(block: string): { src: string; alt: string } | un
         }
     }
 
-    return processedPosts;
+    return processedPosts.sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
 export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
@@ -400,8 +285,6 @@ export async function getPageEntry(slug: string): Promise<CollectionEntry<"pages
 }
 
 export { truncateWords };
-
-// Keep local helpers for changelogs (unchanged from original)
 
 function replaceSlackMentionComponents(input: string): string {
     return input.replace(/<SlackMention\s+name="([^"]+)"\s+id="([^"]+)"\s*\/?>/g, (_match, name) => `@${name}`);
