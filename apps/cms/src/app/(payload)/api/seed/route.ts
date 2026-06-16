@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
 import fs from 'fs'
 import path from 'path'
 
 const SEED_SECRET = process.env.SEED_SECRET
+const CMS_URL = process.env.CMS_URL || 'http://localhost:3000'
 const MDX_POSTS_DIR = process.env.MDX_POSTS_DIR || '/app/mdx-posts'
 
 const CATEGORIES = ['news', 'opinion', 'essays', 'changelogs'] as const
@@ -243,6 +242,20 @@ function markdownToLexical(md: string) {
   }
 }
 
+async function api(path: string, options?: RequestInit) {
+  const url = `${CMS_URL}/api${path}`
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${JSON.stringify(data)}`)
+  return data
+}
+
 export async function POST(request: Request) {
   if (SEED_SECRET) {
     const auth = request.headers.get('authorization')
@@ -252,18 +265,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const payload = await getPayload({ config: configPromise })
     const results: string[] = []
 
     for (const title of CATEGORIES) {
-      const existing = await payload.find({
-        collection: 'categories',
-        where: { title: { equals: title } },
-        limit: 1,
-      })
+      const existing = await api(`/categories?where[slug][equals]=${title}&limit=1&depth=0`)
       if (existing.totalDocs === 0) {
-        await payload.create({ collection: 'categories', data: { title }, overrideAccess: true, draft: true })
-        results.push(`Created category: ${title}`)
+        try {
+          await api('/categories', { method: 'POST', body: JSON.stringify({ title }) })
+          results.push(`Created category: ${title}`)
+        } catch {
+          const retry = await api(`/categories?where[slug][equals]=${title}&limit=1&depth=0`)
+          if (retry.totalDocs === 0) results.push(`Failed to create category: ${title}`)
+        }
       }
     }
 
@@ -271,9 +284,9 @@ export async function POST(request: Request) {
       results.push('Categories already exist')
     }
 
-    const { totalDocs: postCount } = await payload.count({ collection: 'posts' })
-    if (postCount > 0) {
-      results.push(`Posts already exist (${postCount}), skipping MDX import`)
+    const postCount = await api('/posts?limit=0&depth=0')
+    if (postCount.totalDocs > 0) {
+      results.push(`Posts already exist (${postCount.totalDocs}), skipping MDX import`)
       return NextResponse.json({ results })
     }
 
@@ -284,12 +297,8 @@ export async function POST(request: Request) {
 
     const categoryIdMap: Record<string, string> = {}
     for (const cat of CATEGORIES) {
-      const found = await payload.find({
-        collection: 'categories',
-        where: { title: { equals: cat } },
-        limit: 1,
-      })
-      if (found.docs[0]) categoryIdMap[cat] = String(found.docs[0].id)
+      const found = await api(`/categories?where[slug][equals]=${cat}&limit=1&depth=0`)
+      if (found.docs?.[0]) categoryIdMap[cat] = String(found.docs[0].id)
     }
 
     let createdCount = 0
@@ -299,8 +308,7 @@ export async function POST(request: Request) {
 
       const files = fs.readdirSync(dir).filter(f => f.endsWith('.mdx'))
       for (const file of files) {
-        const filePath = path.join(dir, file)
-        const raw = fs.readFileSync(filePath, 'utf-8')
+        const raw = fs.readFileSync(path.join(dir, file), 'utf-8')
         const { data, content: rawContent } = parseFrontmatter(raw)
         const cleanedContent = astroComponentToText(rawContent)
         const lexical = markdownToLexical(cleanedContent)
@@ -309,29 +317,19 @@ export async function POST(request: Request) {
         const postTitle = data.title || slug
         const authorName = data.author || ''
 
-        const responseToSlug = data.responseTo || null
-        const followUpToSlug = data.followUpTo || null
-
         let responseToId: string | null = null
         let followUpToId: string | null = null
 
+        const responseToSlug = data.responseTo || null
         if (responseToSlug) {
-          const ref = await payload.find({
-            collection: 'posts',
-            where: { slug: { equals: responseToSlug } },
-            limit: 1,
-            depth: 0,
-          })
-          if (ref.docs[0]) responseToId = String(ref.docs[0].id)
+          const ref = await api(`/posts?where[slug][equals]=${responseToSlug}&limit=1&depth=0`)
+          if (ref.docs?.[0]) responseToId = String(ref.docs[0].id)
         }
+
+        const followUpToSlug = data.followUpTo || null
         if (followUpToSlug) {
-          const ref = await payload.find({
-            collection: 'posts',
-            where: { slug: { equals: followUpToSlug } },
-            limit: 1,
-            depth: 0,
-          })
-          if (ref.docs[0]) followUpToId = String(ref.docs[0].id)
+          const ref = await api(`/posts?where[slug][equals]=${followUpToSlug}&limit=1&depth=0`)
+          if (ref.docs?.[0]) followUpToId = String(ref.docs[0].id)
         }
 
         const postData: Record<string, unknown> = {
@@ -350,20 +348,12 @@ export async function POST(request: Request) {
           postData.categories = [categoryIdMap[category]]
         }
 
-        const result = await payload.create({
-          collection: 'posts',
-          data: postData,
-          overrideAccess: true,
-          draft: true,
-        })
+        const result = await api('/posts', { method: 'POST', body: JSON.stringify(postData) })
 
         if (result.id) {
-          await payload.update({
-            collection: 'posts',
-            id: String(result.id),
-            data: { _status: 'published' },
-            overrideAccess: true,
-            draft: true,
+          await api(`/posts/${result.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ _status: 'published' }),
           })
           createdCount++
         }
