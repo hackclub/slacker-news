@@ -47,4 +47,4 @@ COPY --from=deps --chown=nextjs:nodejs /app/apps/cms/node_modules /app/apps/cms/
 USER nextjs
 EXPOSE 3000
 ENV PORT 3000
-CMD ["sh", "-c", "/usr/bin/node /app/node_modules/.bin/payload migrate && (bun run start &) && sleep 8 && /usr/bin/node seed-trigger.mjs && wait"]
+CMD ["sh", "-c", "/usr/bin/node /app/apps/cms/node_modules/.bin/payload migrate && (bun run start &) && sleep 8 && /usr/bin/node seed-trigger.mjs && wait"]
