@@ -156,9 +156,12 @@ function markdownToLexical(md: string) {
         inList = {
           type: 'list',
           listType: 'bullet',
+          tag: 'ul',
+          start: 1,
           children: [],
           format: '',
           indent: 0,
+          direction: null,
           version: 1,
         }
         rootChildren.push(inList)
@@ -187,9 +190,12 @@ function markdownToLexical(md: string) {
         inOrderedList = {
           type: 'list',
           listType: 'number',
+          tag: 'ol',
+          start: 1,
           children: [],
           format: '',
           indent: 0,
+          direction: null,
           version: 1,
         }
         rootChildren.push(inOrderedList)
