@@ -165,7 +165,13 @@ function markdownToLexical(md: string) {
       }
       ;(inList.children as Array<Record<string, unknown>>).push({
         type: 'listitem',
-        children: parseInlineFormatting(ulMatch[1]),
+        children: [{
+          type: 'paragraph',
+          children: parseInlineFormatting(ulMatch[1]),
+          format: '',
+          indent: 0,
+          version: 1,
+        }],
         value: 1,
         format: '',
         indent: 0,
@@ -190,7 +196,13 @@ function markdownToLexical(md: string) {
       }
       ;(inOrderedList.children as Array<Record<string, unknown>>).push({
         type: 'listitem',
-        children: parseInlineFormatting(olMatch[1]),
+        children: [{
+          type: 'paragraph',
+          children: parseInlineFormatting(olMatch[1]),
+          format: '',
+          indent: 0,
+          version: 1,
+        }],
         value: 1,
         format: '',
         indent: 0,
@@ -286,11 +298,14 @@ export async function POST(request: Request) {
       results.push('Categories already exist')
     }
 
-    const { totalDocs: postCount } = await payload.count({ collection: 'posts' })
-    if (postCount > 0) {
-      results.push(`Posts already exist (${postCount}), skipping MDX import`)
-      return NextResponse.json({ results })
-    }
+    const existingPosts = await payload.find({
+      collection: 'posts',
+      limit: 1000,
+      depth: 0,
+      select: { slug: true },
+    })
+    const existingSlugs = new Set(existingPosts.docs.map(p => p.slug))
+    results.push(`Existing posts: ${existingSlugs.size}`)
 
     if (!fs.existsSync(MDX_POSTS_DIR)) {
       results.push(`MDX posts directory not found: ${MDX_POSTS_DIR}`)
@@ -322,6 +337,10 @@ export async function POST(request: Request) {
         const lexical = markdownToLexical(cleanedContent)
 
         const slug = file.replace(/\.mdx$/, '')
+        if (existingSlugs.has(slug)) {
+          results.push(`Skipping existing post: ${slug}`)
+          continue
+        }
         const postTitle = data.title || slug
         const authorName = data.author || ''
 
