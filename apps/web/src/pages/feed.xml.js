@@ -11,10 +11,43 @@ function escapeHtml(input) {
         .replace(/>/g, "&gt;");
 }
 
+async function trackFeedView(context) {
+    if (import.meta.env.DEV || !context.site || context.isPrerendered) {
+        return;
+    }
+
+    const feedUrl = new URL("/feed.xml", context.site).toString();
+    const siteDomain = new URL(context.site).hostname;
+    const headers = context.request.headers;
+    const userAgent = headers.get("user-agent") ?? undefined;
+    const acceptLanguage = headers.get("accept-language") ?? undefined;
+    const referer = headers.get("referer") ?? undefined;
+    const forwardedFor =
+        headers.get("x-forwarded-for") ?? headers.get("cf-connecting-ip") ?? context.clientAddress ?? undefined;
+
+    await fetch("https://plausible.io/api/event", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(userAgent ? { "User-Agent": userAgent } : {}),
+            ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
+            ...(referer ? { Referer: referer } : {}),
+            ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {})
+        },
+        body: JSON.stringify({
+            name: "pageview",
+            url: feedUrl,
+            domain: siteDomain
+        })
+    }).catch(() => {});
+}
+
 export async function GET(context) {
     const site = await getSiteConfig();
     const posts = await getPosts();
     const changelogs = await getChangelogEntries();
+
+    await trackFeedView(context);
 
     const postItems = posts.map((post) => {
         const baseSlug = post.slug.split("/").pop();
