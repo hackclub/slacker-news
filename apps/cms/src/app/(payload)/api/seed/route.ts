@@ -376,22 +376,7 @@ export async function POST(request: Request) {
           postData.categories = [categoryIdMap[category]]
         }
 
-        const existing = await payload.find({
-          collection: 'posts',
-          where: { slug: { equals: slug } },
-          limit: 1,
-          depth: 0,
-          overrideAccess: true,
-        })
-        if (existing.docs[0]) {
-          await payload.update({
-            collection: 'posts',
-            id: String(existing.docs[0].id),
-            data: { content: lexical as any },
-            overrideAccess: true,
-          })
-          fixedCount++
-        } else {
+        try {
           const result = await payload.create({
             collection: 'posts',
             data: postData,
@@ -406,6 +391,31 @@ export async function POST(request: Request) {
               overrideAccess: true,
             })
             createdCount++
+          }
+        } catch (err: any) {
+          const isSlugError = err?.message?.includes?.('slug') ||
+            err?.data?.errors?.some?.((e: any) => e?.field === 'slug')
+          if (isSlugError) {
+            const found = await payload.find({
+              collection: 'posts',
+              where: { slug: { equals: slug } },
+              limit: 1,
+              depth: 0,
+              overrideAccess: true,
+            })
+            if (found.docs[0]) {
+              await payload.update({
+                collection: 'posts',
+                id: String(found.docs[0].id),
+                data: { content: lexical as any },
+                overrideAccess: true,
+              })
+              fixedCount++
+            } else {
+              throw err
+            }
+          } else {
+            throw err
           }
         }
       }
