@@ -5,7 +5,7 @@ interface Props {
 }
 
 const { name, src } = Astro.props;
-const imgSrc = src ?? `/emoji/${name}.png`;
+const imgSrc = src ?? `https://cachet.hackclub.com/emojis/${name}/r`;
 ---
 
 <img src={imgSrc} alt={`:${name}:`} class="emoji" />
