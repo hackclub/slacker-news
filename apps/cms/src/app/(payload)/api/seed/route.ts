@@ -386,7 +386,7 @@ export async function POST(request: Request) {
           await payload.update({
             collection: 'posts',
             id: existingId,
-            data: postData,
+            data: { content: lexical as any },
             overrideAccess: true,
           })
           fixedCount++
