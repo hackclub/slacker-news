@@ -41,6 +41,10 @@ Start the development server with hot reload:
 bun run dev
 ```
 
+```bash
+docker compose build cms && docker compose stop cms && docker compose rm -f cms && docker compose up -d cms
+```
+
 The site will be available at `http://localhost:3000` by default. Changes to content files, components, and styles rebuild automatically.
 
 Styles are authored in `src/styles/main.scss` and bundled by Astro.

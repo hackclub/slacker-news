@@ -1,25 +1,18 @@
 {
-  "name": "slacker-news-astro",
-  "version": "1.0.0",
+  "name": "slacker-news",
   "private": true,
-  "type": "module",
-  "packageManager": "bun@1.2.9",
+  "packageManager": "bun@1.3.12",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "check": "astro check"
-  },
-  "dependencies": {
-    "@astrojs/mdx": "^5.0.4",
-    "@astrojs/rss": "^4.0.18",
-    "@chenglou/pretext": "^0.0.7",
-    "astro": "^6.1.9",
-    "rehype-katex": "^7.0.1",
-    "remark-math": "^6.0.0"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "check": "turbo check"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
-    "sass": "^1.99.0"
+    "turbo": "^2.9.14"
   }
 }

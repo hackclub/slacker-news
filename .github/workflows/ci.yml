@@ -12,6 +12,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: sn_cms
+          POSTGRES_USER: sn_cms
+          POSTGRES_PASSWORD: sn_cms
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v6
 
@@ -28,3 +42,7 @@ jobs:
 
       - name: Build
         run: bun run build
+        env:
+          DATABASE_URL: postgres://sn_cms:sn_cms@postgres:5432/sn_cms
+          PAYLOAD_SECRET: test-secret-for-ci
+          NEXT_PUBLIC_SERVER_URL: http://localhost:3000
