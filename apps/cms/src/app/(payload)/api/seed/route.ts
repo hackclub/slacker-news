@@ -302,10 +302,12 @@ export async function POST(request: Request) {
       collection: 'posts',
       limit: 1000,
       depth: 0,
-      select: { slug: true },
+      select: { id: true, slug: true },
     })
-    const existingSlugs = new Set(existingPosts.docs.map(p => p.slug))
-    results.push(`Existing posts: ${existingSlugs.size}`)
+    const existingSlugs = new Map<string, string>()
+    for (const p of existingPosts.docs) {
+      existingSlugs.set(p.slug, String(p.id))
+    }
 
     if (!fs.existsSync(MDX_POSTS_DIR)) {
       results.push(`MDX posts directory not found: ${MDX_POSTS_DIR}`)
@@ -324,6 +326,7 @@ export async function POST(request: Request) {
     }
 
     let createdCount = 0
+    let fixedCount = 0
     for (const category of CATEGORIES) {
       const dir = path.join(MDX_POSTS_DIR, category === 'changelogs' ? 'changelogs' : category)
       if (!fs.existsSync(dir)) continue
@@ -337,10 +340,6 @@ export async function POST(request: Request) {
         const lexical = markdownToLexical(cleanedContent)
 
         const slug = file.replace(/\.mdx$/, '')
-        if (existingSlugs.has(slug)) {
-          results.push(`Skipping existing post: ${slug}`)
-          continue
-        }
         const postTitle = data.title || slug
         const authorName = data.author || ''
 
@@ -382,26 +381,36 @@ export async function POST(request: Request) {
           postData.categories = [categoryIdMap[category]]
         }
 
-        const result = await payload.create({
-          collection: 'posts',
-          data: postData,
-          overrideAccess: true,
-          draft: true,
-        })
-
-        if (result.id) {
+        const existingId = existingSlugs.get(slug)
+        if (existingId) {
           await payload.update({
             collection: 'posts',
-            id: String(result.id),
-            data: { _status: 'published' },
+            id: existingId,
+            data: postData,
             overrideAccess: true,
           })
-          createdCount++
+          fixedCount++
+        } else {
+          const result = await payload.create({
+            collection: 'posts',
+            data: postData,
+            overrideAccess: true,
+            draft: true,
+          })
+          if (result.id) {
+            await payload.update({
+              collection: 'posts',
+              id: String(result.id),
+              data: { _status: 'published' },
+              overrideAccess: true,
+            })
+            createdCount++
+          }
         }
       }
     }
 
-    results.push(`Created ${createdCount} posts from MDX files`)
+    results.push(`Fixed ${fixedCount} existing posts, created ${createdCount} new posts`)
     return NextResponse.json({ results })
   } catch (error) {
     console.error('Seed error:', error)
