@@ -4,10 +4,6 @@ import configPromise from '@payload-config'
 import fs from 'fs'
 import path from 'path'
 
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled Rejection in seed route:', reason)
-})
-
 const SEED_SECRET = process.env.SEED_SECRET
 const MDX_POSTS_DIR = process.env.MDX_POSTS_DIR || '/app/mdx-posts'
 
@@ -273,7 +269,13 @@ export async function POST(request: Request) {
     }
   }
 
+  let onUnhandledRejection: ((reason: unknown) => void) | null = null
   try {
+    onUnhandledRejection = (reason: unknown) => {
+      console.error('Unhandled Rejection in seed route:', reason)
+    }
+    process.on('unhandledRejection', onUnhandledRejection)
+
     const payload = await getPayload({ config: configPromise })
     const results: string[] = []
 
@@ -422,8 +424,10 @@ export async function POST(request: Request) {
     }
 
     results.push(`Fixed ${fixedCount} existing posts, created ${createdCount} new posts`)
+    if (onUnhandledRejection) process.removeListener('unhandledRejection', onUnhandledRejection)
     return NextResponse.json({ results })
   } catch (error) {
+    if (onUnhandledRejection) process.removeListener('unhandledRejection', onUnhandledRejection)
     console.error('Seed error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
