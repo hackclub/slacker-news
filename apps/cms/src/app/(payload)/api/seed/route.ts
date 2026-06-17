@@ -303,6 +303,7 @@ export async function POST(request: Request) {
       limit: 1000,
       depth: 0,
       select: { id: true, slug: true },
+      overrideAccess: true,
     })
     const existingSlugs = new Map<string, string>()
     for (const p of existingPosts.docs) {
