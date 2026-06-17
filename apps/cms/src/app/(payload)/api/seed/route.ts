@@ -334,7 +334,7 @@ export async function POST(request: Request) {
         const cleanedContent = astroComponentToText(rawContent)
         const lexical = markdownToLexical(cleanedContent)
 
-        const slug = file.replace(/\.mdx$/, '')
+        const slug = file.replace(/\.mdx$/, '').replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '')
         const postTitle = data.title || slug
         const authorName = data.author || ''
 
