@@ -304,18 +304,6 @@ export async function POST(request: Request) {
       results.push('Categories already exist')
     }
 
-    const existingPosts = await payload.find({
-      collection: 'posts',
-      limit: 1000,
-      depth: 0,
-      select: { id: true, slug: true },
-      overrideAccess: true,
-    })
-    const existingSlugs = new Map<string, string>()
-    for (const p of existingPosts.docs) {
-      existingSlugs.set(p.slug, String(p.id))
-    }
-
     if (!fs.existsSync(MDX_POSTS_DIR)) {
       results.push(`MDX posts directory not found: ${MDX_POSTS_DIR}`)
       return NextResponse.json({ results })
@@ -388,11 +376,17 @@ export async function POST(request: Request) {
           postData.categories = [categoryIdMap[category]]
         }
 
-        const existingId = existingSlugs.get(slug)
-        if (existingId) {
+        const existing = await payload.find({
+          collection: 'posts',
+          where: { slug: { equals: slug } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        if (existing.docs[0]) {
           await payload.update({
             collection: 'posts',
-            id: existingId,
+            id: String(existing.docs[0].id),
             data: { content: lexical as any },
             overrideAccess: true,
           })
