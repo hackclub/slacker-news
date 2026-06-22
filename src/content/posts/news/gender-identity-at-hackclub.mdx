@@ -1,0 +1,79 @@
+---
+title: Gender Identity at Hack Club
+date: 2026-06-22
+author: "@eps and @zrl"
+---
+import SlackMention from "../../../components/SlackMention.astro";
+
+How many Hack Clubbers are boys? How many girls? How many are nonbinary? And how many are transgender? We set out to answer this question. Here are the results.
+
+## Methodology
+
+We looked at the Unified DB. When you ship a project, after it passes reviews and quality controls, this is where we record it. The DB is quite important at HQ. It's our main measure of whether we're succeeding at our mission to get you making things. Each YSWS program's funding is based on how many hours it adds to the DB.
+
+At what point are you a Hack Clubber? When you make an HCA account? When you send a Slack message? When you join a YSWS? When you ship a project?
+
+There is no clear minimum threshold. But there is a clear maximum threshold: when your name appears next to a project in the DB, there is no more debating whether the system has reached you.
+
+After determining gender identity (more on that in a moment) we found each identity's percentage of hours shipped rather than percentage of people who are in the DB. This avoids the failure mode where groups superficially appear to be equal, when in reality one group is participating 10x more than another group.
+
+We looked at two sets of data:
+
+1. All projects submitted to the DB in the past 12 months
+2. All projects submitted to the DB for Stasis by people who attended the in-person event
+
+For Stasis, we chose to look at projects shipped rather than attendees in order to exclude the effect of subsidies and other measures to increase girls' participation. This figure is our pre-intervention baseline.
+
+## Gender identity
+
+Teens self-report their gender identity for events and when they ship a project. It's usually a free-response field, so they can potentially put anything. Self-identified male, female, and nonbinary teenagers were found by classifying and counting these answers. We excluded people who did not report a gender identity.
+
+We do not collect data directly on whether Hack Clubbers are transgender. To find them, we ran the names through genderize.io to code them as male, female, or gender neutral. Teens with male-coded names who self-identified as female were coded as transgender. However, we did not classify teens as transgender if they had a male-coded name and self-identified as female or if they have a female-coded name and self-identified as female, but a male-coded name on their auth.hackclub.com identity verification (we did not use any auth.hackclub.com data for this). This is because Genderize frequently misclassifies South Asian male names as female, so applying our method to female-coded names would likely overcount trans Hack Clubbers.
+
+For all of these operations, we used AI to classify and count self-reported identity. Finally, we applied manual spot checks. After pulling out trans and nonbinary shippers, we looked at the top 15 cis male shippers and the top 15 cis female shippers, and re-coded the ones that we personally know to be transgender or nonbinary. We kept doing this until the top 15 in both groups had no one that–as far as we know–is transgender. We looked at the top 15 shippers whom AI could not classify, and re-coded the ones we could (for example, one French boy listed his gender identity as "il").
+
+This left us with 5 categories:
+
+1. Cis boys
+2. Cis girls
+3. Trans teens, both genders but mostly female
+4. Non-binary
+5. Prefer not to answer/answer could not be categorized
+
+## Limitations
+
+1. Our method undercounts trans Hack Clubbers for two reasons:
+   1. We did not attempt to count trans boys at Hack Club, except the ones in the top 15 most prolific male-identified shippers whom we personally know to be transgender.
+   2. We only looked at names in the Unified DB, not at names in Hack Club Auth. Many trans Hack Clubbers use female names day-to-day, including when submitting projects, but have male names on their identity documents.
+2. The Stasis dataset was relatively small. 1.3% of hours shipped were coded as transgender, but it was only 6.2 hours, so that figure is strongly subject to statistical noise.
+3. Genderize is flawed. At an individual level, it inevitably makes mistakes. But an instrument can be inaccurate when applied to individuals, yet accurate when applied to groups. For example, an individual's age is a weak predictor of their height. But if you know you are talking about 1000 13-year-olds, you could predict their average height fairly accurately. We know of one flaw in Genderize that biases its population-level results, which we removed as discussed above. We have no evidence that any of Genderize's other inaccuracies at the individual level sum up to bias at the population level, rather than cancelling out as random noise does.
+
+## Results
+
+**All Unified DB projects, 12 months, % of hours attributable to each group**
+
+| Gender Identity | % of hours |
+|---|---|
+| Cis boys | 72.1 |
+| Cis girls | 18.5 |
+| Nonbinary | 4.6 |
+| Trans boys and trans girls | 4 |
+| Prefer not to answer, or could not categorize | 0.9 |
+
+**Stasis Unified DB projects from in-person Stasis attendees, % of hours attributable to each group**
+
+| Gender Identity | % of hours |
+|---|---|
+| Cis boys | 86 |
+| Cis girls | 9 |
+| Nonbinary | 4 |
+| Transgender | 1 |
+
+**Reference: minority gender identity among US adults age 18-29**
+
+| Identity | % of US adults age 18-29 |
+|---|---|
+| Nonbinary | 3 |
+| Transgender | 2 |
+
+Source: [Pew Research Center](https://www.pewresearch.org/short-reads/2022/06/07/about-5-of-young-adults-in-the-u-s-say-their-gender-is-different-from-their-sex-assigned-at-birth/)
