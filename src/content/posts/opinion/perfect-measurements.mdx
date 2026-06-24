@@ -1,0 +1,77 @@
+---
+title: If You Want Truth, Forget Perfection
+date: 2026-06-24
+author: "@eps"
+responseTo: "opinion/measuring-the-wrong-thing"
+---
+
+["Measuring the Wrong Thing"](https://news.hackclub.com/opinion/measuring-the-wrong-thing/) is the sort of piece I'd like to publish more often. It's smart, careful, and clearly motivated by truth. I also think it's wrong.
+
+You should read it for yourself, but here's a quick recap:
+- Our method in ["Gender Identity at Hack Club"](https://news.hackclub.com/news/gender-identity-at-hackclub/) doesn't really capture who is transgender
+- This is because it only catches people whose reported gender doesn't match the likely gender of their reported name
+- Since it is inaccurate, it is worse than zero data because it instills false confidence
+
+**I.**
+
+Consider the following statements:
+- Scales do not really measure an object's mass. They measure the downforce exerted against the scale in a given gravitational field
+- Thermometers do not really measure temperature. They measure the expansion of a fluid in a sealed glass tube
+- Zach and Evan did not really measure who is transgender. They measured people whose reported gender doesn't match the likely gender of their reported name
+
+If this comparison feels unfair, take a look at this:
+
+<img src="https://cdn.hackclub.com/019ef6b1-164f-76b9-abd0-9db712bc69a4/oip-1645053907.jpg" alt="Analytical scale covered by a glass box" style="width: 60%; display: block; margin: 0 auto;" />
+<br></br>
+This is a high-end scale. The box is there because otherwise, air currents will mess up your measurements. And thermometers have problems of their own; the fluid's expansion is nonlinear as a function of temperature. But if your recipe calls for 200g of beans, and your kitchen scale does not have a glass box to prevent the measurement from being affected by air currents, do you declare the scale useless? Or do you use it anyway because it is accurate enough for what you're doing?
+
+I appreciate people pointing out our methodological flaws. Because our audience is Hack Clubbers, we included an entire section on methodological flaws. It makes me happy that Hack Club is the kind of place where we can do that. So it's not like we thought the numbers were perfect. We knew they were flawed, were up front about the flaws, and published anyway because the results are still useful. We are not measuring the wrong thing. We are measuring the right thing, imperfectly.
+
+**II.**
+
+The question is, "Are the methodological flaws big enough to invalidate the result?" The answer is no.
+
+Think about correlated versus uncorrelated errors. If errors point in a random direction, meaning they are uncorrelated with each other, then the errors cancel out. If I roll a die and tell you it landed on a 1, you do not know whether it was a 4-, 6-, 20-, or 100-sided die. But if I roll 100 identical dice and tell you that the average roll was 3.7, you can infer that they were 6-sided dice.<sup><a href="#note-1" id="ref-1">1</a></sup> Our 12-month Unified DB sample was large, like rolling hundreds of dice, so uncorrelated errors are not an issue. Statistical noise can be beaten with scale. This is why polling a few thousand people can give you accurate information about public opinion in a country of 330 million people.
+
+If the errors are correlated, that's a different story. Errors that distort your data in one direction can *absolutely* cook your results. And as Villarante points out, we have a source of correlated error: trans people who change their names AND gender identities together between projects get counted as cis people in the database. In which direction does this error point? It points towards us undercounting trans people. As we pointed out in our original article, there were also at least two other sources of correlated error, both of which pointed in the direction of undercounting trans people.
+
+So what do you do with this? Throw out the result? No, not at all.
+
+Consider the context. Hack Club has had many debates about gender representation. One question (or disagreement) I've seen many times is whether transgender and nonbinary people are underrepresented at Hack Club. This context matters, because it means that our directionally-biased result is actually quite useful. 
+
+Villarante is correct that looking at trends over time would be revealing, and less subject to error. But that doesn't exhaust what our data can show us. Suppose you have a thermometer that you know always reads too cold. You want to know whether to wear shorts today. You check the thermometer, and it says the temperature is 80 degrees. Should you wear shorts? Yes, you should. The thermometer is directionally biased, so the temperature outside is 80 degrees *or higher*. This study suggests (but doesn't prove) a lower bound on the representation of trans people at Hack Club: equal representation. This is good news!
+
+Think in terms of evidence, not proof. Villarante learned to critique studies from a stats class. I took a stats class, but I learned much more about it from Slate Star Codex, which introduced me to Bayes' Theorem. Formally stated, it looks like this, where A is the claim and B is the evidence:
+
+$$
+P(A \mid B) = \dfrac{P(B \mid A) \, P(A)}{P(B)}
+$$
+
+My eyes glaze over when I look at equations though, so I think of it thus:
+1. What is the claim you're trying to figure out?
+2. What is the base rate for that claim?
+3. Now consider the evidence. How much higher or lower is the probability in light of this evidence?
+
+I love treating beliefs as probabilities, not yes-or-no binaries. It makes life so much easier. I can't tell you how many times I saw people deadlocked over whether some piece of evidence "proves" a certain conclusion true or false. It's so liberating to just say, "I now think this is less likely than I did before." Proof is a luxury. Life almost never gives us *proof* of anything, but it gives us plenty of *evidence*. Thinking accordingly feels like a cheat code.
+
+Start with the base rate assumption that Hack Club resembles the population as a whole, and trans people are neither over- nor underrepresented. Now add the evidence of a study finding that they are slightly overrepresented. You should update your probability in the direction of trans people being overrepresented at Hack Club, and *away* from trans people being underrepresented, because a study that undercounted trans people still did not find them underrepresented.
+
+"This changes everything" or "this changes nothing" is a false dichotomy. Learning happens in between.
+
+**III.**
+
+Several people said, 'just do a survey! If you want to know, put away Genderize and *just ask*'. I want to note that our methodology for counting nonbinary Hack Clubbers did exactly what our critics wanted--we asked--and found that nonbinary people are overrepresented. I haven't seen anyone challenge that finding. All of the controversy *around the article* is about counting trans people in particular, but the controversy *about gender at Hack Club* extends into whether nonbinary people are represented. It seems they are not, which is good. I know many wonderful nonbinary Hack Clubbers and I'd be sorry to learn we were missing out on more. My informal impression is that the representation of nonbinary, rather than trans teens, is actually the most contentious question in this area. This finding alone made the study worth doing.
+
+But also, I want you to notice that a direct survey about trans Hack Clubbers would have its own significant sources of error. It would suffer from response bias, because trans Hack Clubbers might not be sure they are trans, or might not feel comfortable sharing. This would undercount trans people. It would also suffer from sampling bias based on which set of people we asked.
+
+Does this mean surveys are useless? No! Our method had limitations, as would a survey. But I'm not saying dismiss both. I'm saying *take both seriously*. If a large survey of Hack Clubbers found trans underrepresentation, I'd treat it as important evidence. You should treat this study as important evidence too.
+
+**IV.**
+
+You can't escape. If you have an opinion about the level of trans representation at Hack Club, it must be based on something. It can be based off of our flawed study, or it can be based off of a flawed survey, or it can be based off of your flawed personal impressions (spoiler: the last one is the worst option). But you have to base it on something, or else you have to have no opinion at all. We did this study for the ones who do have an opinion--and also for ourselves--so that we  can have better data, because this question is causing conflict, and many conflicts are healed when people can agree on facts.
+
+I did not have an opinion before conducting this research, just a hunch. On the basis of this research, and after reading all the critiques, I am updating my beliefs. I think it is unlikely that trans and nonbinary people are underrepresented at Hack Club. Not impossible, but unlikely. I remain open to evidence to the contrary, and the evidence doesn't need to be perfect.
+
+---
+
+1. <span id="note-1">A single D6 rolls, on average, 3.5.[↩](#ref-1)</span>
