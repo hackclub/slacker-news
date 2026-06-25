@@ -74,11 +74,19 @@ function parseInlineFormatting(text: string) {
     } else if (match[1].startsWith('*') && !match[1].startsWith('**')) {
       children.push({ type: 'text', text: escapeLexicalText(match[4]), format: 2 })
     } else if (match[1].startsWith('`')) {
-      children.push({ type: 'text', text: escapeLexicalText(match[5]), format: 0, code: true })
+      children.push({ type: 'text', text: escapeLexicalText(match[5]), format: 16 })
     } else if (match[1].startsWith('![')) {
       children.push({ type: 'text', text: `[Image: ${match[6]}](${match[7]})` })
     } else if (match[1].startsWith('[')) {
-      children.push({ type: 'text', text: escapeLexicalText(match[8]), format: 0, link: match[9] })
+      children.push({
+        type: 'link',
+        children: [{ type: 'text', text: escapeLexicalText(match[8]), format: 0 }],
+        direction: 'ltr',
+        fields: { doc: null, linkType: 'custom', newTab: false, url: match[9] },
+        format: '',
+        indent: 0,
+        version: 2,
+      })
     }
 
     remaining = remaining.slice((match.index || 0) + match[0].length)
