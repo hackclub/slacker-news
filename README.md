@@ -167,7 +167,7 @@ docker run --rm --name slacker-news -p 8080:80 slacker-news
 
 ## Contributing
 
-Open an issue or pull request to discuss changes.
+Open an issue or pull request to discuss changes. Be aware that I (Evan) have strong opinions about how this site should look. I favor minimal, bold design and lightweight code. If a PR changes the look of the site, feel free to DM on Slack to ask first.
 
 ## License
 
