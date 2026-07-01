@@ -39,7 +39,7 @@ async function trackFeedView(context) {
             url: feedUrl,
             domain: siteDomain
         })
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 export async function GET(context) {
@@ -53,6 +53,8 @@ export async function GET(context) {
         const baseSlug = post.slug.split("/").pop();
         const legacyKey = baseSlug ? `/${baseSlug}` : null;
         const legacyLink = legacyKey && legacyPaths.has(legacyKey) ? `${legacyKey}/` : post.url;
+        const leadingImageSrc = post.leadingImage?.src ?? "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png";
+        const leadingImageAlt = post.leadingImage?.alt ?? `Slacker News social preview`;
 
         const paragraphContent = post.paragraphs.length
             ? post.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")
@@ -63,7 +65,14 @@ export async function GET(context) {
             description: post.excerpt,
             pubDate: post.date,
             link: legacyLink,
-            content: paragraphContent
+            content: paragraphContent,
+
+            // @astrojs/rss doesn't support Media RSS
+            customData: `
+                <media:content url="${leadingImageSrc}" medium="image" />
+                <media:thumbnail url="${leadingImageSrc}" />
+                <media:title type="plain">${leadingImageAlt}</media:title>
+            `
         };
     });
 
@@ -91,6 +100,9 @@ export async function GET(context) {
         title: site.title,
         description: site.description,
         site: context.site,
+        xmlns: {
+            media: 'http://search.yahoo.com/mrss/',
+        },
         items
     });
 }
