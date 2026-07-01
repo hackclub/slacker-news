@@ -54,6 +54,7 @@ export async function GET(context) {
         const legacyKey = baseSlug ? `/${baseSlug}` : null;
         const legacyLink = legacyKey && legacyPaths.has(legacyKey) ? `${legacyKey}/` : post.url;
         const leadingImageSrc = post.leadingImage?.src ?? "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png";
+        const leadingImageAlt = post.leadingImage?.alt ?? `Slacker News social preview`;
 
         const paragraphContent = post.paragraphs.length
             ? post.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")
@@ -70,6 +71,7 @@ export async function GET(context) {
             customData: `
                 <media:content url="${leadingImageSrc}" medium="image" />
                 <media:thumbnail url="${leadingImageSrc}" />
+                <media:title type="plain">${leadingImageAlt}</media:title>
             `
         };
     });
