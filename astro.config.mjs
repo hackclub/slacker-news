@@ -8,7 +8,7 @@ export default defineConfig({
     site: "https://news.hackclub.com",
     server: { port: 4000 },
     markdown: {
-        remarkPlugins: [remarkMath],
+        remarkPlugins: [[remarkMath, { singleDollarTextMath: false }]],
         rehypePlugins: [rehypeKatex],
     },
     integrations: [mdx()],
