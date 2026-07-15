@@ -1,0 +1,5 @@
+---
+import katex from "katex";
+const html = katex.renderToString(Astro.props.d, { throwOnError: false });
+---
+<span set:html={html} />
