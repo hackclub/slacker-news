@@ -595,7 +595,24 @@ html.dark-mode {
     .site-title img {
       filter: none;
     }
+
+    mark {
+      filter: invert(1) hue-rotate(180deg);
+    }
   }
+}
+
+// ─── Search highlight ─────────────────────────────────────────────────────────
+
+mark {
+  background: #ffe600;
+  color: #111;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+html.dark-mode mark {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 // ─── Archive pages ────────────────────────────────────────────────────────────

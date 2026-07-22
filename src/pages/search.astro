@@ -1,0 +1,188 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getSiteConfig } from "../lib/content";
+
+const site = await getSiteConfig();
+---
+
+<BaseLayout title="Search" siteTitle={site.title} siteDescription={site.description}>
+  <div class="archive-page search-page">
+    <div class="section-label">SEARCH</div>
+    <hr class="section-rule" />
+
+    <form class="search-form" role="search" action="/search/" method="get">
+      <input
+        type="search"
+        id="search-input"
+        name="q"
+        class="search-input"
+        placeholder="Search articles…"
+        autocomplete="off"
+        aria-label="Search articles"
+      />
+    </form>
+
+    <p id="search-status" class="search-status" role="status" aria-live="polite"></p>
+
+    <div id="search-results" class="archive-list"></div>
+
+    <noscript>
+      <p class="search-status">Search needs JavaScript enabled.</p>
+    </noscript>
+  </div>
+
+  <script>
+    import { tokenize, scoreDocument, type SearchIndex } from "../lib/search";
+
+    const input = document.getElementById("search-input") as HTMLInputElement | null;
+    const results = document.getElementById("search-results");
+    const status = document.getElementById("search-status");
+
+    if (input && results && status) {
+      let index: SearchIndex | null = null;
+      let pending: string | null = null;
+
+      const escapeHtml = (value: string) =>
+        value.replace(/[&<>"']/g, (char) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] as string)
+        );
+
+      const truncateWords = (text: string, count: number) => {
+        const words = text.trim().split(/\s+/).filter(Boolean);
+        return words.length <= count ? words.join(" ") : `${words.slice(0, count).join(" ")}…`;
+      };
+
+      const wordMatches = (word: string, terms: string[]) => {
+        const cores = word.toLowerCase().match(/[a-z0-9]+/g);
+        return Boolean(cores?.some((core) => terms.some((term) => core === term || core.startsWith(term))));
+      };
+
+      const highlightWord = (word: string, terms: string[]) =>
+        wordMatches(word, terms) ? `<mark>${escapeHtml(word)}</mark>` : escapeHtml(word);
+
+      const highlightText = (text: string, terms: string[]) =>
+        text.split(/\s+/).filter(Boolean).map((word) => highlightWord(word, terms)).join(" ");
+
+      const buildSnippet = (text: string, terms: string[]) => {
+        const CONTEXT = 6;
+        const MAX_WINDOWS = 3;
+        const words = text.split(/\s+/).filter(Boolean);
+        if (words.length === 0) return null;
+
+        const windows: { start: number; end: number }[] = [];
+        words.forEach((word, i) => {
+          if (!wordMatches(word, terms)) return;
+          const start = Math.max(0, i - CONTEXT);
+          const end = Math.min(words.length - 1, i + CONTEXT);
+          const last = windows[windows.length - 1];
+          if (last && start <= last.end + 1) last.end = Math.max(last.end, end);
+          else windows.push({ start, end });
+        });
+
+        if (windows.length === 0) return null;
+
+        const chosen = windows.slice(0, MAX_WINDOWS);
+        const segments = chosen.map((win) =>
+          words.slice(win.start, win.end + 1).map((word) => highlightWord(word, terms)).join(" ")
+        );
+
+        let out = segments.join(" … ");
+        if (chosen[0].start > 0) out = `… ${out}`;
+        // Trailing ellipsis if the last shown window isn't the end, or hits were dropped.
+        if (chosen[chosen.length - 1].end < words.length - 1 || windows.length > MAX_WINDOWS) out = `${out} …`;
+        return out;
+      };
+
+      const render = (query: string) => {
+        if (!index) return;
+        const terms = tokenize(query);
+
+        if (terms.length === 0) {
+          results.innerHTML = "";
+          status.textContent = query.trim() ? "Type a word to search." : "";
+          return;
+        }
+
+        const ranked = index.documents
+          .map((doc) => ({ doc, score: scoreDocument(doc, terms, index!.weights) }))
+          .filter((entry) => entry.score > 0)
+          .sort((a, b) => b.score - a.score);
+
+        if (ranked.length === 0) {
+          results.innerHTML = "";
+          status.textContent = `No results for “${query.trim()}”.`;
+          return;
+        }
+
+        status.textContent = `${ranked.length} result${ranked.length === 1 ? "" : "s"} for “${query.trim()}”.`;
+        results.innerHTML = ranked
+          .map(({ doc }) => {
+            const preview =
+              buildSnippet(doc.text, terms) ?? highlightText(truncateWords(doc.excerpt, 24), terms);
+            return `
+            <a href="${doc.url}" class="front-block story-block">
+              <h3 class="story-block-title">${highlightText(doc.title, terms)}</h3>
+              <p class="story-block-excerpt">${preview}</p>
+              <span class="reading-time">${doc.category ? escapeHtml(doc.category) + " · " : ""}${doc.readingTime} min read</span>
+            </a>`;
+          })
+          .join("");
+      };
+
+      input.addEventListener("input", () => {
+        if (index) render(input.value);
+        else pending = input.value;
+      });
+
+      const initialQuery = new URLSearchParams(window.location.search).get("q");
+      if (initialQuery) {
+        input.value = initialQuery;
+        pending = initialQuery;
+      }
+      status.textContent = "Loading index…";
+      input.focus();
+
+      fetch("/search-index.json")
+        .then((response) => response.json())
+        .then((data: SearchIndex) => {
+          index = data;
+          render(pending ?? input.value);
+        })
+        .catch(() => {
+          status.textContent = "Could not load the search index.";
+        });
+    }
+  </script>
+
+  <style>
+    .search-form {
+      margin-bottom: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1rem;
+      color: #111;
+      background: #fff;
+      border: 1px solid #000;
+      border-radius: 0;
+    }
+
+    .search-input:focus {
+      outline: 2px solid #000;
+      outline-offset: 1px;
+    }
+
+    .search-status {
+      font-size: 0.78rem;
+      font-family: Georgia, serif;
+      letter-spacing: 0.04em;
+      color: #555;
+      margin: 0 0 16px;
+      min-height: 1em;
+    }
+  </style>
+</BaseLayout>
