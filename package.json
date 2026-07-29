@@ -11,15 +11,15 @@
     "check": "astro check"
   },
   "dependencies": {
-    "@astrojs/mdx": "^5.0.4",
-    "@astrojs/rss": "^4.0.18",
+    "@astrojs/mdx": "^5.0.6",
+    "@astrojs/rss": "^4.0.19",
     "@chenglou/pretext": "^0.0.7",
-    "astro": "^6.1.9",
+    "astro": "^6.4.8",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
-    "sass": "^1.99.0"
+    "@types/node": "^25.9.5",
+    "sass": "^1.102.0"
   }
 }
