@@ -9,6 +9,9 @@ import {
   getSiteConfig,
   truncateWords
 } from "../lib/content";
+import { getSlackColumnData, getSlackColumns } from "../lib/indigest";
+import IndigestMetadata from "../components/IndigestMetadata.astro";
+import SlackRichText from "../components/SlackRichText.astro";
 
 const site = await getSiteConfig();
 const posts = await getPosts();
@@ -45,6 +48,12 @@ const displayEssays = allEssays.slice(0, 4);
 
 const recentChangelog = (await getChangelogEntries()).slice(0, 3);
 const acknowledgements = await getAcknowledgements();
+const homepageColumns = await Promise.all(
+  getSlackColumns()
+    .filter((column) => column.homepage)
+    .map((column) => getSlackColumnData(column.channel))
+);
+const visibleHomepageColumns = homepageColumns.filter((column) => column !== undefined);
 ---
 
 <BaseLayout siteTitle={site.title} siteDescription={site.description}>
@@ -124,6 +133,32 @@ const acknowledgements = await getAcknowledgements();
         </div>
 
         <a href="/essays/" class="news-archive-link">All essays &rarr;</a>
+      </>
+    )}
+
+    {visibleHomepageColumns.length > 0 && (
+      <>
+        <hr class="section-rule" />
+
+          {visibleHomepageColumns.map((column) => (
+          <>
+              <div class="slack-column-row-header">
+                              </div>
+              <div class:list={["slack-column-row-items", `slack-column-row-items--${Math.min(column.messages.length, column.homepageLimit ?? 5, 4)}`]}>
+                {column.messages.slice(0, column.homepageLimit ?? 5).map((message) => (
+                  <article class="front-block slack-column-block">
+                    <span><SlackRichText text={message.text} /></span>
+                    {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={column.metadataSchema} compact />}
+                    <a class="slack-column-message-link" href={`/slack/${encodeURIComponent(column.channel)}/${encodeURIComponent(message.slackTs)}/`}>Read message &rarr;</a>
+                  </article>
+                ))}
+                {column.messages.length === 0 && <p class="slack-empty">No messages are available right now.</p>}
+              </div>
+              <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.channel)}/`}>All {column.title} &rarr;</a>
+
+            </>
+          ))}
+ 
       </>
     )}
 

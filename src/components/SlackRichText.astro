@@ -1,0 +1,57 @@
+---
+import Emoji from "./Emoji.astro";
+import SlackChannel from "./SlackChannel.astro";
+import SlackMention from "./SlackMention.astro";
+
+interface Props {
+  text: string;
+}
+
+type Token =
+  | { type: "text"; value: string }
+  | { type: "mention"; id: string; name: string }
+  | { type: "channel"; id: string; name?: string }
+  | { type: "emoji"; name: string };
+
+const { text } = Astro.props;
+const tokenPattern = /(<@[^>]+>|<![^>]+>|<#.+?>|#[A-Z][A-Z0-9]+|:[A-Za-z0-9_+\-]+:)/g;
+
+function tokenize(input: string): Token[] {
+  const tokens: Token[] = [];
+  let lastIndex = 0;
+
+  for (const match of input.matchAll(tokenPattern)) {
+    const raw = match[0];
+    const index = match.index ?? 0;
+    if (index > lastIndex) tokens.push({ type: "text", value: input.slice(lastIndex, index) });
+
+    if (raw.startsWith(":") && raw.endsWith(":")) {
+      tokens.push({ type: "emoji", name: raw.slice(1, -1) });
+    } else if (raw.startsWith("<#")) {
+      const channel = raw.slice(2, -1).split("|", 2);
+      tokens.push({ type: "channel", id: channel[0], name: channel[1] });
+    } else if (raw.startsWith("#")) {
+      tokens.push({ type: "channel", id: raw.slice(1) });
+    } else {
+      const parts = raw.slice(2, -1).split("|", 2);
+      const target = parts[0].replace(/^subteam\^/, "");
+      const name = parts[1]?.replace(/^@/, "") ?? target;
+      tokens.push({ type: "mention", id: target, name });
+    }
+
+    lastIndex = index + raw.length;
+  }
+
+  if (lastIndex < input.length) tokens.push({ type: "text", value: input.slice(lastIndex) });
+  return tokens;
+}
+
+const tokens = tokenize(text);
+---
+
+{tokens.map((token) => {
+  if (token.type === "mention") return <SlackMention name={token.name} id={token.id} />;
+  if (token.type === "channel") return <SlackChannel id={token.id} label={token.name} />;
+  if (token.type === "emoji") return <Emoji name={token.name} />;
+  return token.value;
+})}

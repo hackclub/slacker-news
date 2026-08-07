@@ -1,0 +1,61 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getSiteConfig } from "../../lib/content";
+import { getIndigestMessages, getIndigestMetadataSchema, getSlackColumn } from "../../lib/indigest";
+import  IndigestMetadata from "../../components/IndigestMetadata.astro";
+import SlackRichText from "../../components/SlackRichText.astro";
+
+export const prerender = false;
+
+const channel = Astro.params.id ?? "";
+const column = getSlackColumn(channel);
+const messages = column ? await getIndigestMessages(column.channelId ?? channel, column.limit) : [];
+const metadataSchema = column ? await getIndigestMetadataSchema(column.channelId ?? channel) : undefined;
+const site = await getSiteConfig();
+
+if (!column) {
+  Astro.response.status = 404;
+  Astro.response.headers.set("Cache-Control", "no-store");
+} else {
+  Astro.response.headers.set("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=86400");
+}
+
+function messageURL(messageId: string): string {
+  return `/slack/${encodeURIComponent(channel)}/${encodeURIComponent(messageId)}/`;
+}
+---
+
+<BaseLayout
+  title={column?.title ?? "Channel not found"}
+  description={column?.description ?? site.description}
+  siteTitle={site.title}
+  siteDescription={site.description}
+  canonicalPath={`/slack/${encodeURIComponent(channel)}/`}
+>
+  {column ? (
+    <section class="archive-page">
+      <div class="section-label">{column.title}</div>
+    <hr class="section-rule" />
+      <div class="archive-list">
+        {messages.length > 0 ? messages.map((message) => (
+          <article class=" slack-message-card front-block story-block">
+            <header>
+              <strong>Posted by {message.userName || message.userId}</strong>
+              <time datetime={message.timestamp}>
+                {new Date(message.timestamp).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+              </time>
+            </header>
+                    {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={metadataSchema} />}
+            <p><SlackRichText text={message.text} /></p>
+
+            <a href={messageURL(message.slackTs)}>Permalink &rarr;</a>
+          </article>
+        )) : (
+          <p class="slack-empty">No messages are available right now.</p>
+        )}
+      </div>
+    </section>
+  ) : (
+    <article class="post"><h1>Channel not found</h1><p>This channel is not configured as a column.</p></article>
+  )}
+</BaseLayout>

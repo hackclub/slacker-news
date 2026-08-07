@@ -1,0 +1,44 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { getSiteConfig } from "../../../lib/content";
+import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn } from "../../../lib/indigest";
+import IndigestMetadata from "../../../components/IndigestMetadata.astro";
+import SlackRichText from "../../../components/SlackRichText.astro";
+
+export const prerender = false;
+
+const channel = Astro.params.channel ?? "";
+const messageId = Astro.params.messageId ?? "";
+const column = getSlackColumn(channel);
+const message = column ? await getIndigestMessage(column.channelId ?? channel, messageId) : undefined;
+const metadataSchema = column ? await getIndigestMetadataSchema(column.channelId ?? channel) : undefined;
+const site = await getSiteConfig();
+
+if (!column || !message) {
+  Astro.response.status = 404;
+  Astro.response.headers.set("Cache-Control", "no-store");
+} else {
+  Astro.response.headers.set("Cache-Control", "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800");
+}
+---
+
+<BaseLayout
+  title={message ? `${column?.title} — ${message.userName}` : "Message not found"}
+  siteTitle={site.title}
+  siteDescription={site.description}
+  canonicalPath={`/slack/${encodeURIComponent(channel)}/${encodeURIComponent(messageId)}/`}
+>
+  {column && message ? (
+    <article class="slack-message-page">
+      <p class="section-label"><a href={`/slack/${encodeURIComponent(channel)}/`}>{column.title}</a></p>
+      <h1>{message.userName || message.userId}</h1>
+      <time datetime={message.timestamp}>
+        {new Date(message.timestamp).toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })}
+      </time>
+      <div class="slack-message-text"><p><SlackRichText text={message.text} /></p></div>
+      {column.showMetadata && <IndigestMetadata  metadata={message.metadata} schema={metadataSchema} />}
+    </article>
+  ) : (
+    <article class="post"><h1>Message not found</h1><p>This Slack message is not available.</p></article>
+  )}
+</BaseLayout>
