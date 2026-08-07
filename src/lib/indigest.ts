@@ -7,10 +7,11 @@ export type SlackColumnConfig = {
   channelId?: string;
   title: string;
   description?: string;
-    homepage?: boolean;
-    homepageLimit?: number;
-    showMetadata?: boolean;
+  homepage?: boolean;
+  homepageLimit?: number;
+  showMetadata?: boolean;
   limit?: number;
+  subtitle?: string;
 };
 
 export type IndigestMessage = {
@@ -20,21 +21,21 @@ export type IndigestMessage = {
   userName: string;
   text: string;
   timestamp: string;
-    metadata?: Record<string, unknown> | string;
+  metadata?: Record<string, unknown> | string;
 };
 
 export type IndigestMetadataSchema = {
-    title?: string;
-    fields?: Array<{
-        action_id: string;
-        label: string;
-        type?: string;
-    }>;
+  title?: string;
+  fields?: Array<{
+    action_id: string;
+    label: string;
+    type?: string;
+  }>;
 };
 
 export type SlackColumn = SlackColumnConfig & {
-    messages: IndigestMessage[];
-    metadataSchema?: IndigestMetadataSchema;
+  messages: IndigestMessage[];
+  metadataSchema?: IndigestMetadataSchema;
 };
 
 const configuredColumns = columnConfig as SlackColumnConfig[];

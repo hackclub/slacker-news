@@ -34,7 +34,7 @@ function messageURL(messageId: string): string {
 >
   {column ? (
     <section class="archive-page">
-      <div class="section-label">{column.title}</div>
+      <div class="section-label">{column.title}{" "}<span style="font-style:italic;">(<SlackRichText text={column.subtitle ?? ""} />)</span></div>
     <hr class="section-rule" />
       <div class="archive-list">
         {messages.length > 0 ? messages.map((message) => (
