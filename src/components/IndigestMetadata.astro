@@ -1,0 +1,46 @@
+---
+import SlackRichText from "./SlackRichText.astro";
+import type { IndigestMetadataSchema } from "../lib/indigest";
+
+interface Props {
+  metadata?: Record<string, unknown> | string;
+  schema?: IndigestMetadataSchema;
+  compact?: boolean;
+}
+
+const { metadata, schema, compact = false } = Astro.props;
+let parsedMetadata: Record<string, unknown> = {};
+
+if (typeof metadata === "string") {
+  try {
+    const parsed = JSON.parse(metadata);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) parsedMetadata = parsed;
+  } catch {
+    // Preserve the empty metadata state for malformed JSON.
+  }
+} else if (metadata && typeof metadata === "object") {
+  parsedMetadata = metadata;
+}
+
+const entries = Object.entries(parsedMetadata);
+const normalizeKey = (key: string) => key.trim().toLowerCase().replace(/[-\s]+/g, "_");
+const labels = new Map((schema?.fields ?? []).map((field) => [normalizeKey(field.action_id), field.label]));
+
+function displayValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === undefined) return "—";
+  return JSON.stringify(value, null, 2);
+}
+---
+
+{entries.length > 0 && (
+  <dl class:list={["slack-metadata", { "slack-metadata--compact": compact }]}>
+    {(false && <div class="slack-metadata-title">{schema?.title}</div>)}
+    {entries.filter(([key, value]) => key !== "" && value !== "").map(([key, value]) => (
+      <div class="slack-metadata-entry">
+        <dt>{labels.get(normalizeKey(key)) ?? key}</dt>
+        <dd><SlackRichText text={displayValue(value)} /></dd>
+      </div>
+    ))}
+  </dl>
+)}
