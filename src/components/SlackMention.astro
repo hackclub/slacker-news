@@ -5,23 +5,6 @@ interface Props {
 }
 
 const { name, id } = Astro.props;
-let displayName = name;
-
-if (/^[UW][A-Z0-9]+$/i.test(id)) {
-    try {
-        const response = await fetch(`https://cachet.hackclub.com/get/users/${encodeURIComponent(id)}`);
-        if (response.ok) {
-            const user = await response.json() as { displayName?: string };
-            displayName = user.displayName?.trim() || displayName;
-        }
-    } catch {
-        // Keep the supplied name when Cachet is unavailable.
-    }
-}
-
-if (!displayName || /^[UW][A-Z0-9]+$/i.test(displayName)) {
-    displayName = id === "here" || id === "channel" || id === "everyone" ? id : "Slack user";
-}
 ---
 
-<a href={`https://hackclub.slack.com/team/${encodeURIComponent(id)}`} class="slack_user" target="_blank" rel="noreferrer noopener">@{displayName}</a>
+<a href={`https://hackclub.slack.com/team/${encodeURIComponent(id)}`} class="slack_user" target="_blank" rel="noreferrer noopener">@{name}</a>

@@ -4,8 +4,6 @@ import AuthorList from "../components/AuthorList.astro";
 import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
 import { render } from "astro:content";
 
-export const prerender = true;
-
 export async function getStaticPaths() {
   const posts = await getPosts();
   return posts.map((post) => ({
@@ -42,7 +40,7 @@ const responseLinks =
         ? { slug: target.slug, title: target.title, url: target.url }
         : null;
     })
-    .filter((link): link is NonNullable<typeof link> => Boolean(link)) ?? [];
+    .filter(Boolean) ?? [];
 
 const followUpLinks =
   post.followUpTo
@@ -52,7 +50,7 @@ const followUpLinks =
         ? { slug: target.slug, title: target.title, url: target.url }
         : null;
     })
-    .filter((link): link is NonNullable<typeof link> => Boolean(link)) ?? [];
+    .filter(Boolean) ?? [];
 ---
 
 <BaseLayout

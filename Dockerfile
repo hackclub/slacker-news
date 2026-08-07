@@ -5,9 +5,6 @@ RUN bun install --frozen-lockfile
 COPY . .
 RUN bun run build
 
-FROM node:22-alpine
-WORKDIR /app
-COPY --from=build /app/dist ./dist
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
-ENV HOST=0.0.0.0 PORT=80
-CMD ["node", "./dist/server/entry.mjs"]
