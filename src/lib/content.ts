@@ -16,7 +16,6 @@ export type PostReference = {
 };
 
 export type Post = {
-    id: string;
     slug: string;
     url: string;
     title: string;
@@ -256,7 +255,6 @@ export async function getPosts(): Promise<Post[]> {
             const wordCount = paragraphs.reduce((sum, p) => sum + p.split(/\s+/).filter(Boolean).length, 0);
 
             return {
-                id: entry.data.id ?? entry.id,
                 slug: entry.id,
                 url: `/${entry.id}/`,
                 title: entry.data.title,

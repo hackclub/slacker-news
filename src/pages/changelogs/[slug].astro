@@ -4,8 +4,6 @@ import AuthorList from "../../components/AuthorList.astro";
 import { formatStoryDate, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../../lib/content";
 import { render } from "astro:content";
 
-export const prerender = true;
-
 export async function getStaticPaths() {
   const entries = await getChangelogEntries();
   return entries
