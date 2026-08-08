@@ -1,0 +1,153 @@
+import columnConfig from "../data/slack-columns.json";
+
+export type SlackColumnConfig = {
+  /** Stable URL segment, e.g. "happenings". */
+  channel: string;
+  /** Slack channel ID used by Indigest (usually starts with C). */
+  channelId?: string;
+  title: string;
+  description?: string;
+  homepage?: boolean;
+  homepageLimit?: number;
+  showMetadata?: boolean;
+  limit?: number;
+  subtitle?: string;
+};
+
+export type IndigestMessage = {
+  slackTs: string;
+  channelId: string;
+  userId: string;
+  userName: string;
+  text: string;
+  timestamp: string;
+  metadata?: Record<string, unknown> | string;
+};
+
+export type IndigestMetadataSchema = {
+  title?: string;
+  fields?: Array<{
+    action_id: string;
+    label: string;
+    type?: string;
+  }>;
+};
+
+export type SlackColumn = SlackColumnConfig & {
+  messages: IndigestMessage[];
+  metadataSchema?: IndigestMetadataSchema;
+};
+
+const configuredColumns = columnConfig as SlackColumnConfig[];
+
+export function getSlackColumns(): SlackColumnConfig[] {
+  return configuredColumns;
+}
+
+export function getSlackColumn(channel: string): SlackColumnConfig | undefined {
+  return configuredColumns.find((column) => column.channel === channel);
+}
+
+export async function getIndigestMessages(
+  channel: string,
+  limit = getSlackColumn(channel)?.limit ?? 12
+): Promise<IndigestMessage[]> {
+  const apiKey = import.meta.env.INDIGEST_API_KEY;
+  if (!apiKey) {
+    console.warn("INDIGEST_API_KEY is not configured");
+    return [];
+  }
+
+  const apiURL = import.meta.env.INDIGEST_API_URL ?? "https://indigest.matmanna.dev";
+  const url = new URL("/api/messages", apiURL);
+  url.searchParams.set("channel", channel);
+  url.searchParams.set("limit", String(Math.min(Math.max(limit, 1), 10000)));
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Indigest returned ${response.status} for channel ${channel}`);
+  }
+
+  const payload = await response.json() as { data?: IndigestMessage[] };
+  return payload.data ?? [];
+}
+
+export async function getIndigestMessage(channel: string, slackTs: string): Promise<IndigestMessage | undefined> {
+  const apiKey = import.meta.env.INDIGEST_API_KEY;
+  if (!apiKey) return undefined;
+
+  const apiURL = import.meta.env.INDIGEST_API_URL ?? "https://indigest.matmanna.dev";
+  const url = new URL(`/api/messages/${encodeURIComponent(slackTs)}`, apiURL);
+  url.searchParams.set("channel", channel);
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" }
+  });
+  if (response.status === 404) return undefined;
+  if (!response.ok) throw new Error(`Indigest returned ${response.status} for message ${slackTs}`);
+
+  const payload = await response.json() as { data?: IndigestMessage };
+  return payload.data;
+}
+
+export async function getIndigestMetadataSchema(channel: string): Promise<IndigestMetadataSchema | undefined> {
+  try {
+    const apiKey = import.meta.env.INDIGEST_API_KEY;
+    if (!apiKey) return undefined;
+
+    const apiURL = import.meta.env.INDIGEST_API_URL ?? "https://indigest.matmanna.dev";
+    const response = await fetch(`${apiURL}/api/channels/${encodeURIComponent(channel)}`, {
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" }
+    });
+    if (!response.ok) return undefined;
+
+    const payload = await response.json() as {
+      data?: {
+        metadata?: IndigestMetadataSchema | string;
+        metadataSchema?: IndigestMetadataSchema | string;
+        channel?: { metadata?: IndigestMetadataSchema | string; metadataSchema?: IndigestMetadataSchema | string };
+      };
+      metadata?: IndigestMetadataSchema | string;
+      metadataSchema?: IndigestMetadataSchema | string;
+      channel?: { metadata?: IndigestMetadataSchema | string; metadataSchema?: IndigestMetadataSchema | string };
+    };
+    const channelData = payload.data ?? payload;
+    const rawMetadata = channelData.metadataSchema
+      ?? channelData.metadata
+      ?? channelData.channel?.metadataSchema
+      ?? channelData.channel?.metadata;
+    if (!rawMetadata) return undefined;
+    if (typeof rawMetadata === "object") return rawMetadata;
+
+    const parsed = JSON.parse(rawMetadata);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function getSlackColumnData(channel: string): Promise<SlackColumn | undefined> {
+  const config = getSlackColumn(channel);
+  if (!config) return undefined;
+
+  try {
+    const [messages, metadataSchema] = await Promise.all([
+      getIndigestMessages(config.channelId ?? channel, config.limit),
+      getIndigestMetadataSchema(config.channelId ?? channel)
+    ]);
+    return {
+      ...config,
+      messages,
+      metadataSchema
+    };
+  } catch (error) {
+    console.error(`Unable to load Indigest channel ${channel}`, error);
+    return { ...config, messages: [] };
+  }
+}

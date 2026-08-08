@@ -1,0 +1,13 @@
+[
+  {
+    "channel": "hc-opportunities",
+    "channelId": "C0AU38ZDLE5",
+    "title": "Classifieds",
+    "subtitle": "from #hc-opportunities",
+    "homepage": true,
+    "homepageLimit": 3,
+    "showMetadata": true,
+    "limit": 12,
+    "generalNoun": "posting"
+  }
+]
