@@ -6,13 +6,16 @@ import type { IndigestMessage } from "../lib/indigest";
 
 const homepageColumns = await Promise.all(
   getSlackColumns()
-    .filter((column) => column.homepage)
+    .filter((column) => column.homepage && (!column.authRequired || Astro.locals.user))
     .map((column) => getSlackColumnData(
       column.channel,
       column.homepageFetchLimit ?? column.homepageLimit ?? column.limit
     ))
 );
 const visibleHomepageColumns = homepageColumns.filter((column) => column !== undefined);
+const protectedHomepageColumns = getSlackColumns().filter(
+  (column) => column.homepage && column.authRequired && !Astro.locals.user
+);
 
 function firstMetadataValue(metadata: IndigestMessage["metadata"]): string | undefined {
   let parsed: Record<string, unknown> | undefined;
@@ -76,3 +79,13 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
     <hr class="section-rule" />
     </>
   ))}
+  {protectedHomepageColumns.length > 0 && (
+    <section class="slack-auth-prompt">
+      <p>
+        <a href={`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`}>
+          Sign in with Hack Club
+        </a>
+        {" "}to view protected articles.
+      </p>
+    </section>
+  )}

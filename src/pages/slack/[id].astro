@@ -10,6 +10,9 @@ export const prerender = false;
 
 const channel = Astro.params.id ?? "";
 const column = getSlackColumn(channel);
+if (column?.authRequired && !Astro.locals.user) {
+  return Astro.redirect(`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
+}
 const messages = column ? await getIndigestMessages(column.channelId ?? channel, column.limit) : [];
 const metadataSchema = column ? await getIndigestMetadataSchema(column.channelId ?? channel) : undefined;
 const site = await getSiteConfig();
