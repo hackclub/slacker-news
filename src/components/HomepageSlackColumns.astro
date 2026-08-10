@@ -1,0 +1,69 @@
+---
+import IndigestMetadata from "./IndigestMetadata.astro";
+import SlackRichText from "./SlackRichText.astro";
+import { getSlackColumnData, getSlackColumns } from "../lib/indigest";
+import type { IndigestMessage } from "../lib/indigest";
+
+const homepageColumns = await Promise.all(
+  getSlackColumns()
+    .filter((column) => column.homepage)
+    .map((column) => getSlackColumnData(column.channel))
+);
+const visibleHomepageColumns = homepageColumns.filter((column) => column !== undefined);
+
+function firstMetadataValue(metadata: IndigestMessage["metadata"]): string | undefined {
+  let parsed: Record<string, unknown> | undefined;
+
+  if (typeof metadata === "string") {
+    try {
+      const value = JSON.parse(metadata);
+      if (value && typeof value === "object" && !Array.isArray(value)) parsed = value;
+    } catch {
+      return undefined;
+    }
+  } else if (metadata && typeof metadata === "object") {
+    parsed = metadata;
+  }
+
+  const value = parsed ? Object.values(parsed)[0] : undefined;
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (value !== undefined && value !== null) return String(value);
+  return undefined;
+}
+---
+
+
+  {visibleHomepageColumns.map((column) => (
+  <>
+    <section class="slack-column-row">
+      <div class:list={["slack-column-row-items", `slack-column-row-items--${Math.min(column.messages.length, column.homepageLimit ?? 5, 4)}`]}>
+        {column.messages.slice(0, column.homepageLimit ?? 5).map((message) => (
+          <article class="front-block slack-column-block">
+            <a
+              class="slack-column-card-link"
+              href={`/slack/${encodeURIComponent(column.channel)}/${encodeURIComponent(message.slackTs)}/`}
+              aria-label={`Read ${firstMetadataValue(message.metadata) ?? column.title}`}
+            >Open message</a>
+            <h3 class="slack-column-card-title">
+              <a
+                class="slack-column-card-title-link"
+                href={`/slack/${encodeURIComponent(column.channel)}/${encodeURIComponent(message.slackTs)}/`}
+              >
+                {firstMetadataValue(message.metadata) ?? column.title}
+              </a>
+            </h3>
+            <span><SlackRichText text={message.text} /></span>
+            {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={column.metadataSchema} compact />}
+          </article>
+         
+        ))}
+        {column.messages.length === 0 && <p class="slack-empty">No data is available right now.</p>}
+        
+      </div>
+      
+    </section>
+    <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.channel)}/`}>All {column.title} &rarr;</a>
+    <hr class="section-rule" />
+    </>
+  ))}
+

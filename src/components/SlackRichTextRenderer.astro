@@ -1,0 +1,12 @@
+---
+import SlackRichTextToken from "./SlackRichTextToken.astro";
+import type { Token } from "../lib/slack-rich-text";
+
+interface Props {
+  tokens: Token[];
+}
+
+const { tokens } = Astro.props;
+---
+
+{tokens.map((token) => <SlackRichTextToken token={token} />)}

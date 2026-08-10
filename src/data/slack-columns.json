@@ -6,8 +6,17 @@
     "subtitle": "from #hc-opportunities",
     "homepage": true,
     "homepageLimit": 3,
-    "showMetadata": true,
-    "limit": 12,
-    "generalNoun": "posting"
+    "showMetadata": false,
+    "limit": 12
+  },
+  {
+    "channel": "ysws",
+    "channelId": "C0710J7F4U9",
+    "title": "Active YSWS",
+    "subtitle": "from #ysws",
+    "homepage": true,
+    "homepageLimit": 12,
+    "showMetadata": false,
+    "limit": 12
   }
 ]

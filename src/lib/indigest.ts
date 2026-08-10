@@ -89,11 +89,16 @@ export async function getIndigestMessage(channel: string, slackTs: string): Prom
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" }
   });
-  if (response.status === 404) return undefined;
+  if (response.status === 404) {
+    // Keep permalinks working if the single-message endpoint misses a message
+    // that is still returned by the channel listing endpoint.
+    const messages = await getIndigestMessages(channel, 10000);
+    return messages.find((message) => message.slackTs === slackTs);
+  }
   if (!response.ok) throw new Error(`Indigest returned ${response.status} for message ${slackTs}`);
 
-  const payload = await response.json() as { data?: IndigestMessage };
-  return payload.data;
+  const payload = await response.json() as IndigestMessage | { data?: IndigestMessage };
+  return ("data" in payload ? payload.data : payload) as IndigestMessage | undefined;
 }
 
 export async function getIndigestMetadataSchema(channel: string): Promise<IndigestMetadataSchema | undefined> {
