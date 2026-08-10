@@ -7,7 +7,10 @@ import type { IndigestMessage } from "../lib/indigest";
 const homepageColumns = await Promise.all(
   getSlackColumns()
     .filter((column) => column.homepage)
-    .map((column) => getSlackColumnData(column.channel))
+    .map((column) => getSlackColumnData(
+      column.channel,
+      column.homepageFetchLimit ?? column.homepageLimit ?? column.limit
+    ))
 );
 const visibleHomepageColumns = homepageColumns.filter((column) => column !== undefined);
 
@@ -30,13 +33,20 @@ function firstMetadataValue(metadata: IndigestMessage["metadata"]): string | und
   if (value !== undefined && value !== null) return String(value);
   return undefined;
 }
+
+function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
+  return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 4), 1), 8);
+}
 ---
 
 
   {visibleHomepageColumns.map((column) => (
   <>
     <section class="slack-column-row">
-      <div class:list={["slack-column-row-items", `slack-column-row-items--${Math.min(column.messages.length, column.homepageLimit ?? 5, 4)}`]}>
+      <div
+        class:list={["slack-column-row-items", `slack-column-row-items--${getMessagesPerRow(column)}`]}
+        style={`--slack-column-messages-per-row: ${getMessagesPerRow(column)}`}
+      >
         {column.messages.slice(0, column.homepageLimit ?? 5).map((message) => (
           <article class="front-block slack-column-block">
             <a
@@ -66,4 +76,3 @@ function firstMetadataValue(metadata: IndigestMessage["metadata"]): string | und
     <hr class="section-rule" />
     </>
   ))}
-

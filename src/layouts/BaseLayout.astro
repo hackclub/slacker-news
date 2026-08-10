@@ -181,6 +181,75 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         <slot />
       </div>
     </main>
+    <script is:inline>
+      (function () {
+        var userPromises = new Map();
+        var channelPromises = new Map();
+
+        function fetchUser(id) {
+          if (!userPromises.has(id)) {
+            userPromises.set(id, fetch("https://cachet.hackclub.com/get/users/" + encodeURIComponent(id))
+              .then(function (response) { return response.ok ? response.json() : null; })
+              .then(function (user) { return user && user.displayName ? user.displayName.trim() : null; })
+              .catch(function () { return null; }));
+          }
+          return userPromises.get(id);
+        }
+
+        function fetchChannel(identifier) {
+          if (!channelPromises.has(identifier)) {
+            channelPromises.set(identifier, fetch("https://flaron.halceon.dev/channel/" + encodeURIComponent(identifier))
+              .then(function (response) { return response.ok ? response.json() : null; })
+              .catch(function () { return null; }));
+          }
+          return channelPromises.get(identifier);
+        }
+
+        function hydrate(root) {
+          var scope = root.querySelectorAll ? root : document;
+          scope.querySelectorAll("[data-slack-user-id]:not([data-slack-hydrated])").forEach(function (element) {
+            element.setAttribute("data-slack-hydrated", "true");
+            fetchUser(element.getAttribute("data-slack-user-id")).then(function (displayName) {
+              if (displayName) element.textContent = "@" + displayName;
+            });
+          });
+
+          scope.querySelectorAll("[data-slack-channel-id]:not([data-slack-hydrated]), [data-slack-channel-lookup]:not([data-slack-hydrated])").forEach(function (element) {
+            element.setAttribute("data-slack-hydrated", "true");
+            var identifier = element.getAttribute("data-slack-channel-id") || element.getAttribute("data-slack-channel-lookup");
+            fetchChannel(identifier).then(function (channel) {
+              if (!channel || !channel.id) return;
+              if (element.hasAttribute("data-slack-channel-lookup")) {
+                var link = document.createElement("a");
+                link.href = "https://hackclub.slack.com/archives/" + encodeURIComponent(channel.id);
+                link.className = "slack_channel";
+                link.target = "_blank";
+                link.rel = "noreferrer noopener";
+                link.textContent = "#" + (channel.name || identifier);
+                element.replaceWith(link);
+              } else {
+                element.textContent = "#" + (channel.name || identifier);
+              }
+            });
+          });
+        }
+
+        function scheduleHydration(root) {
+          var run = function () { hydrate(root); };
+          if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(run, { timeout: 1000 });
+          else window.setTimeout(run, 0);
+        }
+
+        scheduleHydration(document);
+        new MutationObserver(function (mutations) {
+          mutations.forEach(function (mutation) {
+            mutation.addedNodes.forEach(function (node) {
+              if (node.nodeType === Node.ELEMENT_NODE) scheduleHydration(node);
+            });
+          });
+        }).observe(document.body, { childList: true, subtree: true });
+      })();
+    </script>
     <AbacusCounter pathname={Astro.url.pathname} />
   </body>
 </html>

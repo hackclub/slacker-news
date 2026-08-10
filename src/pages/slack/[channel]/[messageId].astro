@@ -11,8 +11,12 @@ export const prerender = false;
 const channel = Astro.params.channel ?? "";
 const messageId = Astro.params.messageId ?? "";
 const column = getSlackColumn(channel);
-const message = column ? await getIndigestMessage(column.channelId ?? channel, messageId) : undefined;
-const metadataSchema = column ? await getIndigestMetadataSchema(column.channelId ?? channel) : undefined;
+const [message, metadataSchema] = column
+  ? await Promise.all([
+      getIndigestMessage(column.channelId ?? channel, messageId),
+      getIndigestMetadataSchema(column.channelId ?? channel)
+    ])
+  : [undefined, undefined];
 const site = await getSiteConfig();
 
 function firstMetadataValue(metadata: Record<string, unknown> | string | undefined): string | undefined {
