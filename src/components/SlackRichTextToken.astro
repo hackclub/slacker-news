@@ -1,0 +1,19 @@
+---
+import Emoji from "./Emoji.astro";
+import SlackChannel from "./SlackChannel.astro";
+import SlackMention from "./SlackMention.astro";
+import type { Token } from "../lib/slack-rich-text";
+
+interface Props {
+  token: Token;
+}
+
+const { token } = Astro.props;
+---
+
+{token.type === "mention" && <SlackMention name={token.name} id={token.id} />}
+{token.type === "channel" && <SlackChannel id={token.id} label={token.name} />}
+{token.type === "emoji" && <Emoji name={token.name} />}
+{token.type === "bold" && <strong>{token.children.map((child) => <Astro.self token={child} />)}</strong>}
+{token.type === "italic" && <em>{token.children.map((child) => <Astro.self token={child} />)}</em>}
+{(token.type === "text" || token.type === "channel-candidate") && token.value}
