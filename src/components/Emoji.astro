@@ -15,5 +15,9 @@ const imgSrc = src ?? `https://cachet.hackclub.com/emojis/${name}/r`;
         height: 1.2em;
         vertical-align: middle;
         display: inline;
+        filter: grayscale(100%);
+    }
+    .emoji:hover {
+      filter: grayscale(0%);
     }
 </style>

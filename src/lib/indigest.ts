@@ -9,6 +9,10 @@ export type SlackColumnConfig = {
   description?: string;
   homepage?: boolean;
   homepageLimit?: number;
+  /** Optional smaller fetch size for homepage rendering. Archive pages keep using limit. */
+  homepageFetchLimit?: number;
+  /** Maximum number of message cards displayed side-by-side on the homepage. */
+  homepageMessagesPerRow?: number;
   showMetadata?: boolean;
   limit?: number;
   subtitle?: string;
@@ -137,13 +141,13 @@ export async function getIndigestMetadataSchema(channel: string): Promise<Indige
   }
 }
 
-export async function getSlackColumnData(channel: string): Promise<SlackColumn | undefined> {
+export async function getSlackColumnData(channel: string, limitOverride?: number): Promise<SlackColumn | undefined> {
   const config = getSlackColumn(channel);
   if (!config) return undefined;
 
   try {
     const [messages, metadataSchema] = await Promise.all([
-      getIndigestMessages(config.channelId ?? channel, config.limit),
+      getIndigestMessages(config.channelId ?? channel, limitOverride ?? config.limit),
       getIndigestMetadataSchema(config.channelId ?? channel)
     ]);
     return {

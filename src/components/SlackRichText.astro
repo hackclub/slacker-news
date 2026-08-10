@@ -43,37 +43,7 @@ function tokenize(input: string): Token[] {
   return tokens;
 }
 
-async function resolveChannelCandidates(input: Token[]): Promise<Token[]> {
-  const cache = new Map<string, Promise<Token>>();
-
-  return Promise.all(input.map(async (token) => {
-    if (token.type === "bold" || token.type === "italic") {
-      return { ...token, children: await resolveChannelCandidates(token.children) };
-    }
-    if (token.type !== "channel-candidate") return token;
-    const channelName = token.value.slice(1);
-    const cached = cache.get(channelName);
-    if (cached) return cached;
-
-    const resolved = (async (): Promise<Token> => {
-      try {
-        const response = await fetch(`https://flaron.halceon.dev/channel/${encodeURIComponent(channelName)}`);
-        if (!response.ok) return { type: "text", value: token.value };
-
-        const channel = await response.json() as { id?: string; name?: string };
-        if (!channel.id) return { type: "text", value: token.value };
-        return { type: "channel", id: channel.id, name: channel.name ?? channelName };
-      } catch {
-        return { type: "text", value: token.value };
-      }
-    })();
-
-    cache.set(channelName, resolved);
-    return resolved;
-  }));
-}
-
-const tokens = await resolveChannelCandidates(tokenize(text));
+const tokens = tokenize(text);
 ---
 
 <SlackRichTextRenderer tokens={tokens} />

@@ -1,10 +1,11 @@
 [
   {
-    "channel": "hc-opportunities",
+    "channel": "classifieds",
     "channelId": "C0AU38ZDLE5",
     "title": "Classifieds",
     "subtitle": "from #hc-opportunities",
     "homepage": true,
+    "homepageMessagesPerRow": 3,
     "homepageLimit": 3,
     "showMetadata": false,
     "limit": 12
@@ -15,6 +16,7 @@
     "title": "Active YSWS",
     "subtitle": "from #ysws",
     "homepage": true,
+    "homepageMessagesPerRow": 4,
     "homepageLimit": 12,
     "showMetadata": false,
     "limit": 12

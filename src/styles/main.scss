@@ -315,10 +315,9 @@ a {
 
 .slack-column-row-items {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(var(--slack-column-messages-per-row, 4), minmax(0, 1fr));
   gap: 16px;
 
-  &--0,
   &--1 { grid-template-columns: 1fr; }
   &--2 { grid-template-columns: repeat(2, 1fr); }
   &--3 { grid-template-columns: repeat(3, 1fr); }
@@ -866,9 +865,8 @@ html.dark-mode mark {
     gap: 20px;
   }
   .slack-column-row-items {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
-    &--0,
     &--1 { grid-template-columns: 1fr; }
   }
 
@@ -887,11 +885,13 @@ $slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
   border-radius: 3px;
   padding: 0 3px;
   white-space: nowrap;
+  filter: grayscale(100%);
 
   &:visited { color: $slack-link-fg; }
   &:hover {
     background: $slack-link-bg-hover;
     color: $slack-link-fg;
+    filter: grayscale(0%);
   }
 }
 
@@ -901,10 +901,19 @@ $slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
   border-radius: 3px;
   padding: 0 3px;
   white-space: nowrap;
+  filter: grayscale(100%);
 
   &:visited { color: $slack-link-fg; }
   &:hover {
     background: $slack-link-bg-hover;
     color: $slack-link-fg;
+    filter: grayscale(0%);
   }
+}
+
+// Restore color for all Slack entities while their containing card is hovered.
+.front-block:hover .slack_user,
+.front-block:hover .slack_channel,
+.front-block:hover .emoji {
+  filter: grayscale(0%) !important;
 }
