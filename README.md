@@ -14,7 +14,7 @@ As of now, some of the cool things Slacker News has include:
 - Dynamic OpenGraph Metadata
 - Light/dark mode
 - Slack channel/user tagging
-- Privacy-concious analytics (abacus)
+- Privacy-concious [analytics](https://plausible.io/news.hackclub.com) w/ Plausible
 
 ## Technical Contributions
 
