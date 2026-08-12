@@ -188,7 +188,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 
         function fetchUser(id) {
           if (!userPromises.has(id)) {
-            userPromises.set(id, fetch("https://cachet.hackclub.com/get/users/" + encodeURIComponent(id))
+            userPromises.set(id, fetch("/api/slack-user/" + encodeURIComponent(id))
               .then(function (response) { return response.ok ? response.json() : null; })
               .then(function (user) { return user && user.displayName ? user.displayName.trim() : null; })
               .catch(function () { return null; }));
