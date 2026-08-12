@@ -160,3 +160,24 @@ export async function getSlackColumnData(channel: string, limitOverride?: number
     return { ...config, messages: [] };
   }
 }
+
+
+export function firstMetadataValue(metadata: IndigestMessage["metadata"]): string | undefined {
+  let parsed: Record<string, unknown> | undefined;
+
+  if (typeof metadata === "string") {
+    try {
+      const value = JSON.parse(metadata);
+      if (value && typeof value === "object" && !Array.isArray(value)) parsed = value;
+    } catch {
+      return undefined;
+    }
+  } else if (metadata && typeof metadata === "object") {
+    parsed = metadata;
+  }
+
+  const value = parsed ? Object.values(parsed)[0] : undefined;
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (value !== undefined && value !== null) return String(value);
+  return undefined;
+}
