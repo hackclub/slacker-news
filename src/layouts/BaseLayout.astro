@@ -183,18 +183,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     </main>
     <script is:inline>
       (function () {
-        var userPromises = new Map();
         var channelPromises = new Map();
-
-        function fetchUser(id) {
-          if (!userPromises.has(id)) {
-            userPromises.set(id, fetch("/api/slack-user/" + encodeURIComponent(id))
-              .then(function (response) { return response.ok ? response.json() : null; })
-              .then(function (user) { return user && user.displayName ? user.displayName.trim() : null; })
-              .catch(function () { return null; }));
-          }
-          return userPromises.get(id);
-        }
 
         function fetchChannel(identifier) {
           if (!channelPromises.has(identifier)) {
@@ -207,13 +196,6 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 
         function hydrate(root) {
           var scope = root.querySelectorAll ? root : document;
-          scope.querySelectorAll("[data-slack-user-id]:not([data-slack-hydrated])").forEach(function (element) {
-            element.setAttribute("data-slack-hydrated", "true");
-            fetchUser(element.getAttribute("data-slack-user-id")).then(function (displayName) {
-              if (displayName) element.textContent = "@" + displayName;
-            });
-          });
-
           scope.querySelectorAll("[data-slack-channel-id]:not([data-slack-hydrated]), [data-slack-channel-lookup]:not([data-slack-hydrated])").forEach(function (element) {
             element.setAttribute("data-slack-hydrated", "true");
             var identifier = element.getAttribute("data-slack-channel-id") || element.getAttribute("data-slack-channel-lookup");
