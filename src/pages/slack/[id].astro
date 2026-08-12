@@ -1,7 +1,8 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSiteConfig } from "../../lib/content";
-import { getIndigestMessages, getIndigestMetadataSchema, getSlackColumn } from "../../lib/indigest";
+import { getSiteConfig } from "../../lib/content";
+import { getIndigestMessages, getIndigestMetadataSchema, getSlackColumn, firstMetadataValue} from "../../lib/indigest";
 import  IndigestMetadata from "../../components/IndigestMetadata.astro";
 import SlackMention from "../../components/SlackMention.astro";
 import SlackRichText from "../../components/SlackRichText.astro";
@@ -41,7 +42,7 @@ function messageURL(messageId: string): string {
         {messages.length > 0 ? messages.map((message) => (
           <article class=" slack-message-card front-block story-block">
             <header>
-              <strong>Posted by <SlackMention name={message.userName || message.userId} id={message.userId} /></strong>
+              <strong>{firstMetadataValue(message.metadata)}</strong>
               <time datetime={message.timestamp}>
                 {new Date(message.timestamp).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
               </time>
