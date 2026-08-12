@@ -4,8 +4,14 @@ interface Props {
     id: string;
 }
 
+import { getSlackUserDisplayName } from "../lib/slack-users";
+
 const { name, id } = Astro.props;
 let displayName = name;
+
+if (/^[UW][A-Z0-9]+$/i.test(id)) {
+    displayName = await getSlackUserDisplayName(id) ?? displayName;
+}
 
 if (!displayName || /^[UW][A-Z0-9]+$/i.test(displayName)) {
     displayName = id === "here" || id === "channel" || id === "everyone" ? id : "Slack user";
@@ -15,8 +21,6 @@ if (!displayName || /^[UW][A-Z0-9]+$/i.test(displayName)) {
 <a
   href={`https://hackclub.slack.com/team/${encodeURIComponent(id)}`}
   class="slack_user"
-  data-slack-user-id={/^[UW][A-Z0-9]+$/i.test(id) ? id : undefined}
-  data-slack-user-fallback={displayName}
   target="_blank"
   rel="noreferrer noopener"
 >@{displayName}</a>
