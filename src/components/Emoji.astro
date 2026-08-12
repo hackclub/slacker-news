@@ -5,10 +5,15 @@ interface Props {
 }
 
 const { name, src } = Astro.props;
-const imgSrc = src ?? `https://cachet.hackclub.com/emojis/${name}/r`;
+const imgSrc = src ?? `https://cachet.dunkirk.sh/emojis/${name}/r`;
 ---
 
-<img src={imgSrc} alt={`:${name}:`} class="emoji" />
+<img
+  src={imgSrc}
+  alt={`:${name}:`}
+  class="emoji"
+  onerror="this.remove()"
+  />
 
 <style>
     .emoji {
