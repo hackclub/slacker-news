@@ -147,17 +147,11 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
   <body>
     <header class="site-header" role="banner">
       <div class="wrapper">
-        <div class="header-row">
-          <button class="action-button" aria-hidden="true" tabindex="-1" style="opacity: 0%">Log in</button>
-          <a class="site-title" rel="author" href="/">
+        <div >
+      <a class="site-title" rel="author" href="/">
             <img src="/Core%20SN%20logo.svg" alt={siteTitle} style="height: 2em; vertical-align: middle;" />
           </a>
-          {isAuthenticated ? (
-            <a class="action-button" href="/auth/logout">Log out</a>
-          ) : (
-            <a class="action-button" href={`/auth/login?returnTo=${encodeURIComponent(authReturnTo)}`}>Log in</a>
-          )}
-        </div>
+                </div>
         <nav class="site-nav">
           <input type="checkbox" id="nav-trigger" class="nav-trigger" />
           <label for="nav-trigger">
@@ -181,6 +175,12 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             <a class="page-link" href="https://plausible.io/news.hackclub.com">Stats</a>
             <span class="nav-pip js-only">|</span>
             <button class="page-link theme-toggle js-only" id="theme-toggle" type="button">Dark Mode</button>
+              {isAuthenticated ? (
+            <a class="action-button" href="/auth/logout">Log out</a>
+          ) : (
+            <a class="action-button" href={`/auth/login?returnTo=${encodeURIComponent(authReturnTo)}`}>Log in</a>
+          )}
+
           </div>
         </nav>
       </div>

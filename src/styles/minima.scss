@@ -133,10 +133,12 @@ a:hover {
   border-radius: 5px;
   background-color: black;
   color: white !important;
+  display: block;
   padding: 8px;
   height: fit-content;
   font-size: 0.85rem;
   letter-spacing: 0.1em;
+  margin-left: 12px !important;
 }
 
 .post-content p,
