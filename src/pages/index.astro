@@ -10,6 +10,7 @@ import {
   truncateWords
 } from "../lib/content";
 import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
+import { getSlackColumns } from "../lib/indigest";
 
 const site = await getSiteConfig();
 const posts = await getPosts();
@@ -46,6 +47,15 @@ const displayEssays = allEssays.slice(0, 4);
 
 const recentChangelog = (await getChangelogEntries()).slice(0, 3);
 const acknowledgements = await getAcknowledgements();
+const homepageSlackColumns = getSlackColumns().filter((column) => column.homepage);
+
+function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
+  return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 4), 1), 8);
+}
+
+function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLimit?: number; limit?: number }): number {
+  return Math.min(Math.max(Math.round(column.homepageLimit ?? column.homepageFetchLimit ?? column.limit ?? 5), 1), 100);
+}
 ---
 
 <BaseLayout siteTitle={site.title} siteDescription={site.description}>
@@ -132,18 +142,26 @@ const acknowledgements = await getAcknowledgements();
 
     <HomepageSlackColumns server:defer>
       <div slot="fallback" class="front-slack-columns">
-        <section class="slack-column-row slack-column-row--loading">
-          <div class="slack-column-row-header">
-            <span class="section-label">SLACK</span>
-          </div>
-          <div class="slack-column-row-items slack-column-row-items--2">
-            <div class="front-block slack-column-block slack-column-placeholder"></div>
-            <div class="front-block slack-column-block slack-column-placeholder"></div>
-          </div>
-        </section>
-          <hr class="section-rule" />
+        {homepageSlackColumns.map((column) => (
+          <>
+            <section class="slack-column-row slack-column-row--loading">
+              <div
+                class:list={[
+                  "slack-column-row-items",
+                  `slack-column-row-items--${getSlackMessagesPerRow(column)}`
+                ]}
+                style={`--slack-column-messages-per-row: ${getSlackMessagesPerRow(column)}`}
+              >
+                {Array.from({ length: getSlackHomepageLimit(column) }).map(() => (
+                  <div class="front-block slack-column-block slack-column-placeholder"></div>
+                ))}
+              </div>
+            </section>
+            <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.channel)}/`}>All {column.title} &rarr;</a>
+            <hr class="section-rule" />
+          </>
+        ))}
       </div>
-        
     </HomepageSlackColumns>
 
 
