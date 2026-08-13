@@ -50,7 +50,7 @@ if (!column || !message) {
 ---
 
 <BaseLayout
-  title={message ? `${messageTitle} — ${message.userName}` : "Message not found"}
+    title={message ? `${messageTitle} | Slacker News` : "Slacker News"}
   siteTitle={site.title}
   siteDescription={site.description}
   canonicalPath={`/slack/${encodeURIComponent(channel)}/${encodeURIComponent(messageId)}/`}

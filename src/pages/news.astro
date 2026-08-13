@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { getPosts, getSiteConfig, truncateWords } from "../lib/content";
+import { formatStoryDate, getPosts, getSiteConfig, truncateWords } from "../lib/content";
 
 const site = await getSiteConfig();
 const newsPosts = (await getPosts()).filter((post) => post.category === "news");
@@ -13,7 +13,10 @@ const newsPosts = (await getPosts()).filter((post) => post.category === "news");
     <div class="archive-list">
       {newsPosts.map((post) => (
         <a href={post.url} class="front-block story-block">
-          <h3 class="story-block-title">{post.title}</h3>
+          <header class="story-card-header">
+            <h3 class="story-block-title">{post.title}</h3>
+            <time class="story-card-date" datetime={post.date.toISOString()}>{formatStoryDate(post.date)}</time>
+          </header>
           <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
           <span class="reading-time">{post.readingTime} min read</span>
         </a>
