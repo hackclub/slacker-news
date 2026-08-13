@@ -1,24 +1,94 @@
 [
-  { "name": "@Raygen Rupe", "slackId": "U08R4KDL6UF" },
-  { "name": "@divpreet", "slackId": "U0801PU0MTQ" },
-  { "name": "@tanuki", "slackId": "U08R4Q9H8EB" },
-  { "name": "@Will", "slackId": "U0B8BGTH694" },
-  { "name": "@stellenium", "slackId": "U07F6FMJ97U" },
-  { "name": "@freddie", "slackId": "U078VN0UU2K" },
-  { "name": "@Elliot-entity", "slackId": "U096KJYT1PU" },
-  { "name": "@karthik", "slackId": "U04K5EPMZM1" },
-  { "name": "@sahil", "slackId": "U08PUHSMW4V" },
-  { "name": "@mat", "slackId": "U07VA44DNBA" },
-  { "name": "@miggy", "slackId": "U07VC9705D4" },
-  { "name": "@neven", "slackId": "U071JHBEJ7R" },
-  { "name": "@nora", "slackId": "U06QK6AG3RD" },
-  { "name": "@eternal", "slackId": "U09H9PLB6E7" },
-  { "name": "@rowan", "slackId": "U080A3QP42C" },
-  { "name": "@lfd", "slackId": "U07UBCSSQH3" },
-  { "name": "@Dev", "slackId": "U0261EB1EG7" },
-  { "name": "@indy", "slackId": "UDK5M9Y13" },
-  { "name": "@zrl", "slackId": "U09UE480JHH" },
-  { "name": "@eps", "slackId": "U09Q8MLTE58" },
-  { "name": "@santi", "slackId": "U08PD2ZB3DL" },
-  { "name": "@Mathias", "slackId": "U080HHYN0JD" }
+  {
+    "name": "@santi",
+    "slackId": "U08PD2ZB3DL"
+  },
+  {
+    "name": "@Mathias",
+    "slackId": "U080HHYN0JD"
+  },
+  {
+    "name": "@Kieran Klukas",
+    "slackId": "U062UG485EE"
+  },
+  {
+    "name": "@Raygen Rupe",
+    "slackId": "U08R4KDL6UF"
+  },
+  {
+    "name": "@divpreet",
+    "slackId": "U0801PU0MTQ"
+  },
+  {
+    "name": "@tanuki",
+    "slackId": "U08R4Q9H8EB"
+  },
+  {
+    "name": "@Will",
+    "slackId": "U0B8BGTH694"
+  },
+  {
+    "name": "@stellenium",
+    "slackId": "U07F6FMJ97U"
+  },
+  {
+    "name": "@freddie",
+    "slackId": "U078VN0UU2K"
+  },
+  {
+    "name": "@Elliot-entity",
+    "slackId": "U096KJYT1PU"
+  },
+  {
+    "name": "@karthik",
+    "slackId": "U04K5EPMZM1"
+  },
+  {
+    "name": "@sahil",
+    "slackId": "U08PUHSMW4V"
+  },
+  {
+    "name": "@mat",
+    "slackId": "U07VA44DNBA"
+  },
+  {
+    "name": "@miggy",
+    "slackId": "U07VC9705D4"
+  },
+  {
+    "name": "@neven",
+    "slackId": "U071JHBEJ7R"
+  },
+  {
+    "name": "@nora",
+    "slackId": "U06QK6AG3RD"
+  },
+  {
+    "name": "@eternal",
+    "slackId": "U09H9PLB6E7"
+  },
+  {
+    "name": "@rowan",
+    "slackId": "U080A3QP42C"
+  },
+  {
+    "name": "@lfd",
+    "slackId": "U07UBCSSQH3"
+  },
+  {
+    "name": "@Dev",
+    "slackId": "U0261EB1EG7"
+  },
+  {
+    "name": "@indy",
+    "slackId": "UDK5M9Y13"
+  },
+  {
+    "name": "@zrl",
+    "slackId": "U09UE480JHH"
+  },
+  {
+    "name": "@eps",
+    "slackId": "U09Q8MLTE58"
+  }
 ]
