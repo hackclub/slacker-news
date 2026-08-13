@@ -7,7 +7,7 @@ interface Props {
 }
 
 const { text } = Astro.props;
-const tokenPattern = /(\*[^*\n]+\*|(?<!\w)_[^_\n]+_(?!\w)|<@[^>]+>|<![^>]+>|<#.+?>|#[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z0-9_+\-]+:)/g;
+const tokenPattern = /(\*[^*\n]+\*|(?<!\w)_[^_\n]+_(?!\w)|<https?:\/\/[^>\s]+>|<@[^>]+>|<![^>]+>|<#.+?>|#[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z0-9_+\-]+:)/g;
 
 function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
@@ -24,6 +24,14 @@ function tokenize(input: string): Token[] {
       tokens.push({ type: "italic", children: tokenize(raw.slice(1, -1)) });
     } else if (raw.startsWith(":") && raw.endsWith(":")) {
       tokens.push({ type: "emoji", name: raw.slice(1, -1) });
+    } else if (/^<https?:\/\//i.test(raw)) {
+      const inner = raw.slice(1, -1);
+      const separator = inner.indexOf("|");
+      const rawUrl = separator >= 0 ? inner.slice(0, separator) : inner;
+      const explicitLabel = separator >= 0 ? inner.slice(separator + 1) : "";
+      const url = rawUrl.endsWith("&") ? rawUrl.slice(0, -1) : rawUrl;
+      const label = explicitLabel || url;
+      tokens.push({ type: "link", url, label });
     } else if (raw.startsWith("<#")) {
       const channel = raw.slice(2, -1).split("|", 2);
       tokens.push({ type: "channel", id: channel[0], name: channel[1] });
