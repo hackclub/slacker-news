@@ -911,6 +911,10 @@ $slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
   }
 }
 
+.slack-rich-link {
+  text-decoration: underline;
+}
+
 // Restore color for all Slack entities while their containing card is hovered.
 .front-block:hover .slack_user,
 .front-block:hover .slack_channel,
