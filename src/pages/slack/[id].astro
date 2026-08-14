@@ -48,7 +48,7 @@ function messageURL(messageId: string): string {
             <header>
               <strong class="slack-message-card-title">{firstMetadataValue(message.metadata)}</strong>
               <time datetime={message.timestamp}>
-                {new Date(message.timestamp).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                {new Date(message.timestamp).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}
               </time>
             </header>
             {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={metadataSchema} />}
