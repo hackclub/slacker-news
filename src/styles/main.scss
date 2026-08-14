@@ -714,6 +714,8 @@ a {
     border-top: 1px solid #000;
     font-size: 0.85rem;
     letter-spacing: 0.05em;
+    justify-content: space-between;
+    display: flex;
     text-transform: uppercase;
 
     a {
