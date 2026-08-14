@@ -1,0 +1,118 @@
+---
+import fs from "node:fs";
+import path from "node:path";
+
+const tickerPath = path.resolve("src/content/sample ticker.mdx");
+const raw = fs.readFileSync(tickerPath, "utf-8");
+const headlines = raw
+  .split("\n")
+  .map((line) => line.trim())
+  .filter(Boolean);
+---
+
+<div class="news-ticker" aria-label="News ticker">
+  <div class="news-ticker-track">
+    <div class="news-ticker-scroll" data-ticker>
+      <span class="news-ticker-set" data-ticker-set>
+        {headlines.map((h) => <span class="news-ticker-item">{h}</span>)}
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll("[data-ticker]").forEach((scroll) => {
+    const set = scroll.querySelector("[data-ticker-set]");
+    if (!set) return;
+
+    const trackWidth = scroll.parentElement.offsetWidth;
+    const items = Array.from(set.children);
+
+    // Pad the set with repeated items until it's at least as wide as the viewport
+    let i = 0;
+    while (set.offsetWidth < trackWidth) {
+      const clone = items[i % items.length].cloneNode(true);
+      set.appendChild(clone);
+      i++;
+    }
+
+    // One duplicate of the (now wide enough) set is all we need
+    const dupe = set.cloneNode(true);
+    dupe.setAttribute("aria-hidden", "true");
+    scroll.appendChild(dupe);
+
+    const setWidth = set.offsetWidth;
+    const pxPerSecond = 30;
+    const duration = setWidth / pxPerSecond;
+
+    scroll.style.animationDuration = duration + "s";
+    scroll.style.setProperty("--set-width", "-" + setWidth + "px");
+    scroll.classList.add("news-ticker-animate");
+  });
+</script>
+
+<style>
+  .news-ticker {
+    background: #f5f5f0;
+    color: #000;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    border-top: 3px solid #000;
+    border-bottom: 3px double #000;
+  }
+
+  .news-ticker-track {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .news-ticker-scroll {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .news-ticker-animate {
+    animation: ticker-scroll linear infinite;
+  }
+
+  .news-ticker-set {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .news-ticker-item {
+    padding: 8px 0;
+  }
+
+  .news-ticker-item::before {
+    content: "\25C6";
+    margin: 0 1.2em;
+    font-size: 0.45em;
+    vertical-align: middle;
+    opacity: 0.5;
+  }
+
+  @keyframes ticker-scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(var(--set-width));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .news-ticker-animate {
+      animation: none;
+    }
+  }
+</style>
