@@ -46,15 +46,16 @@ a {
 
 .site-header {
   border-top: 5px solid #000;
-  border-bottom: 3px double #000;
+  border-bottom: none;
   background-color: #fff;
   text-align: center;
-  padding: 12px 0;
+  padding: 0;
 
   .wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 12px 0;
   }
 }
 
