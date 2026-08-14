@@ -1,5 +1,6 @@
 ---
 import AbacusCounter from "../components/AbacusCounter.astro";
+import NewsTicker from "../components/NewsTicker.astro";
 
 interface Props {
   title?: string;
@@ -174,6 +175,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           </div>
         </nav>
       </div>
+      <NewsTicker />
     </header>
 
     <main class="page-content" aria-label="Content">
