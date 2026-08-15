@@ -32,8 +32,6 @@ const {
 } = Astro.props;
 const pageTitle = title && title !== siteTitle ? `${title} | ${siteTitle}` : siteTitle;
 const pageDescription = description ?? siteDescription;
-const authReturnTo = `${Astro.url.pathname}${Astro.url.search}`;
-const isAuthenticated = Boolean(Astro.locals.user);
 
 function toAbsoluteURL(input: string): string {
   return new URL(input, Astro.site ?? Astro.url).toString();
@@ -147,11 +145,9 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
   <body>
     <header class="site-header" role="banner">
       <div class="wrapper">
-        <div >
-      <a class="site-title" rel="author" href="/">
-            <img src="/Core%20SN%20logo.svg" alt={siteTitle} style="height: 2em; vertical-align: middle;" />
-          </a>
-                </div>
+        <a class="site-title" rel="author" href="/">
+          <img src="/Core%20SN%20logo.svg" alt={siteTitle} style="height: 2em; vertical-align: middle;" />
+        </a>
         <nav class="site-nav">
           <input type="checkbox" id="nav-trigger" class="nav-trigger" />
           <label for="nav-trigger">
@@ -175,12 +171,6 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             <a class="page-link" href="https://plausible.io/news.hackclub.com">Stats</a>
             <span class="nav-pip js-only">|</span>
             <button class="page-link theme-toggle js-only" id="theme-toggle" type="button">Dark Mode</button>
-              {isAuthenticated ? (
-            <a class="action-button" href="/auth/logout">Log out</a>
-          ) : (
-            <a class="action-button" href={`/auth/login?returnTo=${encodeURIComponent(authReturnTo)}`}>Log in</a>
-          )}
-
           </div>
         </nav>
       </div>

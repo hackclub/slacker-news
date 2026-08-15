@@ -13,8 +13,6 @@ export type SlackColumnConfig = {
   homepageFetchLimit?: number;
   /** Maximum number of message cards displayed side-by-side on the homepage. */
   homepageMessagesPerRow?: number;
-  /** Require Hack Club Auth before exposing this column. */
-  authRequired?: boolean;
   showMetadata?: boolean;
   limit?: number;
   subtitle?: string;
