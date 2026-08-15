@@ -11,6 +11,9 @@ export const prerender = false;
 const channel = Astro.params.channel ?? "";
 const messageId = Astro.params.messageId ?? "";
 const column = getSlackColumn(channel);
+if (column?.authRequired && !Astro.locals.user) {
+  return Astro.redirect(`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
+}
 const [message, metadataSchema] = column
   ? await Promise.all([
       getIndigestMessage(column.channelId ?? channel, messageId),
