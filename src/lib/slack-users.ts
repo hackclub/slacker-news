@@ -43,7 +43,7 @@ export function getSlackUserDisplayName(id: string): Promise<string | undefined>
             headers: { Accept: "application/json" },
           });
           if (response.ok) {
-            const flaronName = nameFromPayload(await response.json(), true);
+            const flaronName = nameFromPayload(await response.json());
             if (flaronName) return flaronName;
           }
         } catch { }
@@ -54,5 +54,10 @@ export function getSlackUserDisplayName(id: string): Promise<string | undefined>
     .catch(() => undefined);
 
   userPromises.set(id, request);
+  request.then((displayName) => {
+    if (!displayName && userPromises.get(id) === request) {
+      userPromises.delete(id);
+    }
+  });
   return request;
 }
