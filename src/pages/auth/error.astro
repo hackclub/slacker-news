@@ -1,0 +1,15 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getSiteConfig } from "../../lib/content";
+
+const site = await getSiteConfig();
+---
+
+<BaseLayout title="Sign-in error" siteTitle={site.title} siteDescription={site.description}>
+  <article class="post">
+    <h1 class="post-title">Sign-in error</h1>
+    <p>We couldn't sign you in with Hack Club Auth. Please try again.</p>
+    <p><a href="/auth/login">Try again &rarr;</a></p>
+  </article>
+</BaseLayout>
+
