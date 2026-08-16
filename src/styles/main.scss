@@ -277,6 +277,25 @@ a {
   font-family: Georgia, serif;
 }
 
+.story-card-date {
+  display: block;
+  color: #666;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  font-family: Georgia, serif;
+}
+
+.story-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+
+  .story-block-title {
+    flex: 1;
+  }
+}
+
 // ─── Changelog block ──────────────────────────────────────────────────────────
 
 .front-changelog {
@@ -325,7 +344,7 @@ a {
 
 .slack-column-block {
   position: relative;
-  padding: 16px;
+  padding: 24px 22px;
 
   .slack-column-card-link {
     position: absolute;
@@ -340,12 +359,22 @@ a {
   > *:not(.slack-column-card-link) {
     position: relative;
     z-index: 1;
+    pointer-events: none;
+  }
+
+  &:hover > span {
+    text-decoration: underline;
+  }
+
+  > *:not(.slack-column-card-link) a {
+    pointer-events: auto;
   }
 
   .slack-column-card-title {
     margin: 0 0 8px;
-    font-size: 1.05rem;
-    line-height: 1.25;
+    font-size: 0.95rem;
+    font-weight: bold;
+    line-height: 1.3;
   }
 
   &:hover .slack-column-card-title-link {
@@ -356,17 +385,17 @@ a {
     display: block;
     margin-top: 3px;
     color: #444;
-    font-size: 0.9rem;
-    line-height: 1.4;
+    font-size: 0.82rem;
+    line-height: 1.5;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 }
 
 .slack-column-placeholder {
-  min-height: 120px;
+  min-height: 160px;
   background: linear-gradient(90deg, #fff 25%, #f0f0eb 50%, #fff 75%);
   background-size: 200% 100%;
   animation: slack-column-loading 1.5s infinite;
@@ -400,6 +429,35 @@ a {
 }
 
 .slack-message-card {
+  position: relative;
+
+  .slack-message-card-link {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    color: transparent;
+    font-size: 0;
+    text-decoration: none;
+  }
+
+  > *:not(.slack-message-card-link) {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  &:hover p {
+    text-decoration: underline;
+  }
+
+  &:hover .slack-message-card-title {
+    text-decoration: underline;
+  }
+
+  > *:not(.slack-message-card-link) a {
+    pointer-events: auto;
+  }
+
   header {
     display: flex;
     justify-content: space-between;
@@ -416,7 +474,7 @@ a {
     line-height: 1.55;
   }
 
-  a {
+  a:not(.slack-message-card-link) {
     text-decoration: underline;
     font-size: 0.85rem;
   }
@@ -714,6 +772,8 @@ a {
     border-top: 1px solid #000;
     font-size: 0.85rem;
     letter-spacing: 0.05em;
+    justify-content: space-between;
+    display: flex;
     text-transform: uppercase;
 
     a {
@@ -909,6 +969,10 @@ $slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
     color: $slack-link-fg;
     filter: grayscale(0%);
   }
+}
+
+.slack-rich-link {
+  text-decoration: underline;
 }
 
 // Restore color for all Slack entities while their containing card is hovered.

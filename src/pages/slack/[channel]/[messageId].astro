@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { getSiteConfig } from "../../../lib/content";
-import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn } from "../../../lib/indigest";
+import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn,  slackLinkFromMessageId } from "../../../lib/indigest";
 import IndigestMetadata from "../../../components/IndigestMetadata.astro";
 import SlackMention from "../../../components/SlackMention.astro";
 import SlackRichText from "../../../components/SlackRichText.astro";
@@ -46,11 +46,11 @@ if (!column || !message) {
   Astro.response.headers.set("Cache-Control", "no-store");
 } else {
   Astro.response.headers.set("Cache-Control", "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800");
-}
+  }
 ---
 
 <BaseLayout
-  title={message ? `${messageTitle} — ${message.userName}` : "Message not found"}
+    title={message ? `${messageTitle} | Slacker News` : "Slacker News"}
   siteTitle={site.title}
   siteDescription={site.description}
   canonicalPath={`/slack/${encodeURIComponent(channel)}/${encodeURIComponent(messageId)}/`}
@@ -81,6 +81,7 @@ if (!column || !message) {
 
       <footer class="story-footer">
         <a href={`/`}>&larr; Back to front page</a>
+        <a href={ slackLinkFromMessageId(message.channelId, message.slackTs)}>View message on Slack&rarr;</a>
       </footer>
     </article>
   ) : (

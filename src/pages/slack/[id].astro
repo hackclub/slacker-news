@@ -1,9 +1,10 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSiteConfig } from "../../lib/content";
-import { getIndigestMessages, getIndigestMetadataSchema, getSlackColumn, firstMetadataValue} from "../../lib/indigest";
-import  IndigestMetadata from "../../components/IndigestMetadata.astro";
+import { getIndigestMessages, getIndigestMetadataSchema, getSlackColumn, firstMetadataValue } from "../../lib/indigest";
+import IndigestMetadata from "../../components/IndigestMetadata.astro";
 import SlackRichText from "../../components/SlackRichText.astro";
+import { truncateSlackWords } from "../../lib/slack-rich-text";
 
 export const prerender = false;
 
@@ -39,16 +40,19 @@ function messageURL(messageId: string): string {
       <div class="archive-list">
         {messages.length > 0 ? messages.map((message) => (
           <article class=" slack-message-card front-block story-block">
+            <a
+              class="slack-message-card-link"
+              href={messageURL(message.slackTs)}
+              aria-label={`Read ${firstMetadataValue(message.metadata) ?? column.title}`}
+            >Open message</a>
             <header>
-              <strong>{firstMetadataValue(message.metadata)}</strong>
+              <strong class="slack-message-card-title">{firstMetadataValue(message.metadata)}</strong>
               <time datetime={message.timestamp}>
-                {new Date(message.timestamp).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                {new Date(message.timestamp).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}
               </time>
             </header>
-                    {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={metadataSchema} />}
-            <p><SlackRichText text={message.text} /></p>
-
-            <a href={messageURL(message.slackTs)}>Permalink &rarr;</a>
+            {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={metadataSchema} />}
+            <p><SlackRichText text={truncateSlackWords(message.text, 18)} /></p>
           </article>
         )) : (
           <p class="slack-empty">No messages are available right now.</p>
