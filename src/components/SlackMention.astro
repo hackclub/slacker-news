@@ -7,10 +7,14 @@ interface Props {
 import { getSlackUserDisplayName } from "../lib/slack-users";
 
 const { name, id } = Astro.props;
-let displayName = name;
+const suppliedName = name?.trim();
+let displayName: string | undefined = suppliedName;
 
 if (/^[UW][A-Z0-9]+$/i.test(id)) {
-    displayName = await getSlackUserDisplayName(id) ?? displayName;
+    displayName = await getSlackUserDisplayName(id)
+        ?? (suppliedName && !/^[UW][A-Z0-9]+$/i.test(suppliedName) && suppliedName.toLowerCase() !== "slack user"
+            ? suppliedName
+            : undefined);
 }
 
 if (!displayName || /^[UW][A-Z0-9]+$/i.test(displayName)) {
