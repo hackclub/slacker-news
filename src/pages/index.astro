@@ -140,7 +140,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
 
     <hr class="section-rule" />
 
-    <HomepageSlackColumns server:defer>
+    <HomepageSlackColumns server:defer returnTo={Astro.url.pathname}>
       <div slot="fallback" class="front-slack-columns">
         {homepageSlackColumns.map((column) => (
           <>
