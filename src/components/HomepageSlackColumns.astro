@@ -4,6 +4,12 @@ import SlackRichText from "./SlackRichText.astro";
 import { getSlackColumnData, getSlackColumns, firstMetadataValue } from "../lib/indigest";
 import type { IndigestMessage } from "../lib/indigest";
 
+interface Props {
+  returnTo?: string;
+}
+
+const { returnTo = "/" } = Astro.props;
+
 const homepageColumns = await Promise.all(
   getSlackColumns()
     .filter((column) => column.homepage && (!column.authRequired || Astro.locals.user))
@@ -62,7 +68,7 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
   {protectedHomepageColumns.length > 0 && (
     <section class="slack-auth-prompt">
       <p>
-        <a href={`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`}>
+        <a href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>
           Sign in with Hack Club
         </a>
         {" "}to view protected articles.
