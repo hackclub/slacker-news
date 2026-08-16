@@ -46,9 +46,7 @@ export function getSlackUserDisplayName(id: string): Promise<string | undefined>
             const flaronName = nameFromPayload(await response.json(), true);
             if (flaronName) return flaronName;
           }
-        } catch {
-          // Try the alternate Flaron route before giving up.
-        }
+        } catch { }
       }
 
       return undefined;
