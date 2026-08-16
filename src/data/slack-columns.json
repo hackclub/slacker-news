@@ -20,5 +20,17 @@
     "homepageLimit": 12,
     "showMetadata": false,
     "limit": 12
+  },
+  {
+    "channel": "ship-of-the-week",
+    "channelId": "C0BQ2CTMR25",
+    "title": "Ship of the Week",
+    "subtitle": "from #ship-of-the-week",
+    "homepage": true,
+    "homepageMessagesPerRow": 3,
+    "homepageLimit": 3,
+    "authRequired": true,
+    "showMetadata": false,
+    "limit": 12
   }
 ]
