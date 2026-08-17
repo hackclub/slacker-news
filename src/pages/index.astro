@@ -10,7 +10,14 @@ import {
   truncateWords
 } from "../lib/content";
 import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
+
+import ColumnFeedCard from "../components/ColumnFeedCard.astro";
+import { getColumnFeedItems } from "../lib/column-feed";
+
+export const prerender = false;
+
 import { getSlackColumns } from "../lib/indigest";
+
 
 const site = await getSiteConfig();
 const posts = await getPosts();
@@ -38,12 +45,19 @@ const headlineExcerpts = (() => {
 })();
 const headlineExcerptText = headlineExcerpts.join("\n\n");
 
-const displayOpinion = posts.filter((post) => post.category === "opinion").slice(0, 3);
+const [opinionItems, newsItems, essayItems] = await Promise.all([
+  getColumnFeedItems("opinion", Boolean(Astro.locals.user)),
+  getColumnFeedItems("news", Boolean(Astro.locals.user)),
+  getColumnFeedItems("essays", Boolean(Astro.locals.user)),
+]);
 
-const displayNews = allNews.filter((post) => post.slug !== headline?.slug).slice(0, 8);
+const displayOpinion = opinionItems.slice(0, 3);
 
-const allEssays = posts.filter((post) => post.category === "essays");
-const displayEssays = allEssays.slice(0, 4);
+const displayNews = newsItems
+  .filter((item) => item.kind !== "post" || item.post.slug !== headline?.slug)
+  .slice(0, 8);
+
+const displayEssays = essayItems.slice(0, 4);
 
 const recentChangelog = (await getChangelogEntries()).slice(0, 3);
 const acknowledgements = await getAcknowledgements();
@@ -93,13 +107,9 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
       <div class="front-block opinion-block">
         <div class="section-label">OPINION</div>
         <hr class="block-rule" />
-        {displayOpinion.map((post, index) => (
+        {displayOpinion.map((item, index) => (
           <>
-            <a href={post.url} class="opinion-item">
-              <h3 class="opinion-title">{post.title}</h3>
-              <p class="opinion-excerpt">{truncateWords(post.excerpt, 18)}</p>
-              <span class="reading-time">{post.readingTime} min read</span>
-            </a>
+          <ColumnFeedCard item={item} variant="opinion" homepage={true} />
             {index < displayOpinion.length - 1 && <hr class="opinion-divider" />}
           </>
         ))}
@@ -109,12 +119,8 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
     </div>
 
     <div class={`front-bottom ${displayNews.length < 4 ? `front-bottom--${displayNews.length}` : ""}`}>
-      {displayNews.map((post) => (
-        <a href={post.url} class="front-block story-block">
-          <h3 class="story-block-title">{post.title}</h3>
-          <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
-          <span class="reading-time">{post.readingTime} min read</span>
-        </a>
+      {displayNews.map((item) => (
+        <ColumnFeedCard item={item} variant="story" homepage={true}  />
       ))}
     </div>
 
@@ -125,12 +131,8 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         <hr class="section-rule" />
 
         <div class={`front-essays ${displayEssays.length < 4 ? `front-essays--${displayEssays.length}` : ""}`}>
-          {displayEssays.map((post) => (
-            <a href={post.url} class="front-block story-block essay-block">
-              <h3 class="story-block-title">{post.title}</h3>
-              <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
-              <span class="reading-time">{post.readingTime} min read</span>
-            </a>
+          {displayEssays.map((item) => (
+            <ColumnFeedCard item={item} variant="story" homepage={true}  />
           ))}
         </div>
 

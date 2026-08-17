@@ -7,12 +7,23 @@ export type Token =
   | { type: "emoji"; name: string }
   | { type: "bold" | "italic"; children: Token[] };
 
-/** Truncate Slack text without leaving bold or italic formatting unterminated. */
 export function truncateSlackWords(input: string, count: number): string {
   const words = input.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
-  if (words.length <= count) return input;
+  const wordWeight = (word: string) => word.split(/-+/).filter(Boolean).length;
+  const totalWeight = words.reduce((sum, word) => sum + wordWeight(word), 0);
+  if (totalWeight <= count) return input;
 
-  const truncated = `${words.slice(0, count).join(" ")}...`;
+  const included: string[] = [];
+  let usedWeight = 0;
+  for (const word of words) {
+    const weight = wordWeight(word);
+    if (included.length > 0 && usedWeight + weight > count) break;
+    included.push(word);
+    usedWeight += weight;
+    if (usedWeight >= count) break;
+  }
+
+  const truncated = `${included.join(" ")}...`;
   let boldOpen = false;
   let italicOpen = false;
 

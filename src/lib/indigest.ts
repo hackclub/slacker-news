@@ -1,19 +1,14 @@
 import columnConfig from "../data/slack-columns.json";
 
 export type SlackColumnConfig = {
-  /** Stable URL segment, e.g. "happenings". */
-  channel: string;
-  /** Slack channel ID used by Indigest (usually starts with C). */
+  column: string;
   channelId?: string;
   title: string;
   description?: string;
   homepage?: boolean;
   homepageLimit?: number;
-  /** Optional smaller fetch size for homepage rendering. Archive pages keep using limit. */
   homepageFetchLimit?: number;
-  /** Maximum number of message cards displayed side-by-side on the homepage. */
   homepageMessagesPerRow?: number;
-  /** Require Hack Club Auth before exposing this column. */
   authRequired?: boolean;
   showMetadata?: boolean;
   limit?: number;
@@ -51,7 +46,7 @@ export function getSlackColumns(): SlackColumnConfig[] {
 }
 
 export function getSlackColumn(channel: string): SlackColumnConfig | undefined {
-  return configuredColumns.find((column) => column.channel === channel);
+  return configuredColumns.find((column) => column.column === channel);
 }
 
 export async function getIndigestMessages(
