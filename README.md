@@ -7,6 +7,7 @@ Official news from the [Hack Club](https://hackclub.com?uwu) Slack, highlighting
 ## About
 
 As of now, some of the cool things Slacker News has include:
+
 - Distinct content columns including news, opinion, essays, and changelogs
 - Response and follow-up posts
 - RSS Feeds
@@ -14,6 +15,7 @@ As of now, some of the cool things Slacker News has include:
 - Dynamic OpenGraph Metadata
 - Light/dark mode
 - Slack channel/user tagging
+- Slack-backed columns with optional Hack Club OIDC protection
 - Privacy-concious analytics (abacus)
 
 ## Technical Contributions
@@ -47,6 +49,35 @@ Styles are authored in `src/styles/main.scss` and bundled by Astro.
 
 Posts live in `src/content/posts/` as MDX files. Slack user mentions use the shared `SlackMention` component inside post bodies.
 
+### Slack columns
+
+Slack-backed columns are configured in [`src/data/slack-columns.json`](src/data/slack-columns.json). Each entry maps a Slack channel to a site column:
+
+- `column` is the site column identifier. If it matches a regular article column such as `opinion`, Slack messages are integrated into that column’s feeds; otherwise, the column gets its own homepage section.
+- `channelId` identifies the Slack channel queried from Indigest.
+- `title` and `subtitle` control the displayed column heading and source label.
+- `homepage` controls whether the column appears on the homepage.
+- `homepageLimit` and `homepageMessagesPerRow` control how many messages are shown and how they are arranged there. `limit` controls the channel page feed.
+- `authRequired` protects the column behind Hack Club OIDC authentication.
+- `showMetadata` controls whether structured Slack message metadata is displayed.
+
+For example:
+
+```json
+{
+  "column": "ship-of-the-week",
+  "channelId": "C0BQ2CTMR25",
+  "title": "Ship of the Week",
+  "homepage": true,
+  "homepageLimit": 3,
+  "homepageMessagesPerRow": 3,
+  "authRequired": true,
+  "limit": 12
+}
+```
+
+Slack message data is provided by [Indigest](https://github.com/matmanna/indigest). Mentions and channel names are resolved through [Flaron](https://github.com/sadeshmukh/flaron), while cached Slack user profiles and custom emojis come from [Cachet](https://github.com/taciturnaxolotl/cachet).
+
 ### Building for Production
 
 Create an optimized production build:
@@ -57,32 +88,7 @@ bun run build
 
 Output is generated in the `dist/` directory.
 
-Preview the production build locally:
-
-```bash
-bun run preview
-```
-
-### Project Structure
-
-```
-src/
-├── components/         # Shared Astro components
-├── content/            # Astro content collections
-│   ├── pages/          # About and submissions pages
-│   └── posts/          # MDX articles
-├── data/               # Site/frontpage/changelog/acknowledgements JSON data
-├── layouts/            # Page layouts (BaseLayout, PageLayout)
-├── lib/                # Utilities (content loading, site config)
-├── pages/              # Routes and pages
-│   ├── [slug].astro    # Dynamic post routes
-│   ├── index.astro     # Homepage
-│   ├── feed.xml.js     # RSS feed endpoint
-│   └── ...             # Section pages
-└── styles/             # SCSS stylesheets
-
-public/                 # Static assets
-```
+````
 
 ## Content Contributions
 
@@ -98,9 +104,9 @@ excerpt: Brief description shown in listings
 ---
 
 Post content in Markdown format goes here.
-```
+````
 
-To mention a Slack user in a post, import and use the shared component:
+To mention a Slack user in a post, import and use the SlackMention component:
 
 ```mdx
 import SlackMention from "../../components/SlackMention.astro";
@@ -108,21 +114,22 @@ import SlackMention from "../../components/SlackMention.astro";
 <SlackMention name="eps" id="U09Q8MLTE58" />
 ```
 
-### Site Data
-
-Site configuration and frontpage data live in `src/data/` JSON files:
-- **src/data/site.json** — Site title and description
-- **src/data/frontpage.json** — Pinned posts and sections on homepage
-- **src/data/changelog.json** — Changelog entries
-- **src/data/acknowledgements_frontpage.json** — Featured contributors
-
-Slack channel references are explicit. Use `SlackChannel` in MDX when you want a linked channel mention:
+and to mention a Slack channel, use the SlackChannel component
 
 ```mdx
 import SlackChannel from "../../components/SlackChannel.astro";
 
 <SlackChannel id="confessions" />
 ```
+
+### Site Data
+
+Site configuration and frontpage data live in `src/data/` JSON files:
+
+- **src/data/site.json** - Site title and description
+- **src/data/changelog.json** - Changelog entries
+- **src/data/acknowledgements.json** - Featured contributors
+- **src/data/slack-columns.json** - Slack-backed column configuration
 
 Run Astro checks:
 
@@ -132,43 +139,14 @@ bun run check
 
 ## Deployment
 
-The project includes a `Dockerfile` for containerized deployment. Build and run with:
+The site is deployed on [Vercel](https://vercel.com/) using Astro SSR. Vercel uses the repository’s `vercel.json` configuration, installs with Bun, and builds with `bun run build`.
 
-```bash
-docker build -t slacker-news .
-docker run --rm --name slacker-news -p 8080:80 slacker-news
-```
+For protected Slack columns, configure these environment variables in the Vercel project:
 
-The container uses Bun for all build and runtime operations and serves the static production build.
-
-The container listens on port 80, so map it to whatever host port you want, for example `8080:80`.
-
-Open the site over HTTP (not HTTPS):
-
-```text
-http://localhost:8080
-```
-
-If you send HTTPS to this container port (for example `https://localhost:8080`), nginx will log binary TLS bytes and return `400` because this image serves plain HTTP only.
-
-Quick sanity check:
-
-```bash
-curl -I http://localhost:8080
-```
-
-If Docker says the port is already allocated, stop the existing container and rerun:
-
-```bash
-docker ps
-docker stop <container_id_or_name>
-docker run --rm --name slacker-news -p 8080:80 slacker-news
-```
+- `BETTER_AUTH_URL` — the deployed site URL
+- `BETTER_AUTH_SECRET` — a strong production secret
+- `HACKCLUB_CLIENT_ID` and `HACKCLUB_CLIENT_SECRET` — the Hack Club OAuth client credentials
 
 ## Contributing
 
 Open an issue or pull request to discuss changes. Be aware that I (Evan) have strong opinions about how this site should look. I favor minimal, bold design and lightweight code. If a PR changes the look of the site, feel free to DM on Slack to ask first.
-
-## License
-
-MIT
