@@ -23,7 +23,12 @@ export function generateAbacusKey(pathname: string): string {
         return segment;
       }
     })
-    .map((segment) => segment.toLowerCase().replace(/[^a-z0-9_.-]/g, "-").replace(/-+/g, "-"))
+    .map((segment) =>
+      segment
+        .toLowerCase()
+        .replace(/[^a-z0-9_.-]/g, "-")
+        .replace(/-+/g, "-"),
+    )
     .map((segment) => segment.replace(/^-+|-+$/g, ""))
     .filter(Boolean);
 
@@ -43,13 +48,19 @@ export function generateAbacusKey(pathname: string): string {
 /**
  * Get the Abacus API URL for hitting a counter
  */
-export function getAbacusHitUrl(key: string, namespace: string = "news.hackclub.com"): string {
+export function getAbacusHitUrl(
+  key: string,
+  namespace: string = "news.hackclub.com",
+): string {
   return `https://abacus.jasoncameron.dev/hit/${namespace}/${key}`;
 }
 
 /**
  * Get the Abacus API URL for retrieving counter value
  */
-export function getAbacusGetUrl(key: string, namespace: string = "news.hackclub.com"): string {
+export function getAbacusGetUrl(
+  key: string,
+  namespace: string = "news.hackclub.com",
+): string {
   return `https://abacus.jasoncameron.dev/get/${namespace}/${key}`;
 }

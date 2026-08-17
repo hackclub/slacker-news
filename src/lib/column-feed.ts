@@ -8,7 +8,13 @@ import {
 
 export type ColumnFeedItem =
   | { kind: "post"; post: Post; date: Date }
-  | { kind: "slack"; column: SlackColumnConfig; message: IndigestMessage; date: Date; readingTime: number };
+  | {
+      kind: "slack";
+      column: SlackColumnConfig;
+      message: IndigestMessage;
+      date: Date;
+      readingTime: number;
+    };
 
 function slackDate(message: IndigestMessage): Date {
   const parsed = new Date(message.timestamp);
@@ -23,13 +29,16 @@ function slackReadingTime(message: IndigestMessage): number {
   return Math.max(1, Math.ceil(wordCount / 200));
 }
 
-export function firstMetadataValue(metadata: IndigestMessage["metadata"]): string | undefined {
+export function firstMetadataValue(
+  metadata: IndigestMessage["metadata"],
+): string | undefined {
   let parsed: Record<string, unknown> | undefined;
 
   if (typeof metadata === "string") {
     try {
       const value = JSON.parse(metadata);
-      if (value && typeof value === "object" && !Array.isArray(value)) parsed = value;
+      if (value && typeof value === "object" && !Array.isArray(value))
+        parsed = value;
     } catch {
       return undefined;
     }
@@ -52,12 +61,16 @@ export async function getColumnFeedItems(
     .map((post) => ({ kind: "post" as const, post, date: post.date }));
 
   const slackColumns = getSlackColumns().filter(
-    (column) => column.column === columnId && (!column.authRequired || authenticated),
+    (column) =>
+      column.column === columnId && (!column.authRequired || authenticated),
   );
   const slackMessages = await Promise.all(
     slackColumns.map(async (column) => ({
       column,
-      messages: await getIndigestMessages(column.channelId ?? column.column, column.limit),
+      messages: await getIndigestMessages(
+        column.channelId ?? column.column,
+        column.limit,
+      ),
     })),
   );
 
@@ -71,5 +84,7 @@ export async function getColumnFeedItems(
     })),
   );
 
-  return [...posts, ...slackItems].sort((a, b) => b.date.getTime() - a.date.getTime());
+  return [...posts, ...slackItems].sort(
+    (a, b) => b.date.getTime() - a.date.getTime(),
+  );
 }

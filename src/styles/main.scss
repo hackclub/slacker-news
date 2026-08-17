@@ -1,18 +1,18 @@
 // Black & white theme — variable overrides must come before @use "minima"
 
-$brand-color:           #555555;
-$brand-color-light:     #aaaaaa;
-$brand-color-dark:      #000000;
-$site-title-color:      #000000;
-$text-color:            #111111;
-$background-color:      #f5f5f0;
+$brand-color: #555555;
+$brand-color-light: #aaaaaa;
+$brand-color-dark: #000000;
+$site-title-color: #000000;
+$text-color: #111111;
+$background-color: #f5f5f0;
 $code-background-color: #e8e8e8;
-$border-color-01:       #000000;
-$border-color-02:       #333333;
-$border-color-03:       #666666;
-$link-base-color:       #000000;
-$link-visited-color:    #000000;
-$link-hover-color:      #000000;
+$border-color-01: #000000;
+$border-color-02: #333333;
+$border-color-03: #666666;
+$link-base-color: #000000;
+$link-visited-color: #000000;
+$link-hover-color: #000000;
 
 @use "minima";
 
@@ -37,7 +37,9 @@ html {
 a {
   text-decoration: none;
   color: #000;
-  &:visited { color: #000; }
+  &:visited {
+    color: #000;
+  }
 }
 
 // ─── Masthead ────────────────────────────────────────────────────────────────
@@ -64,7 +66,10 @@ a {
   text-transform: uppercase;
   display: block;
   text-align: center;
-  &, &:visited { color: #000; }
+  &,
+  &:visited {
+    color: #000;
+  }
 }
 
 .site-nav {
@@ -124,9 +129,15 @@ a {
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 
-  &--1 { grid-template-columns: 1fr; }
-  &--2 { grid-template-columns: repeat(2, 1fr); }
-  &--3 { grid-template-columns: repeat(3, 1fr); }
+  &--1 {
+    grid-template-columns: 1fr;
+  }
+  &--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  &--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 // ─── Shared block style (the rounded-rectangle boxes) ────────────────────────
@@ -304,7 +315,9 @@ a {
   gap: 20px;
 
   .changelog-block {
-    &:hover { background: #fff; }
+    &:hover {
+      background: #fff;
+    }
 
     .section-label {
       font-size: 0.75rem;
@@ -334,12 +347,21 @@ a {
 
 .slack-column-row-items {
   display: grid;
-  grid-template-columns: repeat(var(--slack-column-messages-per-row, 4), minmax(0, 1fr));
+  grid-template-columns: repeat(
+    var(--slack-column-messages-per-row, 4),
+    minmax(0, 1fr)
+  );
   gap: 16px;
 
-  &--1 { grid-template-columns: 1fr; }
-  &--2 { grid-template-columns: repeat(2, 1fr); }
-  &--3 { grid-template-columns: repeat(3, 1fr); }
+  &--1 {
+    grid-template-columns: 1fr;
+  }
+  &--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  &--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .slack-column-block {
@@ -402,8 +424,12 @@ a {
 }
 
 @keyframes slack-column-loading {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .slack-column-page,
@@ -556,8 +582,12 @@ a {
     color: inherit;
     text-decoration: none;
 
-    &:visited { color: inherit; }
-    &:hover { text-decoration: underline; }
+    &:visited {
+      color: inherit;
+    }
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .changelog-meta {
@@ -580,27 +610,39 @@ a {
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 
-  &--1 { grid-template-columns: 1fr; }
-  &--2 { grid-template-columns: repeat(2, 1fr); }
-  &--3 { grid-template-columns: repeat(3, 1fr); }
+  &--1 {
+    grid-template-columns: 1fr;
+  }
+  &--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  &--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
 
   @media screen and (max-width: 700px) {
     grid-template-columns: 1fr;
 
-    &--1, &--2, &--3 {
+    &--1,
+    &--2,
+    &--3 {
       grid-template-columns: 1fr;
     }
   }
 }
 
 .essay-block {
-  &:hover { background: #fff; }
+  &:hover {
+    background: #fff;
+  }
 }
 
 // ─── Acknowledgements block ──────────────────────────────────────────────────
 
 .acknowledgements-block {
-  &:hover { background: #fff; }
+  &:hover {
+    background: #fff;
+  }
   .section-label {
     font-size: 0.75rem;
     font-family: Georgia, serif;
@@ -691,15 +733,19 @@ a {
     p {
       margin-bottom: 1.2em;
 
-      a { text-decoration: underline; }
+      a {
+        text-decoration: underline;
+      }
     }
 
-    ul, ol {
+    ul,
+    ol {
       margin-top: 1.2em;
       margin-bottom: 1.2em;
     }
 
-    li > ul, li > ol {
+    li > ul,
+    li > ol {
       margin-top: 0;
       margin-bottom: 0;
     }
@@ -715,7 +761,9 @@ a {
       color: #333;
       font-style: italic;
 
-      p, ul, ol {
+      p,
+      ul,
+      ol {
         margin-bottom: 0.8em;
 
         &:last-child {
@@ -735,7 +783,8 @@ a {
       font-size: 0.95rem;
       line-height: 1.5;
 
-      th, td {
+      th,
+      td {
         padding: 10px 14px;
         background-color: #fff;
         vertical-align: top;
@@ -756,12 +805,20 @@ a {
 
       thead tr th:first-child,
       tbody tr:not(:last-child) td:first-child {
-        background-image: linear-gradient(to right, transparent 0 14px, currentColor 14px 100%);
+        background-image: linear-gradient(
+          to right,
+          transparent 0 14px,
+          currentColor 14px 100%
+        );
       }
 
       thead tr th:last-child,
       tbody tr:not(:last-child) td:last-child {
-        background-image: linear-gradient(to right, currentColor 0 calc(100% - 14px), transparent calc(100% - 14px) 100%);
+        background-image: linear-gradient(
+          to right,
+          currentColor 0 calc(100% - 14px),
+          transparent calc(100% - 14px) 100%
+        );
       }
     }
   }
@@ -812,7 +869,9 @@ html.dark-mode {
   filter: invert(1) hue-rotate(180deg);
   background-color: #000;
 
-  img, svg, video {
+  img,
+  svg,
+  video {
     filter: invert(1) hue-rotate(180deg);
   }
 
@@ -826,7 +885,9 @@ html.dark-mode {
     filter: invert(1) hue-rotate(180deg);
     background-color: #000;
 
-    img, svg, video {
+    img,
+    svg,
+    video {
       filter: invert(1) hue-rotate(180deg);
     }
 
@@ -891,8 +952,12 @@ html.dark-mode mark {
   color: #555;
   margin-top: 4px;
 
-  &:visited { color: #555; }
-  &:hover { color: #000; }
+  &:visited {
+    color: #555;
+  }
+  &:hover {
+    color: #000;
+  }
 }
 
 .news-archive-link {
@@ -904,8 +969,12 @@ html.dark-mode mark {
   color: #555;
   text-align: right;
 
-  &:visited { color: #555; }
-  &:hover { color: #000; }
+  &:visited {
+    color: #555;
+  }
+  &:hover {
+    color: #000;
+  }
 }
 
 // ─── Responsive ───────────────────────────────────────────────────────────────
@@ -927,7 +996,9 @@ html.dark-mode mark {
   .slack-column-row-items {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
-    &--1 { grid-template-columns: 1fr; }
+    &--1 {
+      grid-template-columns: 1fr;
+    }
   }
 
   .site-title {
@@ -935,9 +1006,9 @@ html.dark-mode mark {
   }
 }
 
-$slack-link-fg:         #1264a3;
-$slack-link-bg:         rgba(18, 100, 163, 0.1);
-$slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
+$slack-link-fg: #1264a3;
+$slack-link-bg: rgba(18, 100, 163, 0.1);
+$slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 
 .slack_user {
   color: $slack-link-fg;
@@ -947,7 +1018,9 @@ $slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
   white-space: nowrap;
   filter: grayscale(100%);
 
-  &:visited { color: $slack-link-fg; }
+  &:visited {
+    color: $slack-link-fg;
+  }
   &:hover {
     background: $slack-link-bg-hover;
     color: $slack-link-fg;
@@ -963,7 +1036,9 @@ $slack-link-bg-hover:   rgba(18, 100, 163, 0.2);
   white-space: nowrap;
   filter: grayscale(100%);
 
-  &:visited { color: $slack-link-fg; }
+  &:visited {
+    color: $slack-link-fg;
+  }
   &:hover {
     background: $slack-link-bg-hover;
     color: $slack-link-fg;

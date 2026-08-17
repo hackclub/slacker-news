@@ -1,12 +1,63 @@
 import type { Post } from "./content";
 
 const STOPWORDS = new Set([
-  "the", "and", "for", "are", "but", "not", "you", "all", "any", "can",
-  "her", "was", "one", "our", "out", "his", "has", "had", "him", "how",
-  "its", "who", "did", "yes", "she", "too", "use", "way", "why", "with",
-  "that", "this", "from", "they", "them", "then", "than", "have", "will",
-  "your", "what", "when", "were", "been", "into", "some", "more", "over",
-  "such", "only", "also", "just", "like", "make", "made", "here", "very"
+  "the",
+  "and",
+  "for",
+  "are",
+  "but",
+  "not",
+  "you",
+  "all",
+  "any",
+  "can",
+  "her",
+  "was",
+  "one",
+  "our",
+  "out",
+  "his",
+  "has",
+  "had",
+  "him",
+  "how",
+  "its",
+  "who",
+  "did",
+  "yes",
+  "she",
+  "too",
+  "use",
+  "way",
+  "why",
+  "with",
+  "that",
+  "this",
+  "from",
+  "they",
+  "them",
+  "then",
+  "than",
+  "have",
+  "will",
+  "your",
+  "what",
+  "when",
+  "were",
+  "been",
+  "into",
+  "some",
+  "more",
+  "over",
+  "such",
+  "only",
+  "also",
+  "just",
+  "like",
+  "make",
+  "made",
+  "here",
+  "very",
 ]);
 
 export type TermFrequency = Record<string, number>;
@@ -34,7 +85,7 @@ export type SearchIndex = {
 
 export function tokenize(text: string): string[] {
   return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter(
-    (token) => token.length >= 2 && !STOPWORDS.has(token)
+    (token) => token.length >= 2 && !STOPWORDS.has(token),
   );
 }
 
@@ -55,7 +106,9 @@ export function buildSearchIndex(posts: Post[]): SearchIndex {
     readingTime: post.readingTime,
     text: post.paragraphs.join(" ") + " Authored by " + post.author,
     titleTerms: termFrequency(post.title),
-    bodyTerms: termFrequency([post.excerpt, ...post.paragraphs].join(" ") + ' ' + post.author)
+    bodyTerms: termFrequency(
+      [post.excerpt, ...post.paragraphs].join(" ") + " " + post.author,
+    ),
   }));
 
   return {
@@ -63,18 +116,36 @@ export function buildSearchIndex(posts: Post[]): SearchIndex {
       titleExact: 10,
       bodyExact: 1,
       titlePrefix: 4,
-      bodyPrefix: 0.4
+      bodyPrefix: 0.4,
     },
-    documents
+    documents,
   };
 }
 
-export function scoreDocument(doc: SearchDocument, queryTerms: string[], weights: SearchIndex["weights"]): number {
+export function scoreDocument(
+  doc: SearchDocument,
+  queryTerms: string[],
+  weights: SearchIndex["weights"],
+): number {
   const tally = (freq: TermFrequency, exact: number, prefix: number) =>
-    Object.entries(freq).reduce((score, [indexed, count]) =>
-      score + queryTerms.reduce((sum, term) =>
-        sum + (indexed === term ? count * exact : indexed.startsWith(term) ? count * prefix : 0), 0), 0);
+    Object.entries(freq).reduce(
+      (score, [indexed, count]) =>
+        score +
+        queryTerms.reduce(
+          (sum, term) =>
+            sum +
+            (indexed === term
+              ? count * exact
+              : indexed.startsWith(term)
+                ? count * prefix
+                : 0),
+          0,
+        ),
+      0,
+    );
 
-  return tally(doc.titleTerms, weights.titleExact, weights.titlePrefix)
-    + tally(doc.bodyTerms, weights.bodyExact, weights.bodyPrefix);
+  return (
+    tally(doc.titleTerms, weights.titleExact, weights.titlePrefix) +
+    tally(doc.bodyTerms, weights.bodyExact, weights.bodyPrefix)
+  );
 }
