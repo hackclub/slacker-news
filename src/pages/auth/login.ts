@@ -21,7 +21,10 @@ export const GET: APIRoute = async ({ request, url }) => {
 
   if (response.status >= 300 && response.status < 400) return response;
 
-  const payload = await response.clone().json().catch(() => null) as { url?: string; redirect?: boolean } | null;
+  const payload = (await response
+    .clone()
+    .json()
+    .catch(() => null)) as { url?: string; redirect?: boolean } | null;
   if (payload?.redirect && payload.url) {
     const headers = new Headers(response.headers);
     headers.set("Location", payload.url);

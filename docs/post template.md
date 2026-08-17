@@ -1,11 +1,11 @@
 ---
-layout: 
-date: 
+layout:
+date:
 author: ""
-category: 
-title: 
+category:
+title:
 responseTo: "column/slug"
-followUpTo: 
+followUpTo:
   - "column/slug"
   - "column/slug"
 ---

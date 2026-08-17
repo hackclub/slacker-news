@@ -7,6 +7,7 @@ Official news from the [Hack Club](https://hackclub.com?uwu) Slack, highlighting
 ## About
 
 As of now, some of the cool things Slacker News has include:
+
 - Distinct content columns including news, opinion, essays, and changelogs
 - Response and follow-up posts
 - RSS Feeds
@@ -111,6 +112,7 @@ import SlackMention from "../../components/SlackMention.astro";
 ### Site Data
 
 Site configuration and frontpage data live in `src/data/` JSON files:
+
 - **src/data/site.json** — Site title and description
 - **src/data/frontpage.json** — Pinned posts and sections on homepage
 - **src/data/changelog.json** — Changelog entries

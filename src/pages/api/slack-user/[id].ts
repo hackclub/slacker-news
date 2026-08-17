@@ -11,9 +11,12 @@ export const GET: APIRoute = async ({ params }) => {
   }
 
   try {
-    const response = await fetch(`https://cachet.hackclub.com/get/users/${encodeURIComponent(id)}`, {
-      headers: { Accept: "application/json" },
-    });
+    const response = await fetch(
+      `https://cachet.hackclub.com/get/users/${encodeURIComponent(id)}`,
+      {
+        headers: { Accept: "application/json" },
+      },
+    );
 
     if (!response.ok) {
       return new Response(null, {

@@ -24,8 +24,8 @@ export function truncateSlackWords(input: string, count: number): string {
     if (character === "*" && truncated[index - 1] !== "\\") {
       boldOpen = !boldOpen;
     } else if (
-      character === "_"
-      && (!/\w/.test(previous) || !/\w/.test(next))
+      character === "_" &&
+      (!/\w/.test(previous) || !/\w/.test(next))
     ) {
       italicOpen = !italicOpen;
     }
