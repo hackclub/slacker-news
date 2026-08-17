@@ -78,11 +78,25 @@ function normalizeWhitespace(input: string): string {
 
 function truncateWords(input: string, count: number): string {
     const words = normalizeWhitespace(input).split(" ");
-    if (words.length <= count) {
+    const wordWeight = (word: string) => word.split(/-+/).filter(Boolean).length;
+    const totalWeight = words.reduce((sum, word) => sum + wordWeight(word), 0);
+
+    if (totalWeight <= count) {
         return words.join(" ");
     }
 
-    return `${words.slice(0, count).join(" ")}...`;
+    const included: string[] = [];
+    let usedWeight = 0;
+
+    for (const word of words) {
+        const weight = wordWeight(word);
+        if (included.length > 0 && usedWeight + weight > count) break;
+        included.push(word);
+        usedWeight += weight;
+        if (usedWeight >= count) break;
+    }
+
+    return `${included.join(" ")}...`;
 }
 
 function normalizeHandle(handle: string): string {
