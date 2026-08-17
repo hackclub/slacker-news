@@ -18,83 +18,28 @@ As of now, some of the cool things Slacker News has include:
 - Slack-backed columns with optional Hack Club OIDC protection
 - Privacy-concious analytics (abacus)
 
-## Technical Contributions
+## Contributing
 
-### Prerequisites
+### Technical Contributions
 
-- **Bun** 1.2.9 or later ([install](https://bun.sh))
-- **Node.js** 18+ (optional, for compatibility)
+Open an issue or pull request to discuss changes. Be aware that I (Evan) have strong opinions about how this site should look. I favor minimal, bold design and lightweight code. If a PR changes the look of the site, feel free to DM @eps on Slack to ask first.
 
-### Installation
+### Site Data
 
-Clone the repository and install dependencies:
+Site configuration and frontpage data live in `src/data/` JSON files:
 
-```bash
-git clone https://github.com/hackclub/slacker-news.git
-cd slacker-news
-bun install
-```
-
-### Development
-
-Start the development server with hot reload:
-
-```bash
-bun run dev
-```
-
-The site will be available at `http://localhost:3000` by default. Changes to content files, components, and styles rebuild automatically.
-
-Styles are authored in `src/styles/main.scss` and bundled by Astro.
-
-Posts live in `src/content/posts/` as MDX files. Slack user mentions use the shared `SlackMention` component inside post bodies.
-
-### Slack columns
-
-Slack-backed columns are configured in [`src/data/slack-columns.json`](src/data/slack-columns.json). Each entry maps a Slack channel to a site column:
-
-- `column` is the site column identifier. If it matches a regular article column such as `opinion`, Slack messages are integrated into that column’s feeds; otherwise, the column gets its own homepage section.
-- `channelId` identifies the Slack channel queried from Indigest.
-- `title` and `subtitle` control the displayed column heading and source label.
-- `homepage` controls whether the column appears on the homepage.
-- `homepageLimit` and `homepageMessagesPerRow` control how many messages are shown and how they are arranged there. `limit` controls the channel page feed.
-- `authRequired` protects the column behind Hack Club OIDC authentication.
-- `showMetadata` controls whether structured Slack message metadata is displayed.
-
-For example:
-
-```json
-{
-  "column": "ship-of-the-week",
-  "channelId": "C0BQ2CTMR25",
-  "title": "Ship of the Week",
-  "homepage": true,
-  "homepageLimit": 3,
-  "homepageMessagesPerRow": 3,
-  "authRequired": true,
-  "limit": 12
-}
-```
+- **src/data/site.json** - Site title and description
+- **src/data/changelog.json** - Changelog entries
+- **src/data/acknowledgements.json** - Featured contributors
+- **src/data/slack-columns.json** - Slack-backed column configuration
 
 Slack message data is provided by [Indigest](https://github.com/matmanna/indigest). Mentions and channel names are resolved through [Flaron](https://github.com/sadeshmukh/flaron), while cached Slack user profiles and custom emojis come from [Cachet](https://github.com/taciturnaxolotl/cachet).
 
-### Building for Production
+### Content Contributions
 
-Create an optimized production build:
+If you're content has not been pre-approved, follow the Submission [guidelines](https://news.hackclub.com/submissions/) for how to proceed. But if have authorization to PR in an article, follow the below instructions
 
-```bash
-bun run build
-```
-
-Output is generated in the `dist/` directory.
-
-````
-
-## Content Contributions
-
-### Posts
-
-Create new posts in `src/content/posts/` with the naming format: `slug.mdx`
+Create posts in `src/content/posts/` with the naming format: `slug.mdx`
 
 ```markdown
 ---
@@ -102,9 +47,7 @@ title: Post Title
 date: 2026-04-15
 excerpt: Brief description shown in listings
 ---
-
-Post content in Markdown format goes here.
-````
+```
 
 To mention a Slack user in a post, import and use the SlackMention component:
 
@@ -122,20 +65,50 @@ import SlackChannel from "../../components/SlackChannel.astro";
 <SlackChannel id="confessions" />
 ```
 
-### Site Data
+## Development
 
-Site configuration and frontpage data live in `src/data/` JSON files:
+### Itallation
 
-- **src/data/site.json** - Site title and description
-- **src/data/changelog.json** - Changelog entries
-- **src/data/acknowledgements.json** - Featured contributors
-- **src/data/slack-columns.json** - Slack-backed column configuration
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/hackclub/slacker-news.git
+cd slacker-news
+bun install
+```
+
+### Prerequisites
+
+- **Bun** 1.2.9 or later ([install](https://bun.sh))
+- **Node.js** 18+ (optional, for compatibility)
+
+Start the development server with hot reload:
+
+```bash
+bun run dev
+```
+
+The site will be available at `http://localhost:3000` by default. Changes to content files, components, and styles rebuild automatically.
+
+Styles are authored in `src/styles/main.scss` and bundled by Astro.
+
+Posts live in `src/content/posts/` as MDX files. Slack user mentions use the shared `SlackMention` component inside post bodies.
+
+### Building for Production
 
 Run Astro checks:
 
 ```bash
 bun run check
 ```
+
+Create an optimized production build:
+
+```bash
+bun run build
+```
+
+Output is generated in the `dist/` directory.
 
 ## Deployment
 
@@ -146,7 +119,3 @@ For protected Slack columns, configure these environment variables in the Vercel
 - `BETTER_AUTH_URL` — the deployed site URL
 - `BETTER_AUTH_SECRET` — a strong production secret
 - `HACKCLUB_CLIENT_ID` and `HACKCLUB_CLIENT_SECRET` — the Hack Club OAuth client credentials
-
-## Contributing
-
-Open an issue or pull request to discuss changes. Be aware that I (Evan) have strong opinions about how this site should look. I favor minimal, bold design and lightweight code. If a PR changes the look of the site, feel free to DM on Slack to ask first.
