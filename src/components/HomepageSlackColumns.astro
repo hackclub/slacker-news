@@ -2,13 +2,22 @@
 import IndigestMetadata from "./IndigestMetadata.astro";
 import SlackRichText from "./SlackRichText.astro";
 import { getSlackColumnData, getSlackColumns, firstMetadataValue } from "../lib/indigest";
+import { getPosts } from "../lib/content";
 import type { IndigestMessage } from "../lib/indigest";
-
+interface Props {
+  returnTo?: string;
+  }
+  const { returnTo = "/" } = Astro.props;
+const traditionalColumns = new Set((await getPosts()).map((post) => post.category).filter(Boolean));
 const homepageColumns = await Promise.all(
   getSlackColumns()
-    .filter((column) => column.homepage && (!column.authRequired || Astro.locals.user))
+    .filter((column) =>
+      column.homepage
+      && !traditionalColumns.has(column.column)
+      && (!column.authRequired || Astro.locals.user)
+    )
     .map((column) => getSlackColumnData(
-      column.channel,
+      column.column,
       column.homepageFetchLimit ?? column.homepageLimit ?? column.limit
     ))
 );
@@ -34,13 +43,13 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
           <article class="front-block slack-column-block">
             <a
               class="slack-column-card-link"
-              href={`/slack/${encodeURIComponent(column.channel)}/${encodeURIComponent(message.slackTs)}/`}
+              href={`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`}
               aria-label={`Read ${firstMetadataValue(message.metadata) ?? column.title}`}
             >Open message</a>
             <h3 class="slack-column-card-title">
               <a
                 class="slack-column-card-title-link"
-                href={`/slack/${encodeURIComponent(column.channel)}/${encodeURIComponent(message.slackTs)}/`}
+                href={`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`}
               >
                 {firstMetadataValue(message.metadata) ?? column.title}
               </a>
@@ -55,14 +64,15 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
       </div>
       
     </section>
-    <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.channel)}/`}>All {column.title} &rarr;</a>
+    <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.column)}/`}>All {column.title} &rarr;</a>
     <hr class="section-rule" />
     </>
   ))}
   {protectedHomepageColumns.length > 0 && (
     <section class="slack-auth-prompt">
       <p>
-        <a href={`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`}>
+        <a href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>
+
           Sign in with Hack Club
         </a>
         {" "}to view protected articles.

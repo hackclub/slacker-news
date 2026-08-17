@@ -1,6 +1,6 @@
 [
   {
-    "channel": "classifieds",
+    "column": "classifieds",
     "channelId": "C0AU38ZDLE5",
     "title": "Classifieds",
     "subtitle": "from #hc-opportunities",
@@ -11,7 +11,7 @@
     "limit": 12
   },
   {
-    "channel": "ysws",
+    "column": "ysws",
     "channelId": "C0710J7F4U9",
     "title": "YSWS",
     "subtitle": "from #ysws",
@@ -22,7 +22,18 @@
     "limit": 12
   },
   {
-    "channel": "ship-of-the-week",
+    "column": "opinion",
+    "channelId": "C0BQ3M5QRQQ",
+    "title": "Protected Opinions",
+    "homepage": true,
+    "homepageMessagesPerRow": 4,
+    "homepageLimit": 12,
+    "showMetadata": false,
+    "authRequired": true,
+    "limit": 12
+  },
+  {
+    "column": "ship-of-the-week",
     "channelId": "C0BQ2CTMR25",
     "title": "Ship of the Week",
     "subtitle": "from #ship-of-the-week",
@@ -30,7 +41,6 @@
     "homepageMessagesPerRow": 3,
     "homepageLimit": 3,
     "authRequired": true,
-    "showMetadata": false,
-    "limit": 12
+    "showMetadata": false
   }
 ]

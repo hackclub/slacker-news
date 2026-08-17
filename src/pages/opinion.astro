@@ -1,9 +1,15 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { formatStoryDate, getPosts, getSiteConfig, truncateWords } from "../lib/content";
+
+import { getSiteConfig } from "../lib/content";
+import ColumnFeedCard from "../components/ColumnFeedCard.astro";
+import { getColumnFeedItems } from "../lib/column-feed";
+
+export const prerender = false;
+
 
 const site = await getSiteConfig();
-const opinionPosts = (await getPosts()).filter((post) => post.category === "opinion");
+const opinionItems = await getColumnFeedItems("opinion", Boolean(Astro.locals.user));
 ---
 
 <BaseLayout title="Opinion Archive" siteTitle={site.title} siteDescription={site.description}>
@@ -11,15 +17,10 @@ const opinionPosts = (await getPosts()).filter((post) => post.category === "opin
     <div class="section-label">OPINION</div>
     <hr class="section-rule" />
     <div class="archive-list">
-      {opinionPosts.map((post) => (
-        <a href={post.url} class="front-block story-block">
-          <header class="story-card-header">
-            <h3 class="story-block-title">{post.title}</h3>
-            <time class="story-card-date" datetime={post.date.toISOString()}>{formatStoryDate(post.date)}</time>
-          </header>
-          <p class="story-block-excerpt">{truncateWords(post.excerpt, 18)}</p>
-          <span class="reading-time">{post.readingTime} min read</span>
-        </a>
+
+      {opinionItems.map((item) => (
+        <ColumnFeedCard item={item} variant="story" />
+
       ))}
     </div>
   </div>

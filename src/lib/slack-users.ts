@@ -70,7 +70,7 @@ export function getSlackUserDisplayName(
             },
           );
           if (response.ok) {
-            const flaronName = nameFromPayload(await response.json(), true);
+            const flaronName = nameFromPayload(await response.json());
             if (flaronName) return flaronName;
           }
         } catch {}
@@ -81,5 +81,10 @@ export function getSlackUserDisplayName(
     .catch(() => undefined);
 
   userPromises.set(id, request);
+  request.then((displayName) => {
+    if (!displayName && userPromises.get(id) === request) {
+      userPromises.delete(id);
+    }
+  });
   return request;
 }
