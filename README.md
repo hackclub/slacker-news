@@ -15,8 +15,8 @@ As of now, some of the cool things Slacker News has include:
 - Dynamic OpenGraph Metadata
 - Light/dark mode
 - Slack channel/user tagging
-- Slack-backed columns with optional Hack Club OIDC protection
-- Privacy-concious analytics (abacus)
+- Slack-backed columns with optional Hack Club Auth-gating (Better Auth)
+- Privacy-concious analytics (Plausible)
 
 ## Contributing
 
@@ -116,6 +116,6 @@ The site is deployed on [Vercel](https://vercel.com/) using Astro SSR. Vercel us
 
 For protected Slack columns, configure these environment variables in the Vercel project:
 
-- `BETTER_AUTH_URL` — the deployed site URL
-- `BETTER_AUTH_SECRET` — a strong production secret
-- `HACKCLUB_CLIENT_ID` and `HACKCLUB_CLIENT_SECRET` — the Hack Club OAuth client credentials
+- `BETTER_AUTH_URL` - the deployed site URL
+- `BETTER_AUTH_SECRET` - a strong production secret
+- `HACKCLUB_CLIENT_ID` and `HACKCLUB_CLIENT_SECRET` - the Hack Club OAuth client credentials
