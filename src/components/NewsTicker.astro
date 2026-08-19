@@ -31,13 +31,13 @@ const slackHeadlines = (
     getSlackColumns().map(async (column) => {
       try {
         const messages = await getIndigestMessages(
-          column.channelId ?? column.channel,
+          column.channelId ?? column.column,
           20,
         );
 
         return messages.map((message): Headline => ({
           title: `${column.noun ?? column.title}: ${firstMetadataValue(message.metadata) ?? column.title}`,
-          href: `/slack/${encodeURIComponent(column.channel)}/${encodeURIComponent(message.slackTs)}/`,
+          href: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
           date: timestampToNumber(message.timestamp || message.slackTs),
         }));
       } catch {
@@ -70,6 +70,44 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
 </div>
 
 <script>
+  const TICKER_CACHE_KEY = "news-ticker:headlines:v1";
+
+  function restoreCachedTicker() {
+    const loading = document.querySelector("#news-ticker .news-ticker--loading");
+    if (!(loading instanceof HTMLElement)) return;
+
+    try {
+      const cached = JSON.parse(localStorage.getItem(TICKER_CACHE_KEY) || "null");
+      if (!cached || typeof cached.markup !== "string") return;
+
+      loading.classList.remove("news-ticker--loading");
+      loading.innerHTML = `
+        <div class="news-ticker-track">
+          <div class="news-ticker-scroll" data-ticker>
+            <span class="news-ticker-set" data-ticker-set>${cached.markup}</span>
+          </div>
+        </div>`;
+      initializeAllTickers();
+    } catch (_error) {
+      // Ignore unavailable or malformed browser cache.
+    }
+  }
+
+  function cacheTicker() {
+    const set = document.querySelector("#news-ticker .news-ticker-set");
+    if (!(set instanceof HTMLElement)) return;
+    if (set.closest(".news-ticker--loading")) return;
+
+    try {
+      localStorage.setItem(
+        TICKER_CACHE_KEY,
+        JSON.stringify({ markup: set.innerHTML, cachedAt: Date.now() }),
+      );
+    } catch (_error) {
+      // Ignore unavailable or full browser storage.
+    }
+  }
+
   function initializeTickers() {
     document
       .querySelectorAll("[data-ticker]:not([data-ticker-initialized])")
@@ -106,6 +144,14 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
         scroll.style.animationDuration = duration + "s";
         scroll.style.setProperty("--set-width", "-" + setWidth + "px");
         scroll.classList.add("news-ticker-animate");
+
+        const startedAt = (
+          window as Window & { __newsTickerStartedAt?: number }
+        ).__newsTickerStartedAt;
+        const animation = scroll.getAnimations()[0];
+        if (typeof startedAt === "number" && animation) {
+          animation.currentTime = (performance.now() - startedAt) % (duration * 1000);
+        }
       });
   }
 
@@ -128,6 +174,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
   function initializeAllTickers() {
     initializeTickers();
     initializeSkeletonTickers();
+    cacheTicker();
   }
 
   function saveTickerPositions() {
@@ -175,6 +222,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
     restoreTickerPositions();
   }
 
+  restoreCachedTicker();
   initializeAllTickers();
   document.addEventListener("astro:before-swap", saveTickerPositions);
   document.addEventListener("astro:after-swap", initializeAllTickersAndRestorePosition);
