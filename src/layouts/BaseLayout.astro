@@ -1,5 +1,7 @@
 ---
 import AbacusCounter from "../components/AbacusCounter.astro";
+import NewsTicker from "../components/NewsTicker.astro";
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
   title?: string;
@@ -34,6 +36,10 @@ const pageTitle = title && title !== siteTitle ? `${title} | ${siteTitle}` : sit
 const pageDescription = description ?? siteDescription;
 const authReturnTo = `${Astro.url.pathname}${Astro.url.search}`;
 const isAuthenticated = Boolean(Astro.locals.user);
+const tickerSkeletonWidths = [
+  8, 12, 10, 15, 9, 13, 11, 14, 8, 15,
+  10, 12, 14, 9, 13, 15, 8, 11, 14, 10,
+];
 
 function toAbsoluteURL(input: string): string {
   return new URL(input, Astro.site ?? Astro.url).toString();
@@ -45,7 +51,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 ---
 
 <!doctype html>
-<html lang="en" class="no-js">
+<html lang="en" class="no-js" data-authenticated={Astro.locals.user ? "1" : "0"} transition:animate="none">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -68,6 +74,9 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     <meta property="og:locale" content={openGraphLocale} />
     <meta property="og:image" content={socialImageURL} />
     <meta property="og:image:alt" content={socialImageAlt} />
+
+    <ClientRouter />
+
 
 
     {openGraphType === "article" && articlePublishedTime && (
@@ -184,6 +193,87 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           </div>
         </nav>
       </div>
+      <div id="news-ticker" transition:persist="news-ticker">
+        <div id="news-ticker-stale" hidden aria-hidden="true"></div>
+        <div id="news-ticker-live">
+        <NewsTicker server:defer>
+          <div slot="fallback" class="news-ticker news-ticker--loading" aria-label="News ticker">
+            <div class="news-ticker-skeleton-track" aria-hidden="true">
+              <div class="news-ticker-skeleton-scroll">
+                {Array.from({ length: 2 }).map(() => (
+                  <div class="news-ticker-skeleton-set">
+                    {Array.from({ length: 20 }).map((_, index) => (
+                      <>
+                        <span
+                          class="news-ticker-skeleton-text"
+                          style={`--skeleton-width: ${tickerSkeletonWidths[index]}em`}
+                        ></span>
+                        {index < 19 && <span class="news-ticker-skeleton-dot">◆</span>}
+                      </>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </NewsTicker>
+        </div>
+      </div>
+      <script is:inline>
+        (function () {
+          var stale = document.getElementById("news-ticker-stale");
+          var live = document.getElementById("news-ticker-live");
+          if (!(stale instanceof HTMLElement) || !(live instanceof HTMLElement)) return;
+
+          try {
+            var cached = JSON.parse(localStorage.getItem("news-ticker:headlines:v1") || "null");
+            if (!cached || typeof cached.markup !== "string") return;
+
+            window.__newsTickerStartedAt = performance.now();
+            window.__newsTickerCachedMarkup = cached.markup;
+            stale.hidden = false;
+            live.style.display = "none";
+
+            var renderStaleTicker = function (markup) {
+              var oldScroll = stale.querySelector(".news-ticker-stale-scroll");
+              var currentTime = oldScroll && oldScroll.getAnimations()[0]
+                ? oldScroll.getAnimations()[0].currentTime
+                : 0;
+              stale.innerHTML =
+                '<div class="news-ticker-stale-track"><div class="news-ticker-stale-scroll">' +
+                '<span class="news-ticker-stale-set">' + markup +
+                '</span><span class="news-ticker-stale-set" aria-hidden="true">' + markup +
+                "</span></div></div>";
+              var newScroll = stale.querySelector(".news-ticker-stale-scroll");
+              if (newScroll && newScroll.getAnimations()[0]) {
+                newScroll.getAnimations()[0].currentTime = currentTime || 0;
+              }
+            };
+
+            renderStaleTicker(cached.markup);
+
+            var showFreshTicker = function () {
+              var freshSet = live.querySelector(".news-ticker:not(.news-ticker--loading) .news-ticker-set");
+              if (!(freshSet instanceof HTMLElement)) return;
+
+              if (freshSet.innerHTML === window.__newsTickerCachedMarkup) {
+                live.style.display = "none";
+                stale.hidden = false;
+              } else {
+                window.__newsTickerCachedMarkup = freshSet.innerHTML;
+                renderStaleTicker(freshSet.innerHTML);
+                live.style.display = "none";
+                stale.hidden = false;
+              }
+            };
+
+            new MutationObserver(showFreshTicker).observe(live, { childList: true, subtree: true });
+            showFreshTicker();
+          } catch (_error) {
+            // Ignore unavailable or malformed browser cache.
+          }
+        })();
+      </script>
     </header>
 
     <main class="page-content" aria-label="Content">

@@ -70,6 +70,7 @@ function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): nu
 function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLimit?: number; limit?: number }): number {
   return Math.min(Math.max(Math.round(column.homepageLimit ?? column.homepageFetchLimit ?? column.limit ?? 5), 1), 100);
 }
+
 ---
 
 <BaseLayout siteTitle={site.title} siteDescription={site.description}>
@@ -142,8 +143,10 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
 
     <hr class="section-rule" />
 
-    <HomepageSlackColumns server:defer returnTo={Astro.url.pathname}>
-      <div slot="fallback" class="front-slack-columns">
+    <div id="homepage-slack-columns-stale" hidden aria-hidden="true"></div>
+    <div id="homepage-slack-columns-live">
+      <HomepageSlackColumns server:defer returnTo={Astro.url.pathname}>
+        <div slot="fallback" class="front-slack-columns">
         {homepageSlackColumns.map((column) => (
           <>
             <section class="slack-column-row slack-column-row--loading">
@@ -159,12 +162,63 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
                 ))}
               </div>
             </section>
-            <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.channel)}/`}>All {column.title} &rarr;</a>
+            <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.column)}/`}>All {column.title} &rarr;</a>
             <hr class="section-rule" />
           </>
         ))}
-      </div>
-    </HomepageSlackColumns>
+        </div>
+      </HomepageSlackColumns>
+    </div>
+    <script is:inline>
+      (function () {
+        var stale = document.getElementById("homepage-slack-columns-stale");
+        var live = document.getElementById("homepage-slack-columns-live");
+        if (!(stale instanceof HTMLElement) || !(live instanceof HTMLElement)) return;
+
+        var cacheKey = "homepage-slack-columns:v1:" + (document.documentElement.dataset.authenticated || "0");
+        var signature = function (root) {
+          return Array.from(root.querySelectorAll(".slack-column-card-title-link"))
+            .map(function (link) { return link.getAttribute("href") + "|" + link.textContent; })
+            .join("\n");
+        };
+
+        try {
+          var cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+          if (cached && typeof cached.markup === "string" && typeof cached.signature === "string") {
+            stale.innerHTML = cached.markup.indexOf("front-slack-columns") >= 0
+              ? cached.markup
+              : '<div class="front-slack-columns">' + cached.markup + "</div>";
+            stale.hidden = false;
+            live.style.display = "none";
+          }
+
+          var update = function () {
+            var fresh = live.querySelector(".slack-column-card-title-link, .slack-auth-prompt");
+            if (!fresh) return;
+            var freshSignature = signature(live);
+            if (cached && freshSignature === cached.signature) {
+              live.style.display = "none";
+              stale.hidden = false;
+              return;
+            }
+            var island = live.querySelector("astro-island");
+            var markup = island ? island.innerHTML : live.innerHTML;
+            stale.innerHTML = markup.indexOf("front-slack-columns") >= 0
+              ? markup
+              : '<div class="front-slack-columns">' + markup + "</div>";
+            stale.hidden = false;
+            live.style.display = "none";
+            localStorage.setItem(cacheKey, JSON.stringify({ markup: markup, signature: freshSignature }));
+            cached = { markup: markup, signature: freshSignature };
+          };
+
+          new MutationObserver(update).observe(live, { childList: true, subtree: true });
+          update();
+        } catch (_error) {
+          // Ignore unavailable or malformed browser cache.
+        }
+      })();
+    </script>
 
 
     <div class="front-changelog">
