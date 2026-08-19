@@ -70,6 +70,7 @@ function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): nu
 function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLimit?: number; limit?: number }): number {
   return Math.min(Math.max(Math.round(column.homepageLimit ?? column.homepageFetchLimit ?? column.limit ?? 5), 1), 100);
 }
+
 ---
 
 <BaseLayout siteTitle={site.title} siteDescription={site.description}>
