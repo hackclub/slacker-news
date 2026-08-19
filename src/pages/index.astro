@@ -185,7 +185,9 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         try {
           var cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
           if (cached && typeof cached.markup === "string" && typeof cached.signature === "string") {
-            stale.innerHTML = '<div class="front-slack-columns">' + cached.markup + "</div>";
+            stale.innerHTML = cached.markup.indexOf("front-slack-columns") >= 0
+              ? cached.markup
+              : '<div class="front-slack-columns">' + cached.markup + "</div>";
             stale.hidden = false;
             live.style.display = "none";
           }
@@ -201,7 +203,9 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
             }
             var island = live.querySelector("astro-island");
             var markup = island ? island.innerHTML : live.innerHTML;
-            stale.innerHTML = '<div class="front-slack-columns">' + markup + "</div>";
+            stale.innerHTML = markup.indexOf("front-slack-columns") >= 0
+              ? markup
+              : '<div class="front-slack-columns">' + markup + "</div>";
             stale.hidden = false;
             live.style.display = "none";
             localStorage.setItem(cacheKey, JSON.stringify({ markup: markup, signature: freshSignature }));
