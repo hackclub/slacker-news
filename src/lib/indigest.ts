@@ -4,6 +4,8 @@ export type SlackColumnConfig = {
   column: string;
   channelId?: string;
   title: string;
+
+  noun?: string;
   description?: string;
   homepage?: boolean;
   homepageLimit?: number;
