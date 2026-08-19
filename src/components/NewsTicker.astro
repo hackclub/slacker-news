@@ -179,7 +179,9 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
 
   function saveTickerPositions() {
     document
-      .querySelectorAll(".news-ticker-scroll, .news-ticker-skeleton-scroll")
+      .querySelectorAll(
+        ".news-ticker-scroll, .news-ticker-skeleton-scroll, .news-ticker-stale-scroll",
+      )
       .forEach((scroll) => {
         if (!(scroll instanceof HTMLElement)) return;
 
@@ -194,7 +196,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
   function restoreTickerPositions() {
     document
       .querySelectorAll(
-        ".news-ticker-scroll[data-ticker-current-time], .news-ticker-skeleton-scroll[data-ticker-current-time]",
+        ".news-ticker-scroll[data-ticker-current-time], .news-ticker-skeleton-scroll[data-ticker-current-time], .news-ticker-stale-scroll[data-ticker-current-time]",
       )
       .forEach((scroll) => {
         if (!(scroll instanceof HTMLElement)) return;
