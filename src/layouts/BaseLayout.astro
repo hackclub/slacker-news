@@ -1,6 +1,7 @@
 ---
 import AbacusCounter from "../components/AbacusCounter.astro";
 import NewsTicker from "../components/NewsTicker.astro";
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
   title?: string;
@@ -33,6 +34,10 @@ const {
 } = Astro.props;
 const pageTitle = title && title !== siteTitle ? `${title} | ${siteTitle}` : siteTitle;
 const pageDescription = description ?? siteDescription;
+const tickerSkeletonWidths = [
+  8, 12, 10, 15, 9, 13, 11, 14, 8, 15,
+  10, 12, 14, 9, 13, 15, 8, 11, 14, 10,
+];
 
 function toAbsoluteURL(input: string): string {
   return new URL(input, Astro.site ?? Astro.url).toString();
@@ -44,7 +49,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 ---
 
 <!doctype html>
-<html lang="en" class="no-js">
+<html lang="en" class="no-js" transition:animate="none">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -67,6 +72,9 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     <meta property="og:locale" content={openGraphLocale} />
     <meta property="og:image" content={socialImageURL} />
     <meta property="og:image:alt" content={socialImageAlt} />
+
+    <ClientRouter />
+
 
 
     {openGraphType === "article" && articlePublishedTime && (
@@ -175,7 +183,29 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           </div>
         </nav>
       </div>
-      <NewsTicker />
+      <div id="news-ticker" transition:persist="news-ticker">
+        <NewsTicker server:defer>
+          <div slot="fallback" class="news-ticker news-ticker--loading" aria-label="News ticker">
+            <div class="news-ticker-skeleton-track" aria-hidden="true">
+              <div class="news-ticker-skeleton-scroll">
+                {Array.from({ length: 2 }).map(() => (
+                  <div class="news-ticker-skeleton-set">
+                    {Array.from({ length: 20 }).map((_, index) => (
+                      <>
+                        <span
+                          class="news-ticker-skeleton-text"
+                          style={`--skeleton-width: ${tickerSkeletonWidths[index]}em`}
+                        ></span>
+                        {index < 19 && <span class="news-ticker-skeleton-dot">◆</span>}
+                      </>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </NewsTicker>
+      </div>
     </header>
 
     <main class="page-content" aria-label="Content">

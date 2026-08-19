@@ -1,17 +1,18 @@
 import columnConfig from "../data/slack-columns.json";
 
 export type SlackColumnConfig = {
-  /** Stable URL segment, e.g. "happenings". */
+
   channel: string;
-  /** Slack channel ID used by Indigest (usually starts with C). */
   channelId?: string;
   title: string;
+
+  noun?: string;
   description?: string;
   homepage?: boolean;
   homepageLimit?: number;
-  /** Optional smaller fetch size for homepage rendering. Archive pages keep using limit. */
+
   homepageFetchLimit?: number;
-  /** Maximum number of message cards displayed side-by-side on the homepage. */
+
   homepageMessagesPerRow?: number;
   showMetadata?: boolean;
   limit?: number;
