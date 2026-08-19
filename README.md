@@ -24,20 +24,9 @@ As of now, some of the cool things Slacker News has include:
 
 Open an issue or pull request to discuss changes. Be aware that I (Evan) have strong opinions about how this site should look. I favor minimal, bold design and lightweight code. If a PR changes the look of the site, feel free to DM @eps on Slack to ask first.
 
-### Site Data
-
-Site configuration and frontpage data live in `src/data/` JSON files:
-
-- **src/data/site.json** - Site title and description
-- **src/data/changelog.json** - Changelog entries
-- **src/data/acknowledgements.json** - Featured contributors
-- **src/data/slack-columns.json** - Slack-backed column configuration
-
-Slack message data is provided by [Indigest](https://github.com/matmanna/indigest). Mentions and channel names are resolved through [Flaron](https://github.com/sadeshmukh/flaron), while cached Slack user profiles and custom emojis come from [Cachet](https://github.com/taciturnaxolotl/cachet).
-
 ### Content Contributions
 
-If you're content has not been pre-approved, follow the Submission [guidelines](https://news.hackclub.com/submissions/) for how to proceed. But if have authorization to PR in an article, follow the below instructions
+If your content submission has not been pre-approved, follow the Submission [guidelines](https://news.hackclub.com/submissions/) for how to proceed. But if you do have authorization to add an article through PR, follow the below instructions:
 
 Create posts in `src/content/posts/` with the naming format: `slug.mdx`
 
@@ -93,6 +82,17 @@ The site will be available at `http://localhost:3000` by default. Changes to con
 Styles are authored in `src/styles/main.scss` and bundled by Astro.
 
 Posts live in `src/content/posts/` as MDX files. Slack user mentions use the shared `SlackMention` component inside post bodies.
+
+### Site Data
+
+Site configuration and frontpage data live in `src/data/` JSON files:
+
+- **src/data/site.json** - Site title and description
+- **src/data/changelog.json** - Changelog entries
+- **src/data/acknowledgements.json** - Featured contributors
+- **src/data/slack-columns.json** - Slack-backed column configuration
+
+Slack message data is provided by [Indigest](https://github.com/matmanna/indigest). Mentions and channel names are resolved through [Flaron](https://github.com/sadeshmukh/flaron), while cached Slack user profiles and custom emojis come from [Cachet](https://github.com/taciturnaxolotl/cachet).
 
 ### Building for Production
 
