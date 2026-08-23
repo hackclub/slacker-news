@@ -18,7 +18,7 @@
     "@astrojs/rss": "^4.0.19",
     "@astrojs/vercel": "^8.0.0",
     "@chenglou/pretext": "^0.0.7",
-    "astro": "^5.18.1",
+    "astro": "6.4.6",
     "better-auth": "^1.6.26",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0"
