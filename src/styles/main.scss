@@ -108,7 +108,10 @@ a {
   align-items: center;
   min-height: 31px;
   overflow: hidden;
-  padding: 0 1em;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
   border-top: 3px solid #000;
   border-bottom: 3px double #000;
   background: #f5f5f0;
@@ -134,6 +137,7 @@ a {
 }
 
 .news-ticker-stale-track {
+  position: relative;
   flex: 1;
   overflow: hidden;
 }
@@ -147,7 +151,7 @@ a {
 .news-ticker-label {
   flex: 0 0 auto;
   padding: 8px 1em;
-  margin-right:8px;
+  margin-right: 8px;
   border-right: 2px solid #000;
   font-weight: 700;
   text-transform: uppercase;
@@ -194,8 +198,27 @@ a {
 }
 
 .news-ticker-skeleton-track {
+  position: relative;
   width: 100%;
   overflow: hidden;
+}
+
+.news-ticker-track {
+  position: relative;
+}
+
+.news-ticker-track::after,
+.news-ticker-stale-track::after,
+.news-ticker-skeleton-track::after {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2.5rem;
+  background: linear-gradient(to right, transparent, #f5f5f0);
+  content: "";
+  pointer-events: none;
 }
 
 .news-ticker-skeleton-scroll {
@@ -221,8 +244,9 @@ a {
 
 .news-ticker-skeleton-dot {
   margin: 0 1.2em;
-  color: #999;
+  color: #000;
   font-size: 0.45em;
+  opacity: 0.5;
 }
 
 @keyframes news-ticker-loading {
