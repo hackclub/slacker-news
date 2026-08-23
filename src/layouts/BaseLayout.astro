@@ -198,21 +198,20 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         <div id="news-ticker-live">
         <NewsTicker server:defer>
           <div slot="fallback" class="news-ticker news-ticker--loading" aria-label="News ticker">
+            <span class="news-ticker-label">extra</span>
             <div class="news-ticker-skeleton-track" aria-hidden="true">
               <div class="news-ticker-skeleton-scroll">
-                {Array.from({ length: 2 }).map(() => (
-                  <div class="news-ticker-skeleton-set">
-                    {Array.from({ length: 20 }).map((_, index) => (
-                      <>
+                <div class="news-ticker-skeleton-set">
+                  {Array.from({ length: 20 }).map((_, index) => (
+                    <span class="news-ticker-skeleton-entry">
                         <span
                           class="news-ticker-skeleton-text"
                           style={`--skeleton-width: ${tickerSkeletonWidths[index]}em`}
                         ></span>
-                        {index < 19 && <span class="news-ticker-skeleton-dot">◆</span>}
-                      </>
-                    ))}
-                  </div>
-                ))}
+                        <span class="news-ticker-skeleton-dot">◆</span>
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -226,28 +225,52 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           if (!(stale instanceof HTMLElement) || !(live instanceof HTMLElement)) return;
 
           try {
-            var cached = JSON.parse(localStorage.getItem("news-ticker:headlines:v1") || "null");
+            var cached = JSON.parse(localStorage.getItem("news-ticker:headlines:v2") || "null");
             if (!cached || typeof cached.markup !== "string") return;
 
             window.__newsTickerStartedAt = performance.now();
             window.__newsTickerCachedMarkup = cached.markup;
             stale.hidden = false;
             live.style.display = "none";
+            var staleTickerTimer = 0;
+
+            var initializeStaleTicker = function () {
+              var scroll = stale.querySelector(".news-ticker-scroll");
+              var set = stale.querySelector(".news-ticker-set");
+              if (!(scroll instanceof HTMLElement) || !(set instanceof HTMLElement)) return;
+              if (scroll.hasAttribute("data-ticker-initialized")) return;
+              scroll.setAttribute("data-ticker-initialized", "true");
+              var items = Array.from(set.querySelectorAll(".news-ticker-entry"));
+              if (items.length === 0) return;
+              var duplicate = set.cloneNode(true);
+              if (!(duplicate instanceof HTMLElement)) return;
+              duplicate.setAttribute("aria-hidden", "true");
+              scroll.appendChild(duplicate);
+              var index = 0;
+              staleTickerTimer = window.setInterval(function () {
+                index++;
+                var next = items[index];
+                if (next instanceof HTMLElement) {
+                  scroll.style.transform = "translateX(-" + next.offsetLeft + "px)";
+                  return;
+                }
+                scroll.addEventListener("transitionend", function () {
+                  scroll.style.transition = "none";
+                  scroll.style.transform = "translateX(0)";
+                  index = 0;
+                  requestAnimationFrame(function () { scroll.style.transition = ""; });
+                }, { once: true });
+                scroll.style.transform = "translateX(-" + set.offsetWidth + "px)";
+              }, 5000);
+            };
 
             var renderStaleTicker = function (markup) {
-              var oldScroll = stale.querySelector(".news-ticker-stale-scroll");
-              var currentTime = oldScroll && oldScroll.getAnimations()[0]
-                ? oldScroll.getAnimations()[0].currentTime
-                : 0;
+              if (staleTickerTimer) window.clearInterval(staleTickerTimer);
               stale.innerHTML =
-                '<div class="news-ticker-stale-track"><div class="news-ticker-stale-scroll">' +
-                '<span class="news-ticker-stale-set">' + markup +
-                '</span><span class="news-ticker-stale-set" aria-hidden="true">' + markup +
-                "</span></div></div>";
-              var newScroll = stale.querySelector(".news-ticker-stale-scroll");
-              if (newScroll && newScroll.getAnimations()[0]) {
-                newScroll.getAnimations()[0].currentTime = currentTime || 0;
-              }
+                '<span class="news-ticker-label">extra</span>' +
+                '<div class="news-ticker-stale-track"><div class="news-ticker-scroll" data-ticker>' +
+                '<span class="news-ticker-set" data-ticker-set>' + markup + "</span></div></div>";
+              initializeStaleTicker();
             };
 
             renderStaleTicker(cached.markup);

@@ -53,15 +53,18 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
 ---
 
 <div class="news-ticker" aria-label="News ticker">
+  <span class="news-ticker-label">extra extra</span>
   <div class="news-ticker-track">
     <div class="news-ticker-scroll" data-ticker>
       <span class="news-ticker-set" data-ticker-set>
         {headlines.map((headline) => (
           <>
-            <a class="news-ticker-item" href={headline.href}>
-              {headline.title}
-            </a>
-            <span class="news-ticker-divider" aria-hidden="true">◆</span>
+            <span class="news-ticker-entry">
+              <a class="news-ticker-item" href={headline.href}>
+                {headline.title}
+              </a>
+              <span class="news-ticker-divider" aria-hidden="true">◆</span>
+            </span>
           </>
         ))}
       </span>
@@ -70,28 +73,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
 </div>
 
 <script>
-  const TICKER_CACHE_KEY = "news-ticker:headlines:v1";
-
-  function restoreCachedTicker() {
-    const loading = document.querySelector("#news-ticker .news-ticker--loading");
-    if (!(loading instanceof HTMLElement)) return;
-
-    try {
-      const cached = JSON.parse(localStorage.getItem(TICKER_CACHE_KEY) || "null");
-      if (!cached || typeof cached.markup !== "string") return;
-
-      loading.classList.remove("news-ticker--loading");
-      loading.innerHTML = `
-        <div class="news-ticker-track">
-          <div class="news-ticker-scroll" data-ticker>
-            <span class="news-ticker-set" data-ticker-set>${cached.markup}</span>
-          </div>
-        </div>`;
-      initializeAllTickers();
-    } catch (_error) {
-      // Ignore unavailable or malformed browser cache.
-    }
-  }
+  const TICKER_CACHE_KEY = "news-ticker:headlines:v2";
 
   function cacheTicker() {
     const set = document.querySelector("#news-ticker .news-ticker-set");
@@ -119,39 +101,39 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
         const parent = scroll.parentElement;
         if (!parent) return;
 
-        const trackWidth = parent.offsetWidth;
-        const items = Array.from(set.children);
+        const items = Array.from(set.querySelectorAll(".news-ticker-entry"));
         if (items.length === 0) return;
 
-        // Pad the set with repeated items until it's at least as wide as the viewport
-        let i = 0;
-        while (set.offsetWidth < trackWidth) {
-          const clone = items[i % items.length].cloneNode(true);
-          set.appendChild(clone);
-          i++;
-        }
-
-        // One duplicate of the (now wide enough) set is all we need
         const dupe = set.cloneNode(true);
         if (!(dupe instanceof HTMLElement)) return;
         dupe.setAttribute("aria-hidden", "true");
         scroll.appendChild(dupe);
 
-        const setWidth = set.offsetWidth;
-        const pxPerSecond = 30;
-        const duration = setWidth / pxPerSecond;
+        let index = 0;
+        const step = () => {
+          index++;
+          const next = items[index];
+          if (next instanceof HTMLElement) {
+            scroll.style.transform = `translateX(-${next.offsetLeft}px)`;
+            return;
+          }
 
-        scroll.style.animationDuration = duration + "s";
-        scroll.style.setProperty("--set-width", "-" + setWidth + "px");
-        scroll.classList.add("news-ticker-animate");
+          scroll.addEventListener(
+            "transitionend",
+            () => {
+              scroll.style.transition = "none";
+              scroll.style.transform = "translateX(0)";
+              index = 0;
+              requestAnimationFrame(() => {
+                scroll.style.transition = "";
+              });
+            },
+            { once: true },
+          );
+          scroll.style.transform = `translateX(-${set.offsetWidth}px)`;
+        };
 
-        const startedAt = (
-          window as Window & { __newsTickerStartedAt?: number }
-        ).__newsTickerStartedAt;
-        const animation = scroll.getAnimations()[0];
-        if (typeof startedAt === "number" && animation) {
-          animation.currentTime = (performance.now() - startedAt) % (duration * 1000);
-        }
+        window.setInterval(step, 5000);
       });
   }
 
@@ -167,7 +149,37 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
         }
 
         scroll.setAttribute("data-ticker-initialized", "true");
-        scroll.style.animationDuration = `${set.offsetWidth / 30}s`;
+        const items = Array.from(
+          set.querySelectorAll(".news-ticker-skeleton-entry"),
+        );
+        if (items.length === 0) return;
+        const duplicate = set.cloneNode(true);
+        if (!(duplicate instanceof HTMLElement)) return;
+        duplicate.setAttribute("aria-hidden", "true");
+        scroll.appendChild(duplicate);
+
+        let index = 0;
+        window.setInterval(() => {
+          index++;
+          const next = items[index];
+          if (next instanceof HTMLElement) {
+            scroll.style.transform = `translateX(-${next.offsetLeft}px)`;
+            return;
+          }
+          scroll.addEventListener(
+            "transitionend",
+            () => {
+              scroll.style.transition = "none";
+              scroll.style.transform = "translateX(0)";
+              index = 0;
+              requestAnimationFrame(() => {
+                scroll.style.transition = "";
+              });
+            },
+            { once: true },
+          );
+          scroll.style.transform = `translateX(-${set.offsetWidth}px)`;
+        }, 5000);
       });
   }
 
@@ -224,7 +236,6 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
     restoreTickerPositions();
   }
 
-  restoreCachedTicker();
   initializeAllTickers();
   document.addEventListener("astro:before-swap", saveTickerPositions);
   document.addEventListener("astro:after-swap", initializeAllTickersAndRestorePosition);
@@ -281,20 +292,32 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
     align-items: center;
   }
 
-  .news-ticker-scroll {
-    display: flex;
-    align-items: center;
+  .news-ticker-label {
+    flex: 0 0 auto;
+    padding: 8px 1em;
+    border-right: 2px solid #000;
+    font-weight: 700;
+    text-transform: uppercase;
     white-space: nowrap;
   }
 
-  .news-ticker-animate {
-    animation: ticker-scroll linear infinite;
+  .news-ticker-scroll {
+    display: flex;
+    width: max-content;
+    transition: transform 900ms ease-in-out;
   }
 
   .news-ticker-set {
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
+  }
+
+  .news-ticker-entry {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .news-ticker-item {
@@ -308,18 +331,9 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
     opacity: 0.5;
   }
 
-  @keyframes ticker-scroll {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(var(--set-width));
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .news-ticker-animate {
-      animation: none;
+    .news-ticker-scroll {
+      transition: none;
     }
   }
 </style>

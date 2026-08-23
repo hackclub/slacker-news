@@ -138,38 +138,51 @@ a {
   overflow: hidden;
 }
 
-.news-ticker-stale-scroll {
+.news-ticker-stale-track .news-ticker-scroll {
   display: flex;
   width: max-content;
-  animation: news-ticker-stale-marquee 60s linear infinite;
+  transition: transform 900ms ease-in-out;
 }
 
-.news-ticker-stale-set {
+.news-ticker-label {
+  flex: 0 0 auto;
+  padding: 8px 1em;
+  margin-right:8px;
+  border-right: 2px solid #000;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.news-ticker-stale-track .news-ticker-set {
   display: inline-flex;
   align-items: center;
   flex: 0 0 max-content;
   white-space: nowrap;
 }
 
-.news-ticker-stale-set .news-ticker-item {
+.news-ticker-stale-track .news-ticker-entry {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.news-ticker-stale-track .news-ticker-item {
   padding: 8px 0;
 }
 
-.news-ticker-stale-set .news-ticker-divider {
+.news-ticker-stale-track .news-ticker-divider {
   margin: 0 1.2em;
   font-size: 0.45em;
   vertical-align: middle;
   opacity: 0.5;
 }
 
-@keyframes news-ticker-stale-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .news-ticker-stale-scroll {
-    animation: none;
+  .news-ticker-stale-track .news-ticker-scroll,
+  .news-ticker-skeleton-scroll {
+    transition: none;
   }
 }
 
@@ -188,7 +201,13 @@ a {
 .news-ticker-skeleton-scroll {
   display: flex;
   width: max-content;
-  animation: news-ticker-skeleton-marquee 60s linear infinite;
+  transition: transform 900ms ease-in-out;
+}
+
+.news-ticker-skeleton-entry {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .news-ticker-skeleton-text {
@@ -209,11 +228,6 @@ a {
 @keyframes news-ticker-loading {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
-}
-
-@keyframes news-ticker-skeleton-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
 }
 
 // ─── Front page grid ─────────────────────────────────────────────────────────
