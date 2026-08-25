@@ -53,7 +53,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
 ---
 
 <div class="news-ticker" aria-label="News ticker">
-  <span class="news-ticker-label">extra extra</span>
+  <span class="news-ticker-label">Newswire</span>
   <div class="news-ticker-track">
     <div class="news-ticker-scroll" data-ticker>
       <span class="news-ticker-set" data-ticker-set>
@@ -248,23 +248,23 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
 
 <style>
   .news-ticker {
-    background: #f5f5f0;
+    background: #fff;
     color: #000;
     display: flex;
     align-items: stretch;
     overflow: hidden;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 0.8rem;
-    letter-spacing: 0.04em;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
     line-height: 1;
-    border-top: 3px solid #000;
-    border-bottom: 3px double #000;
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
   }
 
   .news-ticker--loading {
     min-height: 31px;
     align-items: center;
-    padding: 0 1em;
+    padding: 0;
   }
 
   .news-ticker-skeleton {
@@ -328,7 +328,8 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
     margin: 0 1.2em;
     font-size: 0.45em;
     vertical-align: middle;
-    opacity: 0.5;
+    color: #555;
+    opacity: 1;
   }
 
   @media (prefers-reduced-motion: reduce) {

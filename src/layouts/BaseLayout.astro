@@ -198,7 +198,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         <div id="news-ticker-live">
         <NewsTicker server:defer>
           <div slot="fallback" class="news-ticker news-ticker--loading" aria-label="News ticker">
-            <span class="news-ticker-label">extra</span>
+            <span class="news-ticker-label">Newswire</span>
             <div class="news-ticker-skeleton-track" aria-hidden="true">
               <div class="news-ticker-skeleton-scroll">
                 <div class="news-ticker-skeleton-set">
@@ -267,7 +267,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             var renderStaleTicker = function (markup) {
               if (staleTickerTimer) window.clearInterval(staleTickerTimer);
               stale.innerHTML =
-                '<span class="news-ticker-label">extra</span>' +
+                '<span class="news-ticker-label">Newswire</span>' +
                 '<div class="news-ticker-stale-track"><div class="news-ticker-scroll" data-ticker>' +
                 '<span class="news-ticker-set" data-ticker-set>' + markup + "</span></div></div>";
               initializeStaleTicker();
