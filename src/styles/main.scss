@@ -59,6 +59,26 @@ a {
   }
 }
 
+.masthead-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  width: 100%;
+}
+
+.masthead-slogan {
+  align-self: end;
+  justify-self: start;
+  max-width: 22rem;
+  margin: 0 16px 0.25em;
+  color: #777;
+  font-family: Georgia, serif;
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.2;
+  text-align: left;
+}
+
 .site-title {
   font-size: 2.8rem;
   font-weight: 900;
@@ -1181,6 +1201,10 @@ html.dark-mode mark {
 
   .site-title {
     font-size: 1.8rem;
+  }
+  .masthead-slogan {
+    max-width: 11rem;
+    font-size: 0.72rem;
   }
 }
 
