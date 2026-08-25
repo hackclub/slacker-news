@@ -67,6 +67,8 @@ a {
 }
 
 .masthead-slogan {
+  position: relative;
+  left: -25px;
   align-self: end;
   justify-self: start;
   max-width: 22rem;
@@ -1178,6 +1180,22 @@ html.dark-mode mark {
 // ─── Responsive ───────────────────────────────────────────────────────────────
 
 @media (max-width: 700px) {
+  .masthead-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .masthead-balance {
+    display: none;
+  }
+  .masthead-slogan {
+    position: static;
+    align-self: center;
+    justify-self: auto;
+    margin: 8px 16px 0;
+    text-align: center;
+  }
+
   .front-top {
     grid-template-columns: 1fr;
   }
@@ -1203,7 +1221,7 @@ html.dark-mode mark {
     font-size: 1.8rem;
   }
   .masthead-slogan {
-    max-width: 11rem;
+    max-width: none;
     font-size: 0.72rem;
   }
 }
