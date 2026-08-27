@@ -13,12 +13,12 @@
     "export:abacus": "bun scripts/export-abacus.ts"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4.3.0",
-    "@astrojs/node": "^9.5.5",
+    "@astrojs/mdx": "^6.0.0",
+    "@astrojs/node": "^10.1.4",
     "@astrojs/rss": "^4.0.19",
-    "@astrojs/vercel": "^8.0.0",
+    "@astrojs/vercel": "^10.0.8",
     "@chenglou/pretext": "^0.0.7",
-    "astro": "^5.18.1",
+    "astro": "^6.4.8",
     "better-auth": "^1.6.26",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0"
