@@ -117,13 +117,19 @@ const site = await getSiteConfig();
         status.textContent = `${ranked.length} result${ranked.length === 1 ? "" : "s"} for “${query.trim()}”.`;
         results.innerHTML = ranked
           .map(({ doc }) => {
+            const isSlack = doc.url.startsWith("/slack/");
             const preview =
               buildSnippet(doc.text, terms) ?? highlightText(truncateWords(doc.excerpt, 24), terms);
+            const categoryLabel = isSlack
+              ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
+              : doc.category
+                ? escapeHtml(doc.category)
+                : "";
             return `
             <a href="${doc.url}" class="front-block story-block">
               <h3 class="story-block-title">${highlightText(doc.title, terms)}</h3>
               <p class="story-block-excerpt">${preview}</p>
-              <span class="reading-time">${doc.category ? escapeHtml(doc.category) + " · " : ""}${doc.readingTime} min read</span>
+              <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${doc.readingTime} min read</span>
             </a>`;
           })
           .join("");
@@ -183,6 +189,11 @@ const site = await getSiteConfig();
       color: #555;
       margin: 0 0 16px;
       min-height: 1em;
+    }
+
+    .slack-column-badge {
+      display: inline;
+      font-weight: bold;
     }
   </style>
 </BaseLayout>
