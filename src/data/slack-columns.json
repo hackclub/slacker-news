@@ -8,7 +8,7 @@
     "homepageMessagesPerRow": 3,
     "homepageLimit": 6,
     "showMetadata": false,
-    "limit": 12
+    "limit": 1000
   },
   {
     "column": "ysws",
@@ -19,7 +19,7 @@
     "homepageMessagesPerRow": 4,
     "homepageLimit": 12,
     "showMetadata": false,
-    "limit": 12
+    "limit": 1000
   },
   {
     "column": "opinion",
@@ -30,7 +30,7 @@
     "homepageLimit": 12,
     "showMetadata": false,
     "authRequired": true,
-    "limit": 12
+    "limit": 1000
   },
   {
     "column": "ship-of-the-week",
@@ -40,6 +40,7 @@
     "homepage": true,
     "homepageMessagesPerRow": 3,
     "homepageLimit": 3,
+    "limit": 1000,
     "authRequired": true,
     "showMetadata": false
   }

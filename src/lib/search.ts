@@ -1,4 +1,5 @@
 import type { Post } from "./content";
+import type { IndigestMessage, SlackColumnConfig } from "./indigest";
 
 const STOPWORDS = new Set([
   "the",
@@ -83,6 +84,63 @@ export type SearchIndex = {
   documents: SearchDocument[];
 };
 
+function stripSlackMrkdwn(text: string): string {
+  return text
+    .replace(/<@[UW][A-Z0-9]+>/g, "")         // user mentions
+    .replace(/<#[A-Z0-9]+\|([^>]+)>/g, "$1")  // channel mentions with label
+    .replace(/<#[A-Z0-9]+>/g, "")              // channel mentions without label
+    .replace(/<(https?:\/\/[^|>]+)\|([^>]+)>/g, "$2") // links with label
+    .replace(/<(https?:\/\/[^>]+)>/g, "$1")    // plain links
+    .replace(/:([a-z0-9_+-]+):/g, "")          // emoji
+    .replace(/\*([^*]+)\*/g, "$1")             // bold
+    .replace(/_([^_]+)_/g, "$1")               // italic
+    .replace(/~([^~]+)~/g, "$1")               // strikethrough
+    .replace(/`([^`]+)`/g, "$1")               // inline code
+    .replace(/```[\s\S]*?```/g, "")            // code blocks
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function slackMessageToDocument(
+  message: IndigestMessage,
+  column: SlackColumnConfig,
+): SearchDocument {
+  const title =
+    (typeof message.metadata === "object" && message.metadata !== null
+      ? Object.values(message.metadata)[0]
+      : typeof message.metadata === "string"
+        ? (() => {
+            try {
+              const parsed = JSON.parse(message.metadata);
+              return parsed && typeof parsed === "object"
+                ? Object.values(parsed)[0]
+                : undefined;
+            } catch {
+              return undefined;
+            }
+          })()
+        : undefined) ?? column.title;
+
+  const cleanText = stripSlackMrkdwn(message.text);
+  const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const url = `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`;
+
+  return {
+    url,
+    title: String(title),
+    excerpt: cleanText,
+    category: column.title,
+    readingTime,
+    text: cleanText,
+    titleTerms: termFrequency(String(title)),
+    bodyTerms: termFrequency(cleanText),
+  };
+}
+
 export function tokenize(text: string): string[] {
   return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter(
     (token) => token.length >= 2 && !STOPWORDS.has(token),
@@ -97,8 +155,11 @@ function termFrequency(text: string): TermFrequency {
   return freq;
 }
 
-export function buildSearchIndex(posts: Post[]): SearchIndex {
-  const documents: SearchDocument[] = posts.map((post) => ({
+export function buildSearchIndex(
+  posts: Post[],
+  slackDocuments: SearchDocument[] = [],
+): SearchIndex {
+  const postDocuments: SearchDocument[] = posts.map((post) => ({
     url: post.url,
     title: post.title,
     excerpt: post.excerpt,
@@ -118,7 +179,7 @@ export function buildSearchIndex(posts: Post[]): SearchIndex {
       titlePrefix: 4,
       bodyPrefix: 0.4,
     },
-    documents,
+    documents: [...postDocuments, ...slackDocuments],
   };
 }
 
