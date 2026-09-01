@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import AuthorList from "../components/AuthorList.astro";
-import { formatStoryDate, getPosts, getSiteConfig } from "../lib/content";
+import { formatStoryDate, getPosts, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../lib/content";
 import { render } from "astro:content";
 
 export const prerender = true;
@@ -16,6 +16,8 @@ export async function getStaticPaths() {
 
 const site = await getSiteConfig();
 const allPosts = await getPosts();
+const allChangelogs = await getChangelogEntries();
+const longChangelogs = allChangelogs.filter((e): e is LongChangelogEntry => e.kind === "long");
 const slugParam = Astro.props?.slug ?? Astro.params.slug;
 const slug = Array.isArray(slugParam)
   ? slugParam.join("/")
@@ -34,24 +36,22 @@ if (!post) {
 
 const { Content } = await render(post.entry);
 
+function resolveReference(targetSlug: string) {
+  const targetPost = allPosts.find((p) => p.slug === targetSlug);
+  if (targetPost) return { slug: targetPost.slug, title: targetPost.title, url: targetPost.url };
+  const targetChangelog = longChangelogs.find((c) => c.slug === targetSlug);
+  if (targetChangelog) return { slug: targetChangelog.slug, title: targetChangelog.title, url: targetChangelog.url };
+  return null;
+}
+
 const responseLinks =
   post.responseTo
-    ?.map((slug) => {
-      const target = allPosts.find((p) => p.slug === slug);
-      return target
-        ? { slug: target.slug, title: target.title, url: target.url }
-        : null;
-    })
+    ?.map((s) => resolveReference(s))
     .filter((link): link is NonNullable<typeof link> => Boolean(link)) ?? [];
 
 const followUpLinks =
   post.followUpTo
-    ?.map((slug) => {
-      const target = allPosts.find((p) => p.slug === slug);
-      return target
-        ? { slug: target.slug, title: target.title, url: target.url }
-        : null;
-    })
+    ?.map((s) => resolveReference(s))
     .filter((link): link is NonNullable<typeof link> => Boolean(link)) ?? [];
 ---
 

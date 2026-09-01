@@ -56,6 +56,7 @@ export type LongChangelogEntry = ChangelogBase & {
   title: string;
   excerpt: string;
   paragraphs: string[];
+  readingTime: number;
   leadingImage?: {
     src: string;
     alt: string;
@@ -143,8 +144,10 @@ function replaceSlackChannelComponents(input: string): string {
 }
 
 function stripMarkdown(input: string): string {
-  return normalizeWhitespace(
-    replaceSlackChannelComponents(replaceSlackMentionComponents(input))
+  const isBlockquote = /^\s*>/m.test(input);
+  const cleaned = isBlockquote ? input.replace(/^\s*>\s?/gm, "") : input;
+  const stripped = normalizeWhitespace(
+    replaceSlackChannelComponents(replaceSlackMentionComponents(cleaned))
       .replace(/^import\s.+$/gm, "")
       .replace(/^export\s.+$/gm, "")
       .replace(/^#{1,6}\s+/gm, "")
@@ -157,6 +160,7 @@ function stripMarkdown(input: string): string {
       .replace(/_{1,2}([^_]+)_{1,2}/g, "$1")
       .replace(/<[^>]+>/g, " "),
   );
+  return isBlockquote ? `\u201C${stripped}` : stripped;
 }
 
 function getBodyBlocks(body: string): string[] {
@@ -368,6 +372,10 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
     const leadingImage = extractImageFromBlock(bodyBlocks[0] ?? "");
     const paragraphs = extractTextBlocks(entry.body!);
     const dateString = entry.data.date.toISOString().slice(0, 10);
+    const wordCount = paragraphs.reduce(
+      (sum, p) => sum + p.split(/\s+/).filter(Boolean).length,
+      0,
+    );
     return {
       kind: "long",
       slug: entry.id,
@@ -378,6 +386,7 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
       slackIds: getAuthorSlackIds(entry.data.author),
       excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
       paragraphs,
+      readingTime: Math.max(1, Math.ceil(wordCount / 200)),
       leadingImage,
       entry,
       responseTo: resolveSlugs(entry.data.responseTo),
