@@ -7,7 +7,7 @@ interface Props {
 }
 
 const { text } = Astro.props;
-const tokenPattern = /(\*[^*\n]+\*|(?<!\w)_[^_\n]+_(?!\w)|<https?:\/\/[^>\s]+>|<@[^>]+>|<![^>]+>|<#.+?>|#[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z0-9_+\-]+:)/g;
+const tokenPattern = /(\*[^*\n]+\*|(?<!\w)_[^_\n]+_(?!\w)|<https?:\/\/[^>\s]+>|<@[^>]+>|<![^>]+>|<#.+?>|#[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z0-9_+-]+:)/g;
 
 function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
