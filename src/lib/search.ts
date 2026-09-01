@@ -86,17 +86,17 @@ export type SearchIndex = {
 
 function stripSlackMrkdwn(text: string): string {
   return text
-    .replace(/<@[UW][A-Z0-9]+>/g, "")         // user mentions
-    .replace(/<#[A-Z0-9]+\|([^>]+)>/g, "$1")  // channel mentions with label
-    .replace(/<#[A-Z0-9]+>/g, "")              // channel mentions without label
+    .replace(/<@[UW][A-Z0-9]+>/g, "") // user mentions
+    .replace(/<#[A-Z0-9]+\|([^>]+)>/g, "$1") // channel mentions with label
+    .replace(/<#[A-Z0-9]+>/g, "") // channel mentions without label
     .replace(/<(https?:\/\/[^|>]+)\|([^>]+)>/g, "$2") // links with label
-    .replace(/<(https?:\/\/[^>]+)>/g, "$1")    // plain links
-    .replace(/:([a-z0-9_+-]+):/g, "")          // emoji
-    .replace(/\*([^*]+)\*/g, "$1")             // bold
-    .replace(/_([^_]+)_/g, "$1")               // italic
-    .replace(/~([^~]+)~/g, "$1")               // strikethrough
-    .replace(/`([^`]+)`/g, "$1")               // inline code
-    .replace(/```[\s\S]*?```/g, "")            // code blocks
+    .replace(/<(https?:\/\/[^>]+)>/g, "$1") // plain links
+    .replace(/:([a-z0-9_+-]+):/g, "") // emoji
+    .replace(/\*([^*]+)\*/g, "$1") // bold
+    .replace(/_([^_]+)_/g, "$1") // italic
+    .replace(/~([^~]+)~/g, "$1") // strikethrough
+    .replace(/`([^`]+)`/g, "$1") // inline code
+    .replace(/```[\s\S]*?```/g, "") // code blocks
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")

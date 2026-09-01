@@ -9,6 +9,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "format": "prettier --write .",
     "format:check": "prettier --check .",
     "export:abacus": "bun scripts/export-abacus.ts"
   },
