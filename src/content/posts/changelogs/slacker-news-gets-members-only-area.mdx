@@ -1,0 +1,36 @@
+---
+title: "Slacker News Gets a Members-Only Area"
+date: '2026-08-31'
+author: '@mat'
+followUpTo: "responses-and-followups"
+---
+import SlackMention from "../../../components/SlackMention.astro";
+import SlackChannel from "../../../components/SlackChannel.astro";
+
+> "Slacker News began with a dream: fewer flamewars. The Slack is not a good place for hard conversations, especially public ones. You deserve better than to have your idea buried in a thread with 1000+ replies. And you deserve a fair hearing. Slacker News is the way. Few responses written carefully, instead of many responses quickly."
+
+As of last week, some articles on Slacker News are hidden unless a user is logged in. This article serves to explain the background behind this change and the reasons behind it.
+
+**Why are we doing this?**
+
+The story of this feature suggestion goes back pretty far, and as far as I know started with a PR <SlackMention name="sahil" id="U08PUHSMW4V" /> submitted to Slacker News when it was still a static jekyll blog. At the time we opted against creating the impression of security for a project which contained raw article markdown in the codebase.
+
+Nevertheless, the motivation behind adding authentication remained relevant until <SlackMention name="ani" id="U01D9DWGEB0" /> proposed an authgate for the site in <SlackChannel id="meta" />. Opinions were variable on how this could be implemented (and whether publishing opinions on SN was even the right path), but a consensus was reached that an authgate would be beneficial to the site's purpose for community opinion and criticism.
+
+Even back then, I was already working on protecting articles, but my chosen method, a self-hosted Payload CMS instance, was complex and had several major flaws (namely performance, stability, and maintainability). While a more seamlessness submission process is still a priority today, we've always known that the comfort and freedom of expression offered to article-submitters was worth it.
+
+But today we're happy to finally announce this second objective as achieved, and that this progress did not require shipping an ineffective protection, close-sourcing the project, or undermining its ability to serve as a place where Hack Clubbers share what they're doing, thinking, and making with each other (and the world[^1]!).
+
+From now on, any published opinion or essay on SN can be designated by its author as intended to be protected, a decision which will place it behind a Hack Club Auth-wall and restrict access to site visitors and RSS feed subscribers with valid authentication verification.
+
+In order to showcase the new auth-gating features of the site, the [Ship Ads](https://news.hackclub.com/slack/ship-of-the-week/) column also temporarily requires authentication to view.
+
+**Now go write something**
+
+So, that's all we have for this changelog, meaning this is your chance! We encourage you to find a community topic you've seen debated and write your thoughts, submit a response to a relevant <SlackChannel id="meta" /> thread, or write an essay about the tech industry in general. Slacker News is Hack Club's microphone, but it could be yours too![^2]
+
+Now that I'm writing this it almost sounds like a you-ship-we-ship [insert vague "hmm" here]: SN provides a thoughtful, curious space to share (and change!) your opinions and all we ask from you is to respect the truth, our submission [guidelines](/submissions/), and the Hack Club [code](/about/) of conduct.
+
+[^1]: This wasn't as prominent in <SlackMention name="ani" id="U01D9DWGEB0" />'s meta thread as the site's potential appeal to adults was, but we also hope Slacker News' audience can include future or prospective Hack Clubbers for whom getting a glimpse of how the community converses and (co)operates could be positive!
+
+[^2]: I'm blatantly plagiarizing paraphrasing Evan here, but go read [Responses and Followups](/changelogs/responses-and-followups/) for yourself!

@@ -7,7 +7,9 @@ import {
   getChangelogEntries,
   getPosts,
   getSiteConfig,
-  truncateWords
+  truncateWords,
+  type LongChangelogEntry,
+  type ChangelogEntry,
 } from "../lib/content";
 import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
 
@@ -21,12 +23,17 @@ import { getSlackColumns } from "../lib/indigest";
 
 const site = await getSiteConfig();
 const posts = await getPosts();
+const allChangelogs = await getChangelogEntries();
+const longChangelogs = allChangelogs.filter((e) => e.kind === "long");
 
 const allNews = posts.filter((post) => post.category === "news");
-const overrideHeadline = site.headlineOverride
-  ? posts.find((post) => post.slug === site.headlineOverride)
-  : undefined;
-const headline = overrideHeadline ?? allNews[0];
+
+const allCandidates = [
+  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
+  ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
+].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+const headline = allCandidates[0];
 const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
   const paras = headline?.paragraphs ?? [];
@@ -35,6 +42,8 @@ const headlineExcerpts = (() => {
     if (!s) return false;
     if (/^#{1,6}\s+/.test(s)) return false;
     if (/^[=-]{3,}\s*$/.test(s)) return false;
+    if (/^>\s/.test(s)) return false;
+    if (/^\u201C/.test(s)) return false;
     const words = s.split(/\s+/).length;
     if (words < 6) return false;
     if (s.length < 40) return false;
@@ -53,13 +62,33 @@ const [opinionItems, newsItems, essayItems] = await Promise.all([
 
 const displayOpinion = opinionItems.slice(0, 3);
 
-const displayNews = newsItems
+function changelogToPostLike(changelog: LongChangelogEntry) {
+  return {
+    kind: "post" as const,
+    post: {
+      slug: changelog.slug,
+      url: changelog.url,
+      title: changelog.title,
+      excerpt: changelog.excerpt,
+      readingTime: changelog.readingTime,
+      date: new Date(`${changelog.date}T00:00:00Z`),
+    },
+    date: new Date(`${changelog.date}T00:00:00Z`),
+  };
+}
+
+const longChangelogItems = longChangelogs.map((c) => changelogToPostLike(c as LongChangelogEntry));
+
+const combinedNewsAndChangelogs = [...newsItems, ...longChangelogItems]
   .filter((item) => item.kind !== "post" || item.post.slug !== headline?.slug)
+  .sort((a, b) => b.date.getTime() - a.date.getTime())
   .slice(0, 8);
+
+const displayNews = combinedNewsAndChangelogs;
 
 const displayEssays = essayItems.slice(0, 4);
 
-const recentChangelog = (await getChangelogEntries()).slice(0, 3);
+const recentChangelog = allChangelogs.slice(0, 3);
 const acknowledgements = await getAcknowledgements();
 const homepageSlackColumns = getSlackColumns().filter((column) => column.homepage);
 
