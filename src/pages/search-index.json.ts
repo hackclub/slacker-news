@@ -1,9 +1,6 @@
 import type { APIRoute } from "astro";
 import { getPosts } from "../lib/content";
-import {
-  getSlackColumns,
-  getIndigestMessages,
-} from "../lib/indigest";
+import { getSlackColumns, getIndigestMessages } from "../lib/indigest";
 import {
   buildSearchIndex,
   slackMessageToDocument,
@@ -30,7 +27,10 @@ export const GET: APIRoute = async ({ locals }) => {
             slackDocs.push(slackMessageToDocument(msg, col));
           }
         } catch (err) {
-          console.error(`Failed to fetch Slack column ${col.column} for search index:`, err);
+          console.error(
+            `Failed to fetch Slack column ${col.column} for search index:`,
+            err,
+          );
         }
       }),
   );
