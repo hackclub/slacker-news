@@ -166,9 +166,11 @@ export async function getIndigestMessage(
       );
 
     const payload = (await response.json()) as
-      IndigestMessage | { data?: IndigestMessage };
+      | IndigestMessage
+      | { data?: IndigestMessage };
     return ("data" in payload ? payload.data : payload) as
-      IndigestMessage | undefined;
+      | IndigestMessage
+      | undefined;
   });
 }
 

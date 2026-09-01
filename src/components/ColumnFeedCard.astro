@@ -13,7 +13,7 @@ interface Props {
 const { item, variant, homepage } = Astro.props;
 const isSlack = item.kind === "slack";
 const title = isSlack ? firstMetadataValue(item.message.metadata) ?? item.column.title : item.post.title;
-const date = isSlack ? new Date(item.message.timestamp) ?? undefined : item.post.date;
+const date = isSlack ? new Date(item.message.timestamp) : item.post.date;
 const href = isSlack
   ? `/slack/${encodeURIComponent(item.column.column)}/${encodeURIComponent(item.message.slackTs)}/`
   : item.post.url;

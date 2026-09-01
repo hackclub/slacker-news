@@ -1,0 +1,12 @@
+{
+  // Authored article and page content is intentionally not linted.
+  "ignorePatterns": ["src/content/**"],
+  "overrides": [
+    {
+      "files": ["src/env.d.ts"],
+      "rules": {
+        "typescript/triple-slash-reference": "off"
+      }
+    }
+  ]
+}
