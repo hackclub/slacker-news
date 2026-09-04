@@ -1,5 +1,5 @@
 {
   "title": "Slacker News",
   "description": "Official news from the Hack Club Slack.",
-  "headlineOverride": "ingestion-engine-features-slack-messages"
+  "headlineOverride": null
 }
