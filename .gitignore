@@ -13,6 +13,7 @@ review-import.json
 .turbo
 .next
 .vercel/
+.claude
 
 .env
 .env.local
