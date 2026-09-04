@@ -93,43 +93,71 @@ const site = await getSiteConfig();
         return out;
       };
 
+      const parseQuery = (query: string) => {
+        const authorMatch = query.match(/^@(\S+)/);
+        if (authorMatch) {
+          return { authorFilter: authorMatch[1], textQuery: query.slice(authorMatch[0].length).trim() };
+        }
+        return { authorFilter: null, textQuery: query };
+      };
+
       const render = (query: string) => {
         if (!index) return;
-        const terms = tokenize(query);
+        const { authorFilter, textQuery } = parseQuery(query);
+        const terms = tokenize(textQuery);
 
-        if (terms.length === 0) {
+        if (terms.length === 0 && !authorFilter) {
           results.innerHTML = "";
-          status.textContent = query.trim() ? "Type a word to search." : "";
+          status.textContent = query.trim() ? "Type a word to search. Use @username to filter by author." : "";
           return;
         }
 
-        const ranked = index.documents
-          .map((doc) => ({ doc, score: scoreDocument(doc, terms, index!.weights) }))
-          .filter((entry) => entry.score > 0)
-          .sort((a, b) => b.score - a.score);
+        let ranked = index.documents
+          .map((doc) => ({ doc, score: scoreDocument(doc, terms.length > 0 ? terms : [""], index!.weights) }))
+          .filter((entry) => entry.score > 0);
+
+        if (authorFilter) {
+          const authorTerms = tokenize(authorFilter);
+          ranked = ranked.filter((entry) => {
+            const docAuthor = entry.doc.author.toLowerCase();
+            return authorTerms.some((term) => docAuthor.includes(term));
+          });
+          // Boost author matches
+          ranked = ranked.map((entry) => ({
+            ...entry,
+            score: entry.score + (entry.doc.author.toLowerCase().includes(authorFilter.toLowerCase()) ? 20 : 0),
+          }));
+        }
+
+        ranked.sort((a, b) => b.score - a.score);
 
         if (ranked.length === 0) {
           results.innerHTML = "";
-          status.textContent = `No results for “${query.trim()}”.`;
+          status.textContent = `No results for "${query.trim()}".`;
           return;
         }
 
-        status.textContent = `${ranked.length} result${ranked.length === 1 ? "" : "s"} for “${query.trim()}”.`;
+        status.textContent = `${ranked.length} result${ranked.length === 1 ? "" : "s"} for "${query.trim()}".`;
         results.innerHTML = ranked
           .map(({ doc }) => {
             const isSlack = doc.url.startsWith("/slack/");
             const preview =
-              buildSnippet(doc.text, terms) ?? highlightText(truncateWords(doc.excerpt, 24), terms);
+              terms.length > 0
+                ? buildSnippet(doc.text, terms) ?? highlightText(truncateWords(doc.excerpt, 24), terms)
+                : truncateWords(doc.excerpt, 24);
             const categoryLabel = isSlack
               ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
               : doc.category
                 ? escapeHtml(doc.category)
                 : "";
+            const authorLabel = doc.author
+              ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
+              : "";
             return `
             <a href="${doc.url}" class="front-block story-block">
-              <h3 class="story-block-title">${highlightText(doc.title, terms)}</h3>
+              <h3 class="story-block-title">${terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title)}</h3>
               <p class="story-block-excerpt">${preview}</p>
-              <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${doc.readingTime} min read</span>
+              <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
             </a>`;
           })
           .join("");
@@ -194,6 +222,11 @@ const site = await getSiteConfig();
     .slack-column-badge {
       display: inline;
       font-weight: bold;
+    }
+
+    .search-author {
+      font-style: italic;
+      color: #555;
     }
   </style>
 </BaseLayout>

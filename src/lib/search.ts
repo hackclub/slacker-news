@@ -70,16 +70,20 @@ export type SearchDocument = {
   category: string;
   readingTime: number;
   text: string;
+  author: string;
   titleTerms: TermFrequency;
   bodyTerms: TermFrequency;
+  authorTerms: TermFrequency;
 };
 
 export type SearchIndex = {
   weights: {
     titleExact: number;
     bodyExact: number;
+    authorExact: number;
     titlePrefix: number;
     bodyPrefix: number;
+    authorPrefix: number;
   };
   documents: SearchDocument[];
 };
@@ -136,8 +140,10 @@ export function slackMessageToDocument(
     category: column.title,
     readingTime,
     text: cleanText,
+    author: "",
     titleTerms: termFrequency(String(title)),
     bodyTerms: termFrequency(cleanText),
+    authorTerms: {},
   };
 }
 
@@ -165,19 +171,21 @@ export function buildSearchIndex(
     excerpt: post.excerpt,
     category: post.category ?? "",
     readingTime: post.readingTime,
-    text: post.paragraphs.join(" ") + " Authored by " + post.author,
+    text: post.paragraphs.join(" "),
+    author: Array.isArray(post.author) ? post.author.join(", ") : (post.author ?? ""),
     titleTerms: termFrequency(post.title),
-    bodyTerms: termFrequency(
-      [post.excerpt, ...post.paragraphs].join(" ") + " " + post.author,
-    ),
+    bodyTerms: termFrequency(post.paragraphs.join(" ")),
+    authorTerms: termFrequency(Array.isArray(post.author) ? post.author.join(" ") : (post.author ?? "")),
   }));
 
   return {
     weights: {
       titleExact: 10,
       bodyExact: 1,
+      authorExact: 15,
       titlePrefix: 4,
       bodyPrefix: 0.4,
+      authorPrefix: 8,
     },
     documents: [...postDocuments, ...slackDocuments],
   };
@@ -207,6 +215,7 @@ export function scoreDocument(
 
   return (
     tally(doc.titleTerms, weights.titleExact, weights.titlePrefix) +
-    tally(doc.bodyTerms, weights.bodyExact, weights.bodyPrefix)
+    tally(doc.bodyTerms, weights.bodyExact, weights.bodyPrefix) +
+    tally(doc.authorTerms, weights.authorExact, weights.authorPrefix)
   );
 }
