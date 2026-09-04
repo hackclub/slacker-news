@@ -5,7 +5,7 @@ author: '@mat'
 ---
 import SlackChannel from "../../../components/SlackChannel.astro";
 
-> Hack Clubbers spend a lot of time on Slack, and understandably a lot of news and discussion starts there! In an effort to make Slacker News more embedded in the community and Slack, articles can now be pulled from Slack automatically, and articles can now be read in <SlackChannel id="news" />, a new default channel on the Hack Club Slack.
+Hack Clubbers spend a lot of time on Slack, and understandably a lot of news and discussion starts there! In an effort to make Slacker News more embedded in the community and Slack, articles can now be pulled from Slack automatically, and articles can now be read in <SlackChannel id="news" />, a new default channel on the Hack Club Slack.
 
 Hack Clubbers spend a lot of time on Slack, and understandably a lot of news and discussion starts there! Existing channels like <SlackChannel id="ysws" />, <SlackChannel id="hc-opportunities" />, and many others already do many of the things which traditional newspapers do, providing various combinations of reporting and community updates.
 
@@ -15,11 +15,11 @@ Over the last couple of months, we've been developing and experimenting with Ind
 
 In the same vein, Slacker News strives to be a place which shows what Hack Clubbers are doing — and it now exhibits projects shipped by community members. Alongside the ongoing Ship of the Week contest in <SlackChannel id="ship" />, SN now features ads for projects made by Hack Clubbers in exchange for their positive contributions and service to the community.
 
-Only trusted channels like <SlackChannel id="ysws" /> and <SlackChannel id="hc-opportunities" /> have messages automatically added to the site. For others (e.g. <SlackChannel id="community-announcements" />, <SlackChannel id="ship" />), manual admin review is necessary to feature messages on the site. Further, in the case of community messages, poster consent is always requested before posting, and in upcoming updates some Slack columns will be guarded by our new [authwall](/changelogs/slacker-news-gets-members-only-area/).
+To be clear, this automatic featuring is reserved only for trusted channels like <SlackChannel id="ysws" />  and  <SlackChannel id="hc-opportunities" />. For others (including  <SlackChannel id="community-announcements" /> and <SlackChannel id="ship" />), manual admin review is necessary to feature messages on the site. And in the case of community member-posted messages, author is always requested before publishing either publicly or behind the [authwall](/changelogs/slacker-news-gets-members-only-area/).
 
 **Trying out #news as a front door**
 
-Another recent change made to News in Hack Club is the creation of a new channel, <SlackChannel id="news" />, which exists to surface news content to the entire community. As of a couple weeks ago, it's now a default workspace channel, which means new members will automatically be added to it.
+Another recent change made to News in Hack Club is the creation of a new channel, <SlackChannel id="news" />[^1], which exists to surface news content to the entire community. As of a couple weeks ago, it's now a default workspace channel, which means new members will automatically be added to it.
 
 <SlackChannel id="news" /> doesn't have channel or @here pings, but we think it can be a new front door to introduce newcomers to what's happening in the community. We'll keep watching <SlackChannel id="news" /> as it improves and grows, but we hope a global feed will be effective in simplifying the distribution of information to where Hack Clubbers already are.
 
