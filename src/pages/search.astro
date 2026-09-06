@@ -107,8 +107,30 @@ const site = await getSiteConfig();
         const terms = tokenize(textQuery);
 
         if (terms.length === 0 && !authorFilter) {
-          results.innerHTML = "";
-          status.textContent = query.trim() ? "Type a word to search. Use @username to filter by author." : "";
+          const all = [...index.documents].sort((a, b) => {
+            if (a.date && b.date) return b.date.localeCompare(a.date);
+            return 0;
+          });
+          status.textContent = `${all.length} articles.`;
+          results.innerHTML = all
+            .map((doc) => {
+              const isSlack = doc.url.startsWith("/slack/");
+              const categoryLabel = isSlack
+                ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
+                : doc.category
+                  ? escapeHtml(doc.category)
+                  : "";
+              const authorLabel = doc.author
+                ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
+                : "";
+              return `
+            <a href="${doc.url}" class="front-block story-block">
+              <h3 class="story-block-title">${escapeHtml(doc.title)}</h3>
+              <p class="story-block-excerpt">${truncateWords(doc.excerpt, 24)}</p>
+              <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
+            </a>`;
+            })
+            .join("");
           return;
         }
 
