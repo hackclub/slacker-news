@@ -71,6 +71,7 @@ export type SearchDocument = {
   readingTime: number;
   text: string;
   author: string;
+  date: string;
   titleTerms: TermFrequency;
   bodyTerms: TermFrequency;
   authorTerms: TermFrequency;
@@ -141,6 +142,7 @@ export function slackMessageToDocument(
     readingTime,
     text: cleanText,
     author: "",
+    date: message.timestamp ? new Date(parseFloat(message.timestamp) * 1000).toISOString().slice(0, 10) : "",
     titleTerms: termFrequency(String(title)),
     bodyTerms: termFrequency(cleanText),
     authorTerms: {},
@@ -173,6 +175,7 @@ export function buildSearchIndex(
     readingTime: post.readingTime,
     text: post.paragraphs.join(" "),
     author: Array.isArray(post.author) ? post.author.join(", ") : (post.author ?? ""),
+    date: post.date.toISOString().slice(0, 10),
     titleTerms: termFrequency(post.title),
     bodyTerms: termFrequency(post.paragraphs.join(" ")),
     authorTerms: termFrequency(Array.isArray(post.author) ? post.author.join(" ") : (post.author ?? "")),
