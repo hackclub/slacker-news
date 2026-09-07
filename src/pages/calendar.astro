@@ -6,6 +6,13 @@ import {
   getSiteConfig,
   type LongChangelogEntry,
 } from "../lib/content";
+import {
+  getSlackColumns,
+  getIndigestMessages,
+  firstMetadataValue,
+  type IndigestMessage,
+  type SlackColumnConfig,
+} from "../lib/indigest";
 
 export const prerender = true;
 
@@ -13,6 +20,37 @@ const site = await getSiteConfig();
 const posts = await getPosts();
 const allChangelogs = await getChangelogEntries();
 const longChangelogs = allChangelogs.filter((e) => e.kind === "long");
+
+const slackColumns = getSlackColumns();
+const slackMessagesAll = await Promise.all(
+  slackColumns.map(async (col) => ({
+    column: col,
+    messages: await getIndigestMessages(col.channelId ?? col.column, col.limit),
+  })),
+);
+
+function slackDate(message: IndigestMessage): Date {
+  const parsed = new Date(message.timestamp);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+  const ts = Number(message.slackTs);
+  return Number.isFinite(ts) ? new Date(ts * 1000) : new Date(0);
+}
+
+function slackTitle(message: IndigestMessage): string {
+  const meta = firstMetadataValue(message.metadata);
+  if (meta) return meta;
+  const plain = message.text.replace(/<[^>]+>/g, "").trim();
+  return plain.length > 0 ? plain.slice(0, 60) : "Message";
+}
+
+const slackArticles = slackMessagesAll.flatMap(({ column, messages }) =>
+  messages.map((m) => ({
+    title: slackTitle(m),
+    url: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(m.slackTs)}/`,
+    date: slackDate(m),
+    category: `slack-${column.column}`,
+  })),
+);
 
 const articles = [
   ...posts.map((p) => ({
@@ -27,6 +65,7 @@ const articles = [
     date: new Date(`${c.date}T00:00:00Z`),
     category: "changelog",
   })),
+  ...slackArticles,
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
 const byMonth = new Map<string, typeof articles>();
@@ -266,6 +305,10 @@ const months = [...byMonth.keys()].sort().reverse().map((key) => {
   .calendar-article-link.cat-opinion { border-left: 2px solid #e2762a; }
   .calendar-article-link.cat-essays { border-left: 2px solid #2ae27a; }
   .calendar-article-link.cat-changelog { border-left: 2px solid #999; }
+  .calendar-article-link.cat-slack-classifieds { border-left: 2px solid #7c3aed; }
+  .calendar-article-link.cat-slack-ysws { border-left: 2px solid #06b6d4; }
+  .calendar-article-link.cat-slack-opinion { border-left: 2px solid #e2762a; }
+  .calendar-article-link.cat-slack-ship-of-the-week { border-left: 2px solid #eab308; }
 
   @media (max-width: 900px) {
     .calendar-months {
