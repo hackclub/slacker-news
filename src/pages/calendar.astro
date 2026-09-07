@@ -118,6 +118,13 @@ const months = [...byMonth.keys()].sort().reverse().map((key) => {
       <hr class="section-rule" />
       <p class="calendar-subtitle">Every day Slacker News published an article.</p>
 
+      <div class="calendar-controls">
+        <label class="calendar-toggle">
+          <input type="checkbox" id="slack-toggle" checked />
+          <span class="calendar-toggle-label">Show Slack columns</span>
+        </label>
+      </div>
+
       <div class="calendar-months">
         {months.map(({ key, year, month, daysInMonth, firstDay, rows, dayMap }) => (
           <div class="calendar-month" id={key}>
@@ -140,7 +147,12 @@ const months = [...byMonth.keys()].sort().reverse().map((key) => {
                     {dayArticles && (
                       <div class="calendar-day-articles">
                         {dayArticles.map((a) => (
-                          <a href={a.url} class:list={["calendar-article-link", `cat-${a.category}`]} title={a.title}>
+                          <a
+                            href={a.url}
+                            class:list={["calendar-article-link", `cat-${a.category}`]}
+                            title={a.title}
+                            {...a.category.startsWith("slack-") ? { "data-slack": "" } : {}}
+                          >
                             {truncate(a.title, 28)}
                           </a>
                         ))}
@@ -310,6 +322,36 @@ const months = [...byMonth.keys()].sort().reverse().map((key) => {
   .calendar-article-link.cat-slack-opinion { border-left: 2px solid #e2762a; }
   .calendar-article-link.cat-slack-ship-of-the-week { border-left: 2px solid #eab308; }
 
+  .calendar-controls {
+    margin-bottom: 20px;
+  }
+
+  .calendar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: Georgia, serif;
+    color: #555;
+    user-select: none;
+  }
+
+  .calendar-toggle input[type="checkbox"] {
+    accent-color: #000;
+    width: 14px;
+    height: 14px;
+  }
+
+  .calendar-article-link[data-slack] {
+    opacity: 1;
+    transition: opacity 0.15s;
+  }
+
+  .calendar-page:not(.show-slack) .calendar-article-link[data-slack] {
+    display: none;
+  }
+
   @media (max-width: 900px) {
     .calendar-months {
       grid-template-columns: repeat(2, 1fr);
@@ -322,3 +364,15 @@ const months = [...byMonth.keys()].sort().reverse().map((key) => {
     }
   }
 </style>
+
+<script>
+  const toggle = document.getElementById("slack-toggle") as HTMLInputElement | null;
+  const page = document.querySelector(".calendar-page");
+
+  if (toggle && page) {
+    toggle.addEventListener("change", () => {
+      page.classList.toggle("show-slack", toggle.checked);
+    });
+    page.classList.add("show-slack");
+  }
+</script>
