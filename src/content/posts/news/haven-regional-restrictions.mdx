@@ -1,0 +1,64 @@
+---
+title: Temporary Regional Restrictions for Hack Club Haven
+date: '2026-09-08'
+author: '@devenjadhav'
+excerpt: "Haven is the latest iteration of Hack Club’s flagship satellite hackathons. For this cycle, we have made the difficult decision to not fund satellite events in certain countries. This post explains what we found in the Campfire and Daydream data that led to that decision, and how we measured it."
+---
+
+Haven is the latest iteration of Hack Club's flagship satellite hackathons. For this cycle, we have made the difficult decision to not fund satellite events in certain countries. This post explains what we found in the Campfire and Daydream data that led to that decision, and how we measured it.
+
+## What the restriction is
+
+1. Haven will not approve events and/or create HCB orgs or issue grants for new satellite events in the following countries: Cameroon, Ethiopia, Kenya, Nigeria, Rwanda, Uganda, Zimbabwe, and Nepal. We may, at our discretion, add additional countries to this list.
+2. Teens in those countries can still sign up for Haven Global, ship projects, and receive the same prizes as everyone else. The restriction is on in-person event funding only.
+3. The restriction is scoped to Haven satellites and does not affect other Hack Club events or hackathons happening this year.
+
+As of today, 175 people in the countries listed above have signed up to organize a Haven event. Funnily enough, many of them are organizers of Campfire events that are currently under fraud investigation.
+
+## Methodology
+
+We looked at four sources.
+
+The Campfire **Airtable** is where regional managers tracked each event: signups, check-ins, scan-ins on the day, and how much money was granted from HQ. Here are some important terms:
+
+1. **Signup:** A participant fills out the signup form online and RSVPs to the event.
+2. **Check-in:** The participant completed a waiver and a check-in form before the event.
+3. **Scan-in:** A QR code was scanned at the venue. Scan-ins are the only one of the three that requires a person to actually be present in-person.
+
+**HCB** is Hack Club's fiscal sponsorship platform that all the events used to raise and manage their funds. Every Campfire satellite had its own HCB org and every transaction on those orgs is public.
+
+The **Unified YSWS DB** is where shipped projects go after review. Campfire satellite projects are recorded there with the shipper's geocoded country.
+
+After Campfire ended, we discovered about $14,000 worth of fraudulent transactions, and a fraud team was assembled to document the fraud and track down the parties involved. The fraud team's investigation report covers twelve African events. It includes IP address overlap between organizer accounts, phone and address checks, and venue verification calls.
+
+We compared the banned regions to all other satellite regions combined. The banned regions had 42 events (out of a total of 216 events worldwide).
+
+## Results
+
+Campfire satellites were funded by automated grants (triggered by [this script](https://github.com/devenjadhav/cash-cannon)). Each country had a rate per signup, between $2.51 and $4.06 across this region, and the grant was disbursed to the event's HCB org as signups came in.
+
+### Signups, attendance, and money by region
+
+|   | Banned Countries | All other regions |
+| :-- | :-: | :-: |
+| Events | 38 | 216 |
+| Signups | 6,134 | 9,853 |
+| Scanned in | 678 | 3,850 |
+| Scan-in rate | 11.1% | 39.1% |
+| Auto-grants issued | $25,372 | $67,100 |
+| Net disbursed after clawbacks | $17,774 | $53,267 |
+| Disbursed per scanned-in attendee | $26 | $14 |
+| HCB orgs frozen | 10 of 38 | 36 of 216 |
+
+The banned countries produced 38% of all satellite signups, received 25% of the money, and accounted for 15% of the people who showed up.
+
+These regions accounted for 90% of the total amount of fraud globally ($12.6k / $14k). For context, that is enough money for us to be able to support another 15–20 hackathons in other regions that serve real teenagers and help them build cool projects.
+
+### Fraud team findings
+
+- One pair of IP addresses was shared by the organizer accounts for Muhanga, Rubavu, Kigali, Nyagatare, and Ruhango. A second IP range was shared by Nunga, Nyarugenge, Kayonza, and Mukamira. Some of those addresses geolocate to Cameroon.
+- Two organizers of different events submitted the same phone number.
+- Two organizers gave addresses that the team later described as invalid and disqualifying. One address field was the town name written four times.
+- One school website returned "Account Suspended." One venue contact turned out to be a user on the event's own HCB org.
+- A referral to the Rwanda Investigation Bureau has been made for at least one organizer.
+- Every time we made an attempt to reach out to law enforcement in these regions, we were blown off or not taken seriously.
