@@ -1,0 +1,44 @@
+---
+title: Mnemosyne - Better Slack Analytics for Everyone
+date: '2026-09-08'
+author: '@eps'
+---
+import SlackMention from "../../../components/SlackMention.astro";
+import SlackChannel from "../../../components/SlackChannel.astro";
+
+Where is everyone? What are the most active Slack channels? Which channels have the most unique posters? Where do potential new users go, and where do they get stuck? How many people are active on the Slack? How many people just lurk? [And how do you explain the pen?](https://youtu.be/n-NnxdZqPOE)
+
+For some of these questions, we have flawed data. For others, we have no data. We’re forced to rely on our own impressions, but the Slack is fragmented, so those impressions are radically different depending on where you spend your time.
+
+Mnemosyne is how we get answers. Since we switched to the enterprise plan last year, we’ve gained a lot of new powers. But we haven’t really used them to their full ability, until now. Mnemosyne uses an org owner token to power two projects: Nemo, an analytics dashboard for the Slack; and Fire Engine, a case management system for the Fire Department.
+
+# Nemo
+Nemo is Mnemosyne’s Slack analytics engine. Having better numbers should help us make better decisions. I love data. I also love my privacy. I know the community is the same way, so analytics justifiably make people nervous. “What do they have on me?”
+
+We don’t want you wondering. Try nemo for yourself here! Most of the analytics are public. Here’s what isn’t:
+- Stats on the most active Slack users of the past 30 days: ID, total messages posted, days posted, and unique channels posted in. We think this should stay private.
+- Stats on individual channels: Total messages, unique posters, unique readers, members, and last post. We think that these stats should eventually be public for major channels, and that Prometheans should have access to stats on the channels they steward, but we want to keep analytics for small channels 
+
+We’ve tried to design this in a way that doesn’t threaten your privacy. We’re open to questions. The data that Nemo collects, and who can see it, are open for discussion. This is our first attempt, and we accept it might need changes.
+
+In that spirit, note that these analytics will probably change. As we start to use Nemo, we’ll think things like “I wish I could see each channel’s most active time of day!” and end up adding them. It’s [open source](https://github.com/hackclub/nemo), so you can always see these changes.
+
+# Fire Engine
+Hack Club has a longstanding problem: because it is so decentralized, people can get away with a lot of nonsense just by moving around. Someone gets busted for YSWS fraud, but HCB has no idea, so they hang around defrauding HCB too. We need centralized conduct records.
+
+The first attempt was called Con Man (Conduct Manager). May he rest in peace. The second attempt is called UCAT (Unified Conduct Airtable). At some point we’ll probably move it to a postgress DB, necessitating yet another name change (Miss Conduct?). UCAT also holds records from the Fraud Squad, and will soon hold records from HCB and Attend, the events platform. This will make it possible to see someone’s whole conduct history in one place.
+
+Access is restricted. The Fire Department and senior adult staff at HQ will have full access. Fraud Squad and HCB can only see fraud cases. Other staff, like gap years, do not have access to the system at all. When they need information (for example because they are considering hiring somebody) they can request it on a case-by-case basis.
+
+Since we already have a new airtable base and an org token for Nemo, we’re going to try bundling case management into a web interface to see if this is easier than the FD’s current, Slack-based system. This is still in testing.
+
+# Mnemosyne
+This data is quite sensitive, as is the org owner token that enables the operation. Even with trusted people, it’s common sense not to give out more access than strictly necessary. To this end, the whole system uses a proxy architecture. Mnemosyne has an org owner token, but only @eps has access. Nemo and Fire Engine run in a separate container, and can only access the subset of Mnemosyne’s permissions that they actually need.
+
+Go visit [nemo.hackclub.com](https://nemo.hackclub.com) and tell us what you learn about the Slack!
+
+# Acknowledgements
+@dracula - The developer, who put literally hundreds of hours into this project.
+@mat and @rowan - Security testing
+@sahil, @lynn, @izie - UX testing of Fire Engine
+@msw - The idea for the proxy architecture

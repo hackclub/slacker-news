@@ -33,7 +33,9 @@ const allCandidates = [
   ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-const headline = allCandidates[0];
+const headline = site.headlineOverride
+  ? allCandidates.find((c) => c.slug === site.headlineOverride) ?? allCandidates[0]
+  : allCandidates[0];
 const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
   const paras = headline?.paragraphs ?? [];
