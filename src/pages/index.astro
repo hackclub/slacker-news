@@ -1,15 +1,11 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import AuthorList from "../components/AuthorList.astro";
-import SlackMention from "../components/SlackMention.astro";
 import {
-  getAcknowledgements,
   getChangelogEntries,
   getPosts,
   getSiteConfig,
-  truncateWords,
-  type LongChangelogEntry,
-  type ChangelogEntry,
+  truncateWords
 } from "../lib/content";
 import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
 
@@ -23,19 +19,12 @@ import { getSlackColumns } from "../lib/indigest";
 
 const site = await getSiteConfig();
 const posts = await getPosts();
-const allChangelogs = await getChangelogEntries();
-const longChangelogs = allChangelogs.filter((e) => e.kind === "long");
 
 const allNews = posts.filter((post) => post.category === "news");
-
-const allCandidates = [
-  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
-  ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
-].sort((a, b) => b.date.getTime() - a.date.getTime());
-
-const headline = site.headlineOverride
-  ? allCandidates.find((c) => c.slug === site.headlineOverride) ?? allCandidates[0]
-  : allCandidates[0];
+const overrideHeadline = site.headlineOverride
+  ? posts.find((post) => post.slug === site.headlineOverride)
+  : undefined;
+const headline = overrideHeadline ?? allNews[0];
 const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
   const paras = headline?.paragraphs ?? [];
@@ -44,8 +33,6 @@ const headlineExcerpts = (() => {
     if (!s) return false;
     if (/^#{1,6}\s+/.test(s)) return false;
     if (/^[=-]{3,}\s*$/.test(s)) return false;
-    if (/^>\s/.test(s)) return false;
-    if (/^\u201C/.test(s)) return false;
     const words = s.split(/\s+/).length;
     if (words < 6) return false;
     if (s.length < 40) return false;
@@ -64,34 +51,13 @@ const [opinionItems, newsItems, essayItems] = await Promise.all([
 
 const displayOpinion = opinionItems.slice(0, 3);
 
-function changelogToPostLike(changelog: LongChangelogEntry) {
-  return {
-    kind: "post" as const,
-    post: {
-      slug: changelog.slug,
-      url: changelog.url,
-      title: changelog.title,
-      excerpt: changelog.excerpt,
-      readingTime: changelog.readingTime,
-      date: new Date(`${changelog.date}T00:00:00Z`),
-    },
-    date: new Date(`${changelog.date}T00:00:00Z`),
-  };
-}
-
-const longChangelogItems = longChangelogs.map((c) => changelogToPostLike(c as LongChangelogEntry));
-
-const combinedNewsAndChangelogs = [...newsItems, ...longChangelogItems]
+const displayNews = newsItems
   .filter((item) => item.kind !== "post" || item.post.slug !== headline?.slug)
-  .sort((a, b) => b.date.getTime() - a.date.getTime())
   .slice(0, 8);
-
-const displayNews = combinedNewsAndChangelogs;
 
 const displayEssays = essayItems.slice(0, 4);
 
-const recentChangelog = allChangelogs.slice(0, 3);
-const acknowledgements = await getAcknowledgements();
+const recentChangelog = (await getChangelogEntries()).slice(0, 3);
 const homepageSlackColumns = getSlackColumns().filter((column) => column.homepage);
 
 function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
@@ -101,6 +67,7 @@ function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): nu
 function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLimit?: number; limit?: number }): number {
   return Math.min(Math.max(Math.round(column.homepageLimit ?? column.homepageFetchLimit ?? column.limit ?? 5), 1), 100);
 }
+
 ---
 
 <BaseLayout siteTitle={site.title} siteDescription={site.description}>
@@ -173,8 +140,10 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
 
     <hr class="section-rule" />
 
-    <HomepageSlackColumns server:defer returnTo={Astro.url.pathname}>
-      <div slot="fallback" class="front-slack-columns">
+    <div id="homepage-slack-columns-stale" hidden aria-hidden="true"></div>
+    <div id="homepage-slack-columns-live">
+      <HomepageSlackColumns server:defer returnTo={Astro.url.pathname}>
+        <div slot="fallback" class="front-slack-columns">
         {homepageSlackColumns.map((column) => (
           <>
             <section class="slack-column-row slack-column-row--loading">
@@ -190,15 +159,66 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
                 ))}
               </div>
             </section>
-            <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.channel)}/`}>All {column.title} &rarr;</a>
+            <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.column)}/`}>All {column.title} &rarr;</a>
             <hr class="section-rule" />
           </>
         ))}
-      </div>
-    </HomepageSlackColumns>
+        </div>
+      </HomepageSlackColumns>
+    </div>
+    <script is:inline>
+      (function () {
+        var stale = document.getElementById("homepage-slack-columns-stale");
+        var live = document.getElementById("homepage-slack-columns-live");
+        if (!(stale instanceof HTMLElement) || !(live instanceof HTMLElement)) return;
+
+        var cacheKey = "homepage-slack-columns:v1:" + (document.documentElement.dataset.authenticated || "0");
+        var signature = function (root) {
+          return Array.from(root.querySelectorAll(".slack-column-card-title-link"))
+            .map(function (link) { return link.getAttribute("href") + "|" + link.textContent; })
+            .join("\n");
+        };
+
+        try {
+          var cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+          if (cached && typeof cached.markup === "string" && typeof cached.signature === "string") {
+            stale.innerHTML = cached.markup.indexOf("front-slack-columns") >= 0
+              ? cached.markup
+              : '<div class="front-slack-columns">' + cached.markup + "</div>";
+            stale.hidden = false;
+            live.style.display = "none";
+          }
+
+          var update = function () {
+            var fresh = live.querySelector(".slack-column-card-title-link, .slack-auth-prompt");
+            if (!fresh) return;
+            var freshSignature = signature(live);
+            if (cached && freshSignature === cached.signature) {
+              live.style.display = "none";
+              stale.hidden = false;
+              return;
+            }
+            var island = live.querySelector("astro-island");
+            var markup = island ? island.innerHTML : live.innerHTML;
+            stale.innerHTML = markup.indexOf("front-slack-columns") >= 0
+              ? markup
+              : '<div class="front-slack-columns">' + markup + "</div>";
+            stale.hidden = false;
+            live.style.display = "none";
+            localStorage.setItem(cacheKey, JSON.stringify({ markup: markup, signature: freshSignature }));
+            cached = { markup: markup, signature: freshSignature };
+          };
+
+          new MutationObserver(update).observe(live, { childList: true, subtree: true });
+          update();
+        } catch (_error) {
+          // Ignore unavailable or malformed browser cache.
+        }
+      })();
+    </script>
 
 
-    <div class="front-changelog">
+    <div class="front-changelog front-changelog--full">
       <div class="front-block changelog-block">
         <div class="section-label">CHANGELOG</div>
         <hr class="block-rule" />
@@ -219,22 +239,6 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         ))}
         {recentChangelog.length > 0 && <hr class="changelog-divider" />}
         <a href="/changelogs/" class="archive-link">All changelogs &rarr;</a>
-      </div>
-
-      <div class="front-block acknowledgements-block">
-        <div class="section-label">ACKNOWLEDGEMENTS</div>
-        <hr class="block-rule" />
-        <div class="acknowledgements-grid">
-          {acknowledgements.map((person) => {
-            const userName = person.name.trim().replace(/^@+/, "");
-            return (
-              <span class="acknowledgement-name">
-                {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
-              </span>
-            );
-          })}
-        </div>
-        <a href="/acknowledgements/" class="archive-link">All acknowledgements &rarr;</a>
       </div>
     </div>
   </div>
