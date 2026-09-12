@@ -4,6 +4,8 @@ export type SlackColumnConfig = {
   column: string;
   channelId?: string;
   title: string;
+
+  noun?: string;
   description?: string;
   homepage?: boolean;
   homepageLimit?: number;
@@ -242,13 +244,13 @@ export async function getSlackColumnData(
   if (!config) return undefined;
 
   try {
-    const [messages, metadataSchema] = await Promise.all([
-      getIndigestMessages(
-        config.channelId ?? channel,
-        limitOverride ?? config.limit,
-      ),
-      getIndigestMetadataSchema(config.channelId ?? channel),
-    ]);
+    const messages = await getIndigestMessages(
+      config.channelId ?? channel,
+      limitOverride ?? config.limit,
+    );
+    const metadataSchema = config.showMetadata
+      ? await getIndigestMetadataSchema(config.channelId ?? channel)
+      : undefined;
     return {
       ...config,
       messages,
