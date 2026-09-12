@@ -1,0 +1,267 @@
+---
+import { getAcknowledgements } from "../lib/content";
+
+const acknowledgements = await getAcknowledgements();
+---
+
+<div class="ack-ticker" aria-label="Acknowledgements ticker">
+  <span class="ack-ticker-credit">With ♥ By</span>
+  <div class="ack-ticker-track">
+    <div class="ack-ticker-scroll" data-ticker>
+      <span class="ack-ticker-set" data-ticker-set>
+        {acknowledgements.map((person, i) => (
+          <>
+            {i > 0 && <span class="ack-ticker-divider" aria-hidden="true">◆</span>}
+            <span class="ack-ticker-entry">
+              <span class="ack-ticker-name" data-slack-id={person.slackId ?? ""}>@{person.name.trim().replace(/^@+/, "")}</span>
+            </span>
+          </>
+        ))}
+      </span>
+    </div>
+  </div>
+  <a href="/acknowledgements/" class="ack-ticker-label">All &rarr;</a>
+</div>
+
+<script is:inline>
+  const ACK_CACHE_KEY = "ack-ticker:names:v1";
+  const SLACK_TEAM_URL = "https://hackclub.slack.com/team/";
+
+  function resolveNames(names) {
+    document.querySelectorAll(".ack-ticker-name[data-slack-id]").forEach((el) => {
+      const id = el.getAttribute("data-slack-id");
+      if (!id) return;
+      const originalName = el.textContent.replace(/^@/, "").trim();
+      const displayName = names.get(id) || originalName;
+      if (!displayName) return;
+      const link = document.createElement("a");
+      link.className = "slack_user";
+      link.href = SLACK_TEAM_URL + encodeURIComponent(id);
+      link.target = "_blank";
+      link.rel = "noreferrer noopener";
+      link.textContent = "@" + displayName;
+      el.replaceWith(link);
+    });
+  }
+
+  function extractName(payload, depth) {
+    if (depth > 4 || !payload) return undefined;
+    if (Array.isArray(payload)) {
+      for (const v of payload) {
+        const n = extractName(v, depth + 1);
+        if (n) return n;
+      }
+      return undefined;
+    }
+    if (typeof payload !== "object") return undefined;
+    const candidates = [
+      payload.displayName, payload.display_name,
+      payload.name, payload.username, payload.userName,
+      payload.user_name, payload.handle,
+    ];
+    const name = candidates.find((v) => typeof v === "string" && v.trim());
+    if (name) return name.replace(/^@+/, "");
+    for (const key of ["data", "user", "profile"]) {
+      const n = extractName(payload[key], depth + 1);
+      if (n) return n;
+    }
+    return undefined;
+  }
+
+  async function fetchName(id) {
+    if (!/^[UW][A-Z0-9]+$/i.test(id)) return undefined;
+    try {
+      const res = await fetch("https://cachet.hackclub.com/get/users/" + encodeURIComponent(id), {
+        headers: { Accept: "application/json" },
+      });
+      if (res.ok) {
+        const name = extractName(await res.json(), 0);
+        if (name) return name;
+      }
+    } catch {}
+    try {
+      for (const route of ["user", "users"]) {
+        const res = await fetch("https://flaron.halceon.dev/" + route + "/" + encodeURIComponent(id), {
+          headers: { Accept: "application/json" },
+        });
+        if (res.ok) {
+          const name = extractName(await res.json(), 0);
+          if (name) return name;
+        }
+      }
+    } catch {}
+    return undefined;
+  }
+
+  async function fetchNames(ids) {
+    const results = await Promise.all(ids.map(async (id) => [id, await fetchName(id)]));
+    return new Map(results);
+  }
+
+  async function initializeAckTicker() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(ACK_CACHE_KEY) || "null");
+      if (cached) resolveNames(new Map(Object.entries(cached)));
+    } catch {}
+
+    const els = document.querySelectorAll(".ack-ticker-name[data-slack-id]");
+    const ids = [...new Set([...els].map((el) => el.getAttribute("data-slack-id")).filter(Boolean))];
+    if (ids.length === 0) return;
+
+    const names = await fetchNames(ids);
+    resolveNames(names);
+
+    try {
+      sessionStorage.setItem(ACK_CACHE_KEY, JSON.stringify(Object.fromEntries(names)));
+    } catch {}
+  }
+
+  function initializeTickerScroll() {
+    document
+      .querySelectorAll(".ack-ticker-scroll:not([data-ticker-initialized])")
+      .forEach((scroll) => {
+        if (!(scroll instanceof HTMLElement)) return;
+        scroll.setAttribute("data-ticker-initialized", "true");
+        const set = scroll.querySelector(".ack-ticker-set");
+        if (!(set instanceof HTMLElement)) return;
+
+        const items = Array.from(set.querySelectorAll(".ack-ticker-entry"));
+        if (items.length === 0) return;
+
+        const dupe = set.cloneNode(true);
+        if (!(dupe instanceof HTMLElement)) return;
+        dupe.setAttribute("aria-hidden", "true");
+        scroll.appendChild(dupe);
+
+        let index = 0;
+        const step = () => {
+          index++;
+          const next = items[index];
+          if (next instanceof HTMLElement) {
+            scroll.style.transform = `translateX(-${next.offsetLeft}px)`;
+            return;
+          }
+
+          scroll.addEventListener(
+            "transitionend",
+            () => {
+              scroll.style.transition = "none";
+              scroll.style.transform = "translateX(0)";
+              index = 0;
+              requestAnimationFrame(() => {
+                scroll.style.transition = "";
+              });
+            },
+            { once: true },
+          );
+          scroll.style.transform = `translateX(-${set.offsetWidth}px)`;
+        };
+
+        window.setInterval(step, 4000);
+      });
+  }
+
+  function init() {
+    initializeTickerScroll();
+    initializeAckTicker();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+  document.addEventListener("astro:page-load", init);
+  new MutationObserver(initializeTickerScroll).observe(document.body, { childList: true, subtree: true });
+</script>
+
+<style>
+  .ack-ticker {
+    background: #f5f5f0;
+    color: #000;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    border-top: 3px solid #000;
+  }
+
+  .ack-ticker-track {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .ack-ticker-scroll {
+    display: flex;
+    width: max-content;
+    transition: transform 900ms ease-in-out;
+  }
+
+  .ack-ticker-set {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .ack-ticker-entry {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .ack-ticker-name {
+    padding: 8px 0;
+    color: #000;
+    text-decoration: none;
+  }
+
+  .ack-ticker-name:hover {
+    text-decoration: underline;
+  }
+
+  .ack-ticker-divider {
+    margin: 0 1.2em;
+    font-size: 0.45em;
+    vertical-align: middle;
+    opacity: 0.5;
+  }
+
+  .ack-ticker-label {
+    flex: 0 0 auto;
+    padding: 8px 1em;
+    border-left: 2px solid #000;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-decoration: none;
+    color: #000;
+    background: #f5f5f0;
+    transition: background 0.15s;
+  }
+
+  .ack-ticker-label:hover {
+    background: #e8e8e3;
+  }
+
+  .ack-ticker-credit {
+    flex: 0 0 auto;
+    padding: 8px 1em;
+    border-right: 2px solid #000;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #000;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ack-ticker-scroll {
+      transition: none;
+    }
+  }
+</style>
