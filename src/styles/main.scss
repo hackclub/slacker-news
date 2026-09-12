@@ -175,7 +175,12 @@ a {
       aspect-ratio: 16 / 7;
       object-fit: cover;
       object-position: center;
+      filter: grayscale(1);
     }
+  }
+
+  &:hover .headline-media img {
+    filter: grayscale(0);
   }
 
   .headline-content {
@@ -819,6 +824,15 @@ a {
           currentColor 0 calc(100% - 14px),
           transparent calc(100% - 14px) 100%
         );
+      }
+    }
+
+    .story-body > p:first-child img {
+      filter: grayscale(1);
+      transition: filter 0.3s ease;
+
+      &:hover {
+        filter: grayscale(0);
       }
     }
 
