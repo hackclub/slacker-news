@@ -18,6 +18,13 @@ export const prerender = false;
 import { getSlackColumns } from "../lib/indigest";
 
 
+const CATEGORY_ACCENTS: Record<string, string> = {
+  news: "accent-blue",
+  opinion: "accent-purple",
+  essays: "accent-cyan",
+  changelogs: "accent-muted",
+};
+
 const site = await getSiteConfig();
 const posts = await getPosts();
 
@@ -78,11 +85,11 @@ function splitSubtitle(subtitle: string): { prefix: string; channelLabel: string
 
 ---
 
-<BaseLayout siteTitle={site.title} siteDescription={site.description}>
+<BaseLayout siteTitle={site.title} siteDescription={site.description} accentColor="var(--hc-muted)">
   <div class="newspaper-front">
     <div class="front-top">
       {headline && (
-        <a href={headline.url} class="front-block headline-block accent-red">
+        <a href={headline.url} class:list={["front-block", "headline-block", CATEGORY_ACCENTS[headline.category ?? ""] ?? "accent-red"]}>
           {headline.leadingImage && (
             <div class="headline-media">
               <img
@@ -95,7 +102,7 @@ function splitSubtitle(subtitle: string): { prefix: string; channelLabel: string
           )}
 
           <div class="headline-content">
-            <h2 class="block-headline">{headline.title}</h2>
+            <h2 class="block-headline" transition:name={`title-${headline.slug}`} transition:animate="fade">{headline.title}</h2>
             <hr class="block-rule" />
             <div class="block-excerpts">
               <p

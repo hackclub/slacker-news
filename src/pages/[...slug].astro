@@ -51,6 +51,13 @@ const CATEGORY_ACCENTS: Record<string, string> = {
   changelogs: "accent-muted",
 };
 
+const CATEGORY_ACCENT_COLORS: Record<string, string> = {
+  news: "var(--hc-blue)",
+  opinion: "var(--hc-purple)",
+  essays: "var(--hc-cyan)",
+  changelogs: "var(--hc-muted)",
+};
+
 const responseLinks =
   post.responseTo
     ?.map((s) => resolveReference(s))
@@ -71,10 +78,11 @@ const followUpLinks =
   openGraphImage={post.leadingImage?.src}
   openGraphImageAlt={post.leadingImage?.alt}
   articlePublishedTime={new Date(post.date).toISOString()}
+  accentColor={CATEGORY_ACCENT_COLORS[post.category ?? ""] ?? "var(--hc-red)"}
 >
   <article class:list={["story-page", CATEGORY_ACCENTS[post.category ?? ""] ?? "accent-red"]}>
     <header class="story-header">
-      <h1 class="story-title">{post.title}</h1>
+      <h1 class="story-title" transition:name={`title-${post.slug}`} transition:animate="fade">{post.title}</h1>
       <div class="story-meta">
         {
           post.category && (

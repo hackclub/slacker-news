@@ -39,8 +39,9 @@ const { Content } = await render(changelog.entry);
   openGraphImage={changelog.leadingImage?.src}
   openGraphImageAlt={changelog.leadingImage?.alt}
   articlePublishedTime={new Date(`${changelog.date}T00:00:00Z`).toISOString()}
+  accentColor="var(--hc-muted)"
 >
-  <article class="story-page">
+  <article class="story-page accent-muted">
     <header class="story-header">
       <h1 class="story-title">{changelog.title}</h1>
       <div class="story-meta">

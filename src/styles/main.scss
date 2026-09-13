@@ -161,9 +161,14 @@ a {
   }
 }
 
+.accent-bar {
+  height: 5px;
+  background: var(--accent);
+  transition: background-color 0.3s ease;
+}
+
 .site-header {
   position: relative;
-  border-top: 5px solid var(--hc-red);
   border-bottom: none;
   background-color: #fff;
   text-align: center;
@@ -240,17 +245,17 @@ a {
   text-transform: uppercase;
   padding: 3px 12px;
   margin-left: 6px;
-  border: 2px solid var(--hc-red);
+  border: 2px solid var(--accent);
   border-radius: 999px;
   line-height: 1.5;
-  transition: background 0.15s, color 0.15s;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 
   &,
   &:visited {
-    color: var(--hc-red);
+    color: var(--accent);
   }
   &:hover {
-    background: var(--hc-red);
+    background: var(--accent);
     color: #fff;
   }
 }
@@ -278,7 +283,7 @@ a {
   margin-right: 12px;
   box-sizing: border-box;
   border: 3px double transparent;
-  background: var(--hc-red);
+  background: var(--accent);
   color: #fff;
   font-family: inherit;
   font-size: inherit;
@@ -287,11 +292,11 @@ a {
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background-color 0.3s ease;
 }
 
 .news-ticker-label:hover {
-  background: color-mix(in srgb, var(--hc-red) 85%, #000);
+  background: color-mix(in srgb, var(--accent) 85%, #000);
 }
 
 .news-ticker-skeleton-set {
@@ -1404,6 +1409,7 @@ html.dark-mode mark {
 }
 
 .news-archive-link {
+  margin-top: 4px;
   text-align: right;
 }
 

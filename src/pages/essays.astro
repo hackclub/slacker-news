@@ -12,7 +12,7 @@ const site = await getSiteConfig();
 const essaysItems = await getColumnFeedItems("essays", Boolean(Astro.locals.user));
 ---
 
-<BaseLayout title="Essays Archive" siteTitle={site.title} siteDescription={site.description}>
+<BaseLayout title="Essays Archive" siteTitle={site.title} siteDescription={site.description} accentColor="var(--hc-cyan)">
   <div class="archive-page accent-cyan">
     <div class="section-label">Essays</div>
     <hr class="section-rule" />

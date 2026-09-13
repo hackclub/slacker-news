@@ -5,7 +5,7 @@ import { getSiteConfig } from "../lib/content";
 const site = await getSiteConfig();
 ---
 
-<BaseLayout title="Search" siteTitle={site.title} siteDescription={site.description}>
+<BaseLayout title="Search" siteTitle={site.title} siteDescription={site.description} accentColor="var(--hc-muted)">
   <div class="archive-page search-page accent-muted">
     <div class="section-label">Search</div>
     <hr class="section-rule" />

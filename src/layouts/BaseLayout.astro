@@ -17,6 +17,7 @@ interface Props {
   openGraphLocale?: string;
   articlePublishedTime?: string;
   articleModifiedTime?: string;
+  accentColor?: string;
 }
 
 import "../styles/main.scss";
@@ -32,7 +33,8 @@ const {
   openGraphImageAlt,
   openGraphLocale = "en_US",
   articlePublishedTime,
-  articleModifiedTime
+  articleModifiedTime,
+  accentColor
 } = Astro.props;
 const pageTitle = title && title !== siteTitle ? `${title} | ${siteTitle}` : siteTitle;
 const pageDescription = description ?? siteDescription;
@@ -180,7 +182,8 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       })();
     </script>
   </head>
-  <body>
+  <body style={accentColor ? `--accent: ${accentColor}` : undefined}>
+    <div class="accent-bar"></div>
     <header class="site-header" role="banner">
       <div class="wrapper">
         <div >

@@ -24,7 +24,11 @@ const truncatedExcerpt = truncateWords(excerpt, 18);
 <a href={href} class:list={[variant === "opinion" ? "opinion-item" : ["front-block", "story-block"]]}>
    {isSlack && <span class="story-kicker">{item.column.title}</span>}
    <header class="story-card-header">
-             <h3 class:list={[variant === "opinion" ? "opinion-title" : "story-block-title"]}>{title}</h3>
+             <h3
+               class:list={[variant === "opinion" ? "opinion-title" : "story-block-title"]}
+               transition:name={item.kind !== "slack" ? `title-${item.post.slug}` : undefined}
+               transition:animate="fade"
+             >{title}</h3>
 
              {date && !homepage ? (<time class="story-card-date" datetime={date.toISOString()}>{formatStoryDate(date)}</time>) : null}
           </header>
