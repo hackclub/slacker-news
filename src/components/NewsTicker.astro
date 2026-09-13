@@ -11,7 +11,11 @@ type Headline = {
   title: string;
   href: string;
   date: number;
+  columnKey: string;
 };
+
+const TICKER_LIMIT = 20;
+const MAX_PER_COLUMN = 4;
 
 function timestampToNumber(timestamp: string | Date): number {
   const parsed = new Date(timestamp).getTime();
@@ -25,6 +29,7 @@ const regularHeadlines: Headline[] = (await getPosts()).map((post) => ({
   title: post.title,
   href: post.url,
   date: post.date.getTime(),
+  columnKey: post.category ?? "post",
 }));
 
 const slackHeadlines = (
@@ -40,6 +45,7 @@ const slackHeadlines = (
           title: `${column.noun ?? column.title}: ${firstMetadataValue(message.metadata) ?? column.title}`,
           href: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
           date: timestampToNumber(message.timestamp || message.slackTs),
+          columnKey: column.column,
         }));
       } catch {
         return [];
@@ -48,9 +54,20 @@ const slackHeadlines = (
   )
 ).flat();
 
-const headlines = [...regularHeadlines, ...slackHeadlines]
-  .sort((a, b) => b.date - a.date)
-  .slice(0, 20);
+// Cap headlines per column/category so a high-volume source (e.g. YSWS)
+// can't crowd out every other article type in the ticker.
+const columnCounts = new Map<string, number>();
+const headlines: Headline[] = [];
+
+for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => b.date - a.date)) {
+  if (headlines.length >= TICKER_LIMIT) break;
+
+  const count = columnCounts.get(candidate.columnKey) ?? 0;
+  if (count >= MAX_PER_COLUMN) continue;
+
+  headlines.push(candidate);
+  columnCounts.set(candidate.columnKey, count + 1);
+}
 
 const figures = await getTickerFigures();
 
@@ -385,11 +402,16 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
 
   .news-ticker-pause {
     flex: 0 0 auto;
-    padding: 8px 12px;
+    height: 31px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     border-left: 2px solid #000;
     background: #f5f5f0;
     font-size: 0.7rem;
+    line-height: 1;
     cursor: pointer;
     font-family: inherit;
     color: #000;

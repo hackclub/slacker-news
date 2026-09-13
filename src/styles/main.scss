@@ -339,7 +339,7 @@ a {
   border: none;
   height: 2px;
   margin: 0;
-  background: linear-gradient(to right, var(--accent) 0 72px, var(--rule) 72px);
+  background: var(--rule);
 }
 
 .front-top {
@@ -368,6 +368,7 @@ a {
 // ─── Shared block style (the rounded-rectangle boxes) ────────────────────────
 
 .front-block {
+  position: relative;
   background: var(--card);
   border: 2px solid var(--rule);
   border-radius: 14px;
@@ -399,13 +400,51 @@ article.front-block {
   }
 }
 
+// Arrow cue on hover for clickable article cards/rows.
+a.front-block::after,
+article.front-block::after,
+.opinion-item::after {
+  content: "\2192";
+  position: absolute;
+  right: 16px;
+  bottom: 4px;
+  z-index: 1;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.15s, transform 0.15s;
+  pointer-events: none;
+}
+
+a.front-block:hover::after,
+article.front-block:hover::after,
+.opinion-item:hover::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.opinion-item {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.front-block::after,
+  article.front-block::after,
+  .opinion-item::after {
+    transition: opacity 0.15s;
+    transform: none;
+  }
+}
+
 // ─── Headline block ───────────────────────────────────────────────────────────
 
 .block-rule {
   border: none;
   height: 2px;
   margin: 0 0 14px;
-  background: linear-gradient(to right, var(--accent) 0 72px, var(--rule) 72px);
+  background: var(--rule);
 }
 
 .headline-block {
@@ -583,21 +622,18 @@ article.front-block {
 }
 
 .slack-auth-prompt {
-  border: 2px dashed var(--hc-red);
+  border: 2px solid var(--rule);
   border-radius: 14px;
   padding: 18px 22px;
-  background: color-mix(in srgb, var(--hc-red) 6%, #fff);
-  text-align: center;
   font-family: Georgia, serif;
 
   .slack-auth-prompt-label {
-    display: inline-block;
+    display: block;
     margin-bottom: 8px;
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--hc-red);
   }
 
   p {
@@ -611,7 +647,6 @@ article.front-block {
   }
 
   a {
-    font-weight: 700;
     color: var(--hc-red);
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -855,11 +890,17 @@ article.front-block {
   font-style: italic;
 }
 
+.changelog-list {
+  column-count: 2;
+  column-gap: 28px;
+}
+
 .changelog-item {
   display: flex;
   flex-direction: column;
   gap: 3px;
   padding: 4px 0;
+  break-inside: avoid-column;
 
   .changelog-change {
     font-size: 1rem;
@@ -989,6 +1030,14 @@ article.front-block {
       font-weight: 700;
       letter-spacing: 0.14em;
       color: #{$accent-ink};
+
+      a {
+        color: inherit;
+
+        &:visited {
+          color: inherit;
+        }
+      }
     }
   }
 
@@ -996,7 +1045,7 @@ article.front-block {
     border: none;
     height: 2px;
     margin: 0;
-    background: linear-gradient(to right, var(--accent) 0 72px, var(--rule) 72px);
+    background: var(--rule);
   }
 
   .story-body {
@@ -1298,6 +1347,9 @@ html.dark-mode mark {
   }
   .front-changelog {
     grid-template-columns: 1fr;
+  }
+  .changelog-list {
+    column-count: 1;
   }
   .front-slack-columns {
     gap: 20px;

@@ -246,21 +246,23 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
       <div class="front-block changelog-block accent-green">
         <div class="section-label">Changelog</div>
         <hr class="block-rule" />
-        {recentChangelog.map((entry, index) => (
-          <>
-            <div class="changelog-item">
-              {entry.kind === "long" ? (
-                <a href={entry.url} class="changelog-change changelog-change-link">{entry.title}</a>
-              ) : (
-                <span class="changelog-change">{entry.change}</span>
-              )}
-              <span class="changelog-meta">
-                {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
-              </span>
-            </div>
-            {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}
-          </>
-        ))}
+        <div class="changelog-list">
+          {recentChangelog.map((entry, index) => (
+            <>
+              <div class="changelog-item">
+                {entry.kind === "long" ? (
+                  <a href={entry.url} class="changelog-change changelog-change-link">{entry.title}</a>
+                ) : (
+                  <span class="changelog-change">{entry.change}</span>
+                )}
+                <span class="changelog-meta">
+                  {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
+                </span>
+              </div>
+              {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}
+            </>
+          ))}
+        </div>
         {recentChangelog.length > 0 && <hr class="changelog-divider" />}
         <a href="/changelogs/" class="archive-link">All changelogs &rarr;</a>
       </div>

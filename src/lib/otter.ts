@@ -27,6 +27,18 @@ let inFlight: Promise<TickerFigure[]> | undefined;
 
 const wholeNumber = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
+// TODO(miguel): Otter's overview totals are cumulative, so there's no real
+// prior-period baseline to diff against yet. Miguel is building a stats API
+// that will return genuine period-over-period changes for these figures —
+// swap this placeholder map for that response as soon as it ships.
+const MOCK_OVERVIEW_CHANGES: Record<string, TickerFigure["change"]> = {
+  total_projects: { direction: "up", text: "4%" },
+  total_hours: { direction: "up", text: "12%" },
+  unique_shippers: { direction: "up", text: "2%" },
+  total_ysws: { direction: "down", text: "1%" },
+  total_countries: { direction: "up", text: "1%" },
+};
+
 function monthlyTotals(rows: OtterStats["projects_by_month"]): Array<[string, number]> {
   const totals = new Map<string, number>();
   for (const row of rows ?? []) {
@@ -45,21 +57,20 @@ function toFigures(stats: OtterStats): TickerFigure[] {
   const overview = stats.overview ?? {};
   const figures: TickerFigure[] = [];
 
-  if (overview.total_projects) {
-    figures.push({ label: "Projects shipped", value: wholeNumber.format(overview.total_projects) });
-  }
-  if (overview.total_hours) {
-    figures.push({ label: "Hours logged", value: wholeNumber.format(overview.total_hours) });
-  }
-  if (overview.unique_shippers) {
-    figures.push({ label: "Shippers", value: wholeNumber.format(overview.unique_shippers) });
-  }
-  if (overview.total_ysws) {
-    figures.push({ label: "YSWS programs", value: wholeNumber.format(overview.total_ysws) });
-  }
-  if (overview.total_countries) {
-    figures.push({ label: "Countries", value: wholeNumber.format(overview.total_countries) });
-  }
+  const pushOverviewFigure = (key: string, label: string, value: number | undefined) => {
+    if (!value) return;
+    figures.push({
+      label,
+      value: wholeNumber.format(value),
+      change: MOCK_OVERVIEW_CHANGES[key],
+    });
+  };
+
+  pushOverviewFigure("total_projects", "Projects shipped", overview.total_projects);
+  pushOverviewFigure("total_hours", "Hours logged", overview.total_hours);
+  pushOverviewFigure("unique_shippers", "Shippers", overview.unique_shippers);
+  pushOverviewFigure("total_ysws", "YSWS programs", overview.total_ysws);
+  pushOverviewFigure("total_countries", "Countries", overview.total_countries);
 
   // The newest bucket is the current, partial month, so compare the two months
   // before it — otherwise every reading looks like a collapse.
