@@ -92,7 +92,7 @@ headlines.forEach((headline, index) => {
   }
 });
 
-for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FIGURE))) {
+for (const figure of figures.slice(Math.floor(headlines.length / HEADLINES_PER_FIGURE))) {
   entries.push({ kind: "figure", figure });
 }
 ---
@@ -238,47 +238,6 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
       });
   }
 
-  function initializeSkeletonTickers() {
-    document
-      .querySelectorAll(
-        ".news-ticker-skeleton-scroll:not([data-ticker-initialized])",
-      )
-      .forEach((scroll) => {
-        const set = scroll.querySelector(".news-ticker-skeleton-set");
-        if (!(scroll instanceof HTMLElement) || !(set instanceof HTMLElement)) {
-          return;
-        }
-        const parent = scroll.parentElement;
-        if (!parent) return;
-
-        scroll.setAttribute("data-ticker-initialized", "true");
-
-        const trackWidth = parent.offsetWidth;
-        const items = Array.from(set.children);
-        if (items.length === 0) return;
-
-        let i = 0;
-        while (set.offsetWidth < trackWidth) {
-          const clone = items[i % items.length].cloneNode(true);
-          set.appendChild(clone);
-          i++;
-        }
-
-        const dupe = set.cloneNode(true);
-        if (!(dupe instanceof HTMLElement)) return;
-        dupe.setAttribute("aria-hidden", "true");
-        scroll.appendChild(dupe);
-
-        const setWidth = set.offsetWidth;
-        const pxPerSecond = 30;
-        const duration = setWidth / pxPerSecond;
-
-        scroll.style.animationDuration = duration + "s";
-        scroll.style.setProperty("--set-width", "-" + setWidth + "px");
-        scroll.classList.add("news-ticker-animate");
-      });
-  }
-
   function initializePauseButtons() {
     document.querySelectorAll(".news-ticker-pause").forEach((btn) => {
       setPauseButtonState(btn, isPausedPreference());
@@ -344,7 +303,6 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
     // would bake in zero-width animation values that never get fixed
     // once the ticker is expanded again.
     initializeTickers();
-    initializeSkeletonTickers();
     initializePauseButtons();
     initializeHoverPause();
     cacheTicker();

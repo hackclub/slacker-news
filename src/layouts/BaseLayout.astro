@@ -244,6 +244,54 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     </header>
     <script is:inline>
       (function () {
+        // This runs immediately (not deferred like NewsTicker's own script)
+        // because the skeleton fallback above renders synchronously, before
+        // the real server:defer'd ticker — and its data-loading — resolves.
+        function initializeSkeletonScroll() {
+          document
+            .querySelectorAll(".news-ticker-skeleton-scroll:not([data-skeleton-initialized])")
+            .forEach(function (scroll) {
+              var set = scroll.querySelector(".news-ticker-skeleton-set");
+              var parent = scroll.parentElement;
+              if (!set || !parent) return;
+
+              scroll.setAttribute("data-skeleton-initialized", "true");
+
+              var trackWidth = parent.offsetWidth;
+              var items = Array.from(set.children);
+              if (items.length === 0) return;
+
+              var i = 0;
+              while (set.offsetWidth < trackWidth) {
+                var clone = items[i % items.length].cloneNode(true);
+                set.appendChild(clone);
+                i++;
+              }
+
+              var dupe = set.cloneNode(true);
+              dupe.setAttribute("aria-hidden", "true");
+              scroll.appendChild(dupe);
+
+              var setWidth = set.offsetWidth;
+              var pxPerSecond = 30;
+              var duration = setWidth / pxPerSecond;
+
+              scroll.style.animationDuration = duration + "s";
+              scroll.style.setProperty("--set-width", "-" + setWidth + "px");
+              scroll.classList.add("news-ticker-animate");
+            });
+        }
+
+        initializeSkeletonScroll();
+        document.addEventListener("astro:page-load", initializeSkeletonScroll);
+        new MutationObserver(initializeSkeletonScroll).observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
+      })();
+    </script>
+    <script is:inline>
+      (function () {
         var STORAGE_KEY = "news-ticker:collapsed";
 
         function isCollapsedPreference() {
