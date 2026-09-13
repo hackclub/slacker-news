@@ -598,6 +598,13 @@ article.front-block:hover::after,
   border: none;
   border-top: 1px solid #000;
   margin: 12px 0;
+  transition: border-top-color 0.15s, border-top-width 0.15s;
+}
+
+// Echoes the hover cue other cards use (accent lift, arrow) so this list
+// doesn't feel inert by comparison.
+.opinion-item:hover + .opinion-divider {
+  border-top: 2px solid var(--accent);
 }
 
 // ─── Bottom story blocks ──────────────────────────────────────────────────────
@@ -1139,10 +1146,10 @@ article.front-block:hover::after,
         text-decoration: underline;
         text-decoration-thickness: 1px;
         text-underline-offset: 2px;
-        text-decoration-color: var(--hc-red);
+        text-decoration-color: var(--accent);
 
         &:hover {
-          color: var(--hc-red);
+          color: var(--accent);
         }
       }
     }

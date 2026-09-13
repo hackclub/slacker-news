@@ -6,7 +6,7 @@ const site = await getSiteConfig();
 ---
 
 <BaseLayout title="Search" siteTitle={site.title} siteDescription={site.description}>
-  <div class="archive-page search-page accent-orange">
+  <div class="archive-page search-page accent-muted">
     <div class="section-label">Search</div>
     <hr class="section-rule" />
 
@@ -124,7 +124,7 @@ const site = await getSiteConfig();
                 ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
                 : "";
               return `
-            <a href="${doc.url}" class="front-block story-block">
+            <a href="${doc.url}" class="front-block story-block" style="--accent: ${doc.accent ?? "#8492a6"}">
               <h3 class="story-block-title">${escapeHtml(doc.title)}</h3>
               <p class="story-block-excerpt">${truncateWords(doc.excerpt, 24)}</p>
               <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
@@ -176,7 +176,7 @@ const site = await getSiteConfig();
               ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
               : "";
             return `
-            <a href="${doc.url}" class="front-block story-block">
+            <a href="${doc.url}" class="front-block story-block" style="--accent: ${doc.accent ?? "#8492a6"}">
               <h3 class="story-block-title">${terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title)}</h3>
               <p class="story-block-excerpt">${preview}</p>
               <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
