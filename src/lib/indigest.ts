@@ -13,6 +13,7 @@ export type SlackColumnConfig = {
   showMetadata?: boolean;
   limit?: number;
   subtitle?: string;
+  rss?: boolean;
 };
 
 export type IndigestMessage = {
