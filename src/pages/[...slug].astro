@@ -44,6 +44,13 @@ function resolveReference(targetSlug: string) {
   return null;
 }
 
+const CATEGORY_ACCENTS: Record<string, string> = {
+  news: "accent-blue",
+  opinion: "accent-purple",
+  essays: "accent-cyan",
+  changelogs: "accent-green",
+};
+
 const responseLinks =
   post.responseTo
     ?.map((s) => resolveReference(s))
@@ -65,7 +72,7 @@ const followUpLinks =
   openGraphImageAlt={post.leadingImage?.alt}
   articlePublishedTime={new Date(post.date).toISOString()}
 >
-  <article class="story-page">
+  <article class:list={["story-page", CATEGORY_ACCENTS[post.category ?? ""] ?? "accent-red"]}>
     <header class="story-header">
       <h1 class="story-title">{post.title}</h1>
       <div class="story-meta">

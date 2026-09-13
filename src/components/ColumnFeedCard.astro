@@ -22,6 +22,7 @@ const truncatedExcerpt = truncateWords(excerpt, 18);
 ---
 
 <a href={href} class:list={[variant === "opinion" ? "opinion-item" : ["front-block", "story-block"]]}>
+   {isSlack && <span class="story-kicker">{item.column.title}</span>}
    <header class="story-card-header">
              <h3 class:list={[variant === "opinion" ? "opinion-title" : "story-block-title"]}>{title}</h3>
 

@@ -53,12 +53,14 @@ const displayOpinion = opinionItems.slice(0, 3);
 
 const displayNews = newsItems
   .filter((item) => item.kind !== "post" || item.post.slug !== headline?.slug)
-  .slice(0, 8);
+  .slice(0, 9);
 
-const displayEssays = essayItems.slice(0, 4);
+const displayEssays = essayItems.slice(0, 3);
 
 const recentChangelog = (await getChangelogEntries()).slice(0, 3);
-const homepageSlackColumns = getSlackColumns().filter((column) => column.homepage);
+const homepageSlackColumns = getSlackColumns().filter(
+  (column) => column.homepage && (!column.authRequired || Astro.locals.user)
+);
 
 function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
   return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 4), 1), 8);
@@ -74,7 +76,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
   <div class="newspaper-front">
     <div class="front-top">
       {headline && (
-        <a href={headline.url} class="front-block headline-block">
+        <a href={headline.url} class="front-block headline-block accent-red">
           {headline.leadingImage && (
             <div class="headline-media">
               <img
@@ -87,6 +89,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
           )}
 
           <div class="headline-content">
+            <span class="story-kicker">Lead story</span>
             <h2 class="block-headline">{headline.title}</h2>
             <hr class="block-rule" />
             <div class="block-excerpts">
@@ -102,8 +105,8 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         </a>
       )}
 
-      <div class="front-block opinion-block">
-        <div class="section-label">OPINION</div>
+      <div class="front-block opinion-block accent-purple">
+        <div class="section-label">Opinion</div>
         <hr class="block-rule" />
         {displayOpinion.map((item, index) => (
           <>
@@ -116,29 +119,39 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
       </div>
     </div>
 
-    <div class={`front-bottom ${displayNews.length < 4 ? `front-bottom--${displayNews.length}` : ""}`}>
-      {displayNews.map((item) => (
-        <ColumnFeedCard item={item} variant="story" homepage={true}  />
-      ))}
-    </div>
+    <section class="front-section accent-blue">
+      <div class="section-kicker">
+        <span class="section-label">News</span>
+      </div>
+      <div class={`front-bottom ${displayNews.length < 4 ? `front-bottom--${displayNews.length}` : ""}`}>
+        {displayNews.map((item) => (
+          <ColumnFeedCard item={item} variant="story" homepage={true} />
+        ))}
+      </div>
+    </section>
 
-    <a href="/news/" class="news-archive-link">All news &rarr;</a>
+    <a href="/news/" class="news-archive-link accent-blue">All news &rarr;</a>
 
     {displayEssays.length > 0 && (
       <>
-        <hr class="section-rule" />
+        <hr class="section-rule accent-blue" />
 
-        <div class={`front-essays ${displayEssays.length < 4 ? `front-essays--${displayEssays.length}` : ""}`}>
-          {displayEssays.map((item) => (
-            <ColumnFeedCard item={item} variant="story" homepage={true}  />
-          ))}
-        </div>
+        <section class="front-section accent-cyan">
+          <div class="section-kicker">
+            <span class="section-label">Essays</span>
+          </div>
+          <div class={`front-essays ${displayEssays.length < 4 ? `front-essays--${displayEssays.length}` : ""}`}>
+            {displayEssays.map((item) => (
+              <ColumnFeedCard item={item} variant="story" homepage={true} />
+            ))}
+          </div>
+        </section>
 
-        <a href="/essays/" class="news-archive-link">All essays &rarr;</a>
+        <a href="/essays/" class="news-archive-link accent-cyan">All essays &rarr;</a>
       </>
     )}
 
-    <hr class="section-rule" />
+    <hr class="section-rule accent-cyan" />
 
     <div id="homepage-slack-columns-stale" hidden aria-hidden="true"></div>
     <div id="homepage-slack-columns-live">
@@ -146,7 +159,14 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         <div slot="fallback" class="front-slack-columns">
         {homepageSlackColumns.map((column) => (
           <>
-            <section class="slack-column-row slack-column-row--loading">
+            <section
+              class="slack-column-row slack-column-row--loading"
+              style={column.accent ? `--accent: ${column.accent}` : undefined}
+            >
+              <div class="section-kicker">
+                <span class="section-label">{column.title}</span>
+                {column.subtitle && <span class="section-kicker-note">{column.subtitle}</span>}
+              </div>
               <div
                 class:list={[
                   "slack-column-row-items",
@@ -159,8 +179,12 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
                 ))}
               </div>
             </section>
-            <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.column)}/`}>All {column.title} &rarr;</a>
-            <hr class="section-rule" />
+            <a
+              class="news-archive-link"
+              href={`/slack/${encodeURIComponent(column.column)}/`}
+              style={column.accent ? `--accent: ${column.accent}` : undefined}
+            >All {column.title} &rarr;</a>
+            <hr class="section-rule" style={column.accent ? `--accent: ${column.accent}` : undefined} />
           </>
         ))}
         </div>
@@ -172,7 +196,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         var live = document.getElementById("homepage-slack-columns-live");
         if (!(stale instanceof HTMLElement) || !(live instanceof HTMLElement)) return;
 
-        var cacheKey = "homepage-slack-columns:v1:" + (document.documentElement.dataset.authenticated || "0");
+        var cacheKey = "homepage-slack-columns:v2:" + (document.documentElement.dataset.authenticated || "0");
         var signature = function (root) {
           return Array.from(root.querySelectorAll(".slack-column-card-title-link"))
             .map(function (link) { return link.getAttribute("href") + "|" + link.textContent; })
@@ -219,8 +243,8 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
 
 
     <div class="front-changelog front-changelog--full">
-      <div class="front-block changelog-block">
-        <div class="section-label">CHANGELOG</div>
+      <div class="front-block changelog-block accent-green">
+        <div class="section-label">Changelog</div>
         <hr class="block-rule" />
         {recentChangelog.map((entry, index) => (
           <>

@@ -34,7 +34,11 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
 
   {visibleHomepageColumns.map((column) => (
   <>
-    <section class="slack-column-row">
+    <section class="slack-column-row" style={column.accent ? `--accent: ${column.accent}` : undefined}>
+      <div class="section-kicker">
+        <span class="section-label">{column.title}</span>
+        {column.subtitle && <span class="section-kicker-note">{column.subtitle}</span>}
+      </div>
       <div
         class:list={["slack-column-row-items", `slack-column-row-items--${getMessagesPerRow(column)}`]}
         style={`--slack-column-messages-per-row: ${getMessagesPerRow(column)}`}
@@ -64,18 +68,24 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
       </div>
       
     </section>
-    <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.column)}/`}>All {column.title} &rarr;</a>
-    <hr class="section-rule" />
+    <a
+      class="news-archive-link"
+      href={`/slack/${encodeURIComponent(column.column)}/`}
+      style={column.accent ? `--accent: ${column.accent}` : undefined}
+    >All {column.title} &rarr;</a>
+    <hr class="section-rule" style={column.accent ? `--accent: ${column.accent}` : undefined} />
     </>
   ))}
   {protectedHomepageColumns.length > 0 && (
     <section class="slack-auth-prompt">
+      <span class="slack-auth-prompt-label">Held for subscribers</span>
       <p>
-        <a href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>
-
-          Sign in with Hack Club
-        </a>
-        {" "}to view protected articles.
+        {protectedHomepageColumns.map((column) => column.title).join(" and ")}
+        {protectedHomepageColumns.length === 1 ? " is" : " are"} only for Hack Clubbers.
+      </p>
+      <p>
+        <a href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>Sign in with Hack Club</a>
+        {" "}to read them. Subscription price: still free.
       </p>
     </section>
   )}

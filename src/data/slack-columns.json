@@ -8,7 +8,8 @@
     "homepageMessagesPerRow": 3,
     "homepageLimit": 6,
     "showMetadata": false,
-    "limit": 1000
+    "limit": 1000,
+    "accent": "#ff8c37"
   },
   {
     "column": "ysws",
@@ -19,7 +20,8 @@
     "homepageMessagesPerRow": 4,
     "homepageLimit": 12,
     "showMetadata": false,
-    "limit": 1000
+    "limit": 1000,
+    "accent": "#33d6a6"
   },
   {
     "column": "opinion",
@@ -30,7 +32,8 @@
     "homepageLimit": 12,
     "showMetadata": false,
     "authRequired": true,
-    "limit": 1000
+    "limit": 1000,
+    "accent": "#ec3750"
   },
   {
     "column": "ship-of-the-week",
@@ -42,6 +45,7 @@
     "homepageLimit": 3,
     "limit": 1000,
     "authRequired": true,
-    "showMetadata": false
+    "showMetadata": false,
+    "accent": "#f1c40f"
   }
 ]

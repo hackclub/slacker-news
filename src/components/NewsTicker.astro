@@ -5,6 +5,7 @@ import {
   getIndigestMessages,
   getSlackColumns,
 } from "../lib/indigest";
+import { getTickerFigures, type TickerFigure } from "../lib/otter";
 
 type Headline = {
   title: string;
@@ -50,6 +51,28 @@ const slackHeadlines = (
 const headlines = [...regularHeadlines, ...slackHeadlines]
   .sort((a, b) => b.date - a.date)
   .slice(0, 20);
+
+const figures = await getTickerFigures();
+
+type TickerEntry =
+  | { kind: "headline"; headline: Headline }
+  | { kind: "figure"; figure: TickerFigure };
+
+const HEADLINES_PER_FIGURE = 3;
+const entries: TickerEntry[] = [];
+
+headlines.forEach((headline, index) => {
+  entries.push({ kind: "headline", headline });
+
+  const figure = figures[Math.floor(index / HEADLINES_PER_FIGURE)];
+  if (figure && (index + 1) % HEADLINES_PER_FIGURE === 0) {
+    entries.push({ kind: "figure", figure });
+  }
+});
+
+for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FIGURE))) {
+  entries.push({ kind: "figure", figure });
+}
 ---
 
 <div class="news-ticker" aria-label="News ticker">
@@ -57,11 +80,24 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
   <div class="news-ticker-track">
     <div class="news-ticker-scroll" data-ticker>
       <span class="news-ticker-set" data-ticker-set>
-        {headlines.map((headline) => (
+        {entries.map((entry) => (
           <>
-            <a class="news-ticker-item" href={headline.href}>
-              {headline.title}
-            </a>
+            {entry.kind === "headline" ? (
+              <a class="news-ticker-item" href={entry.headline.href}>
+                {entry.headline.title}
+              </a>
+            ) : (
+              <span class="news-ticker-item news-ticker-figure">
+                <span class="news-ticker-figure-label">{entry.figure.label}</span>
+                <span class="news-ticker-figure-value">{entry.figure.value}</span>
+                {entry.figure.change && (
+                  <span class={`news-ticker-figure-change news-ticker-figure-change--${entry.figure.change.direction}`}>
+                    {entry.figure.change.direction === "up" ? "▲" : "▼"}
+                    {entry.figure.change.text}
+                  </span>
+                )}
+              </span>
+            )}
             <span class="news-ticker-divider" aria-hidden="true">◆</span>
           </>
         ))}
@@ -72,7 +108,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
 </div>
 
 <script>
-  const TICKER_CACHE_KEY = "news-ticker:headlines:v1";
+  const TICKER_CACHE_KEY = "news-ticker:headlines:v3";
 
   function restoreCachedTicker() {
     const loading = document.querySelector("#news-ticker .news-ticker--loading");
@@ -205,7 +241,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
   function saveTickerPositions() {
     document
       .querySelectorAll(
-        ".news-ticker-scroll, .news-ticker-skeleton-scroll, .news-ticker-stale-scroll",
+        ".news-ticker-scroll, .news-ticker-skeleton-scroll",
       )
       .forEach((scroll) => {
         if (!(scroll instanceof HTMLElement)) return;
@@ -221,7 +257,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
   function restoreTickerPositions() {
     document
       .querySelectorAll(
-        ".news-ticker-scroll[data-ticker-current-time], .news-ticker-skeleton-scroll[data-ticker-current-time], .news-ticker-stale-scroll[data-ticker-current-time]",
+        ".news-ticker-scroll[data-ticker-current-time], .news-ticker-skeleton-scroll[data-ticker-current-time]",
       )
       .forEach((scroll) => {
         if (!(scroll instanceof HTMLElement)) return;
@@ -308,9 +344,14 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
 
   .news-ticker-label {
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
     padding: 8px 1em;
-    border-right: 2px solid #000;
+    margin-right: 12px;
+    background: var(--hc-red);
+    color: #fff;
     font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     white-space: nowrap;
   }
@@ -339,7 +380,7 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
     margin: 0 1.2em;
     font-size: 0.45em;
     vertical-align: middle;
-    opacity: 0.5;
+    color: var(--hc-red);
   }
 
   .news-ticker-pause {
@@ -352,11 +393,12 @@ const headlines = [...regularHeadlines, ...slackHeadlines]
     cursor: pointer;
     font-family: inherit;
     color: #000;
-    transition: background 0.15s;
+    transition: background 0.15s, color 0.15s;
   }
 
   .news-ticker-pause:hover {
     background: #e8e8e3;
+    color: var(--hc-red);
   }
 
   @keyframes ticker-scroll {

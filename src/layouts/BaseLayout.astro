@@ -47,6 +47,16 @@ function toAbsoluteURL(input: string): string {
 }
 
 const canonicalURL = toAbsoluteURL(canonicalPath ?? Astro.url.pathname);
+
+const navLinks = [
+  { label: "Search", href: "/search/" },
+  { label: "About", href: "/about/" },
+  { label: "Submissions", href: "/submissions/" },
+  { label: "Hack Club", href: "https://hackclub.com" },
+  { label: "RSS", href: "/feed.xml" },
+  { label: "Stats", href: "https://plausible.io/news.hackclub.com" },
+];
+const currentPath = Astro.url.pathname;
 const socialImageURL = toAbsoluteURL(openGraphImage ?? "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png");
 const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 ---
@@ -172,17 +182,16 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             </span>
           </label>
           <div class="trigger">
-            <a class="page-link" href="/search/">Search</a>
-            <span class="nav-pip">|</span>
-            <a class="page-link" href="/about/">About</a>
-            <span class="nav-pip">|</span>
-            <a class="page-link" href="/submissions/">Submissions</a>
-            <span class="nav-pip">|</span>
-            <a class="page-link" href="https://hackclub.com">Hack Club</a>
-            <span class="nav-pip">|</span>
-            <a class="page-link" href="/feed.xml">RSS</a>
-            <span class="nav-pip">|</span>
-            <a class="page-link" href="https://plausible.io/news.hackclub.com">Stats</a>
+            {navLinks.map((link, index) => (
+              <>
+                {index > 0 && <span class="nav-pip">|</span>}
+                <a
+                  class="page-link"
+                  href={link.href}
+                  aria-current={currentPath === link.href ? "page" : undefined}
+                >{link.label}</a>
+              </>
+            ))}
             <span class="nav-pip js-only">|</span>
             <button class="page-link theme-toggle js-only" id="theme-toggle" type="button">Dark Mode</button>
               {isAuthenticated ? (
@@ -195,8 +204,6 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         </nav>
       </div>
       <div id="news-ticker" transition:persist="news-ticker">
-        <div id="news-ticker-stale" hidden aria-hidden="true"></div>
-        <div id="news-ticker-live">
         <NewsTicker server:defer>
           <div slot="fallback" class="news-ticker news-ticker--loading" aria-label="News ticker">
             <span class="news-ticker-label">newswire</span>
@@ -217,87 +224,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             </div>
           </div>
         </NewsTicker>
-        </div>
       </div>
-      <script is:inline>
-        (function () {
-          var stale = document.getElementById("news-ticker-stale");
-          var live = document.getElementById("news-ticker-live");
-          if (!(stale instanceof HTMLElement) || !(live instanceof HTMLElement)) return;
-
-          try {
-            var cached = JSON.parse(localStorage.getItem("news-ticker:headlines:v2") || "null");
-            if (!cached || typeof cached.markup !== "string") return;
-
-            window.__newsTickerStartedAt = performance.now();
-            window.__newsTickerCachedMarkup = cached.markup;
-            stale.hidden = false;
-            live.style.display = "none";
-            var staleTickerTimer = 0;
-
-            var initializeStaleTicker = function () {
-              var scroll = stale.querySelector(".news-ticker-scroll");
-              var set = stale.querySelector(".news-ticker-set");
-              if (!(scroll instanceof HTMLElement) || !(set instanceof HTMLElement)) return;
-              if (scroll.hasAttribute("data-ticker-initialized")) return;
-              scroll.setAttribute("data-ticker-initialized", "true");
-              var items = Array.from(set.querySelectorAll(".news-ticker-entry"));
-              if (items.length === 0) return;
-              var duplicate = set.cloneNode(true);
-              if (!(duplicate instanceof HTMLElement)) return;
-              duplicate.setAttribute("aria-hidden", "true");
-              scroll.appendChild(duplicate);
-              var index = 0;
-              staleTickerTimer = window.setInterval(function () {
-                index++;
-                var next = items[index];
-                if (next instanceof HTMLElement) {
-                  scroll.style.transform = "translateX(-" + next.offsetLeft + "px)";
-                  return;
-                }
-                scroll.addEventListener("transitionend", function () {
-                  scroll.style.transition = "none";
-                  scroll.style.transform = "translateX(0)";
-                  index = 0;
-                  requestAnimationFrame(function () { scroll.style.transition = ""; });
-                }, { once: true });
-                scroll.style.transform = "translateX(-" + set.offsetWidth + "px)";
-              }, 5000);
-            };
-
-            var renderStaleTicker = function (markup) {
-              if (staleTickerTimer) window.clearInterval(staleTickerTimer);
-              stale.innerHTML =
-                '<span class="news-ticker-label">newswire</span>' +
-                '<div class="news-ticker-stale-track"><div class="news-ticker-scroll" data-ticker>' +
-                '<span class="news-ticker-set" data-ticker-set>' + markup + "</span></div></div>";
-              initializeStaleTicker();
-            };
-
-            renderStaleTicker(cached.markup);
-
-            var showFreshTicker = function () {
-              var freshSet = live.querySelector(".news-ticker:not(.news-ticker--loading) .news-ticker-set");
-              if (!(freshSet instanceof HTMLElement)) return;
-
-              if (freshSet.innerHTML === window.__newsTickerCachedMarkup) {
-                live.style.display = "none";
-                stale.hidden = false;
-              } else {
-                window.__newsTickerCachedMarkup = freshSet.innerHTML;
-                renderStaleTicker(freshSet.innerHTML);
-                live.style.display = "none";
-                stale.hidden = false;
-              }
-            };
-
-            new MutationObserver(showFreshTicker).observe(live, { childList: true, subtree: true });
-            showFreshTicker();
-          } catch (_error) {
-            // Ignore unavailable or malformed browser cache.
-          }
-        })();
-      </script>
     </header>
 
     <main class="page-content" aria-label="Content">
