@@ -57,7 +57,7 @@ const displayNews = newsItems
 
 const displayEssays = essayItems.slice(0, 3);
 
-const recentChangelog = (await getChangelogEntries()).slice(0, 3);
+const recentChangelog = (await getChangelogEntries()).slice(0, 6);
 const homepageSlackColumns = getSlackColumns().filter(
   (column) => column.homepage && (!column.authRequired || Astro.locals.user)
 );
@@ -89,7 +89,6 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
           )}
 
           <div class="headline-content">
-            <span class="story-kicker">Lead story</span>
             <h2 class="block-headline">{headline.title}</h2>
             <hr class="block-rule" />
             <div class="block-excerpts">

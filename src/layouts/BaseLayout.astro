@@ -222,7 +222,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       <div id="news-ticker" transition:persist="news-ticker">
         <NewsTicker server:defer>
           <div slot="fallback" class="news-ticker news-ticker--loading" aria-label="News ticker">
-            <span class="news-ticker-label">newswire</span>
+            <button class="news-ticker-label" type="button" aria-label="Hide newswire ticker"><span class="news-ticker-label-text">newswire</span></button>
             <div class="news-ticker-skeleton-track" aria-hidden="true">
               <div class="news-ticker-skeleton-scroll">
                 <div class="news-ticker-skeleton-set">
@@ -242,6 +242,48 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         </NewsTicker>
       </div>
     </header>
+    <script is:inline>
+      (function () {
+        var STORAGE_KEY = "news-ticker:collapsed";
+
+        function isCollapsedPreference() {
+          try {
+            return localStorage.getItem(STORAGE_KEY) === "true";
+          } catch (_error) {
+            return false;
+          }
+        }
+
+        // The red "newswire" box itself is the toggle: collapsing hides
+        // everything else in the ticker bar but leaves that box in place
+        // to expand it again.
+        function applyTickerCollapse() {
+          var collapsed = isCollapsedPreference();
+          document.querySelectorAll(".news-ticker").forEach(function (ticker) {
+            ticker.classList.toggle("news-ticker--collapsed", collapsed);
+          });
+          document.querySelectorAll(".news-ticker-label").forEach(function (label) {
+            label.setAttribute("aria-label", collapsed ? "Show newswire ticker" : "Hide newswire ticker");
+          });
+        }
+
+        applyTickerCollapse();
+        document.addEventListener("astro:after-swap", applyTickerCollapse);
+
+        document.addEventListener("click", function (event) {
+          var label = event.target.closest && event.target.closest(".news-ticker-label");
+          if (!label) return;
+
+          var next = !isCollapsedPreference();
+          try {
+            localStorage.setItem(STORAGE_KEY, String(next));
+          } catch (_error) {
+            // Ignore unavailable browser storage; state just won't persist.
+          }
+          applyTickerCollapse();
+        });
+      })();
+    </script>
 
     <main class="page-content" aria-label="Content">
       <div class="wrapper">

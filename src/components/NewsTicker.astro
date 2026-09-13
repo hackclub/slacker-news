@@ -93,7 +93,7 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
 ---
 
 <div class="news-ticker" aria-label="News ticker">
-  <span class="news-ticker-label">newswire</span>
+  <button class="news-ticker-label" type="button" aria-label="Hide newswire ticker"><span class="news-ticker-label-text">newswire</span></button>
   <div class="news-ticker-track">
     <div class="news-ticker-scroll" data-ticker>
       <span class="news-ticker-set" data-ticker-set>
@@ -126,6 +126,27 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
 
 <script>
   const TICKER_CACHE_KEY = "news-ticker:headlines:v3";
+  const PAUSE_STORAGE_KEY = "news-ticker:paused";
+
+  function isPausedPreference() {
+    try {
+      return localStorage.getItem(PAUSE_STORAGE_KEY) === "true";
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function setPauseButtonState(btn: Element, isPaused: boolean) {
+    const glyph = isPaused ? "▶" : "❚❚";
+    const label = isPaused ? "Resume ticker" : "Pause ticker";
+    // Bail out when nothing changes: the page-wide MutationObserver below
+    // reinitializes tickers on any DOM mutation, and an unconditional
+    // textContent/attribute write here would re-trigger it every time,
+    // looping forever.
+    if (btn.textContent === glyph && btn.getAttribute("aria-label") === label) return;
+    btn.textContent = glyph;
+    btn.setAttribute("aria-label", label);
+  }
 
   function restoreCachedTicker() {
     const loading = document.querySelector("#news-ticker .news-ticker--loading");
@@ -137,7 +158,8 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
 
       loading.classList.remove("news-ticker--loading");
       loading.innerHTML =
-        '<span class="news-ticker-label">newswire</span>' +
+        '<button class="news-ticker-label" type="button" aria-label="Hide newswire ticker">' +
+        '<span class="news-ticker-label-text">newswire</span></button>' +
         '<div class="news-ticker-track"><div class="news-ticker-scroll" data-ticker>' +
         '<span class="news-ticker-set" data-ticker-set>' + cached.markup + "</span></div></div>" +
         '<button class="news-ticker-pause" aria-label="Pause ticker" type="button">❚❚</button>';
@@ -204,6 +226,10 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
         if (typeof startedAt === "number" && animation) {
           animation.currentTime = (performance.now() - startedAt) % (duration * 1000);
         }
+
+        if (isPausedPreference() && animation) {
+          animation.pause();
+        }
       });
   }
 
@@ -224,35 +250,75 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
   }
 
   function initializePauseButtons() {
-    document.querySelectorAll(".news-ticker-pause:not([data-pause-initialized])").forEach((btn) => {
+    document.querySelectorAll(".news-ticker-pause").forEach((btn) => {
+      setPauseButtonState(btn, isPausedPreference());
+
+      if (btn.hasAttribute("data-pause-initialized")) return;
       btn.setAttribute("data-pause-initialized", "true");
+
       btn.addEventListener("click", () => {
-        const ticker = btn.closest(".news-ticker");
-        if (!ticker) return;
-        const scroll = ticker.querySelector(".news-ticker-scroll");
-        if (!(scroll instanceof HTMLElement)) return;
+        const nextIsPaused = !isPausedPreference();
 
-        const animations = scroll.getAnimations();
-        const isPaused = animations.some((a) => a.playState === "paused");
-
-        if (isPaused) {
-          animations.forEach((a) => a.play());
-          btn.textContent = "❚❚";
-          btn.setAttribute("aria-label", "Pause ticker");
-        } else {
-          animations.forEach((a) => a.pause());
-          btn.textContent = "▶";
-          btn.setAttribute("aria-label", "Resume ticker");
+        try {
+          localStorage.setItem(PAUSE_STORAGE_KEY, String(nextIsPaused));
+        } catch (_error) {
+          // Ignore unavailable browser storage; state just won't persist.
         }
+
+        document.querySelectorAll(".news-ticker").forEach((ticker) => {
+          const scroll = ticker.querySelector(".news-ticker-scroll");
+          if (scroll instanceof HTMLElement) {
+            scroll.getAnimations().forEach((a) => (nextIsPaused ? a.pause() : a.play()));
+          }
+        });
+
+        document.querySelectorAll(".news-ticker-pause").forEach((pauseBtn) => {
+          setPauseButtonState(pauseBtn, nextIsPaused);
+        });
+      });
+    });
+  }
+
+  function applyCollapsedState() {
+    let collapsed = false;
+    try {
+      collapsed = localStorage.getItem("news-ticker:collapsed") === "true";
+    } catch (_error) {
+      // Ignore unavailable browser storage; default to expanded.
+    }
+    document.querySelectorAll(".news-ticker").forEach((ticker) => {
+      ticker.classList.toggle("news-ticker--collapsed", collapsed);
+    });
+  }
+
+  function initializeHoverPause() {
+    document.querySelectorAll(".news-ticker:not([data-hover-pause-initialized])").forEach((ticker) => {
+      ticker.setAttribute("data-hover-pause-initialized", "true");
+      const scroll = ticker.querySelector(".news-ticker-scroll");
+      if (!(scroll instanceof HTMLElement)) return;
+
+      ticker.addEventListener("mouseenter", () => {
+        scroll.getAnimations().forEach((a) => a.pause());
+      });
+
+      ticker.addEventListener("mouseleave", () => {
+        // Leave it paused if the user explicitly paused it with the button.
+        if (isPausedPreference()) return;
+        scroll.getAnimations().forEach((a) => a.play());
       });
     });
   }
 
   function initializeAllTickers() {
+    // Run before collapsing: measuring a hidden (display:none) track
+    // would bake in zero-width animation values that never get fixed
+    // once the ticker is expanded again.
     initializeTickers();
     initializeSkeletonTickers();
     initializePauseButtons();
+    initializeHoverPause();
     cacheTicker();
+    applyCollapsedState();
   }
 
   function saveTickerPositions() {
@@ -365,12 +431,22 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
     align-items: center;
     padding: 8px 1em;
     margin-right: 12px;
+    box-sizing: border-box;
+    border: 3px double transparent;
     background: var(--hc-red);
     color: #fff;
+    font-family: inherit;
+    font-size: inherit;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .news-ticker-label:hover {
+    background: color-mix(in srgb, var(--hc-red) 85%, #000);
   }
 
   .news-ticker-scroll {

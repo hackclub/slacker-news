@@ -122,7 +122,46 @@ a {
 
 // ─── Masthead ────────────────────────────────────────────────────────────────
 
+// Collapsed ticker: the rest of the bar disappears entirely (page content
+// reflows up to fill the space) and only the red "newswire" box remains,
+// pinned in place so it keeps working as the toggle.
+.news-ticker.news-ticker--collapsed {
+  border: none;
+  border-bottom: 2px solid #000;
+  min-height: 0;
+
+  .news-ticker-track,
+  .news-ticker-skeleton-track,
+  .news-ticker-pause {
+    display: none;
+  }
+
+  .news-ticker-label {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 40;
+    margin-right: 0;
+    border-color: #000;
+  }
+}
+
+@media (max-width: 600px) {
+  .news-ticker.news-ticker--collapsed .news-ticker-label {
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+
+    .news-ticker-label-text {
+      display: none;
+    }
+  }
+}
+
 .site-header {
+  position: relative;
   border-top: 5px solid var(--hc-red);
   border-bottom: none;
   background-color: #fff;
@@ -622,37 +661,18 @@ article.front-block:hover::after,
 }
 
 .slack-auth-prompt {
-  border: 2px solid var(--rule);
-  border-radius: 14px;
-  padding: 18px 22px;
+  margin: 0;
   font-family: Georgia, serif;
-
-  .slack-auth-prompt-label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-  }
-
-  p {
-    margin: 0 0 4px;
-    font-size: 0.95rem;
-    color: #333;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
+  font-size: 0.85rem;
+  color: #666;
 
   a {
-    color: var(--hc-red);
+    color: inherit;
     text-decoration: underline;
     text-underline-offset: 3px;
 
     &:visited {
-      color: var(--hc-red);
+      color: inherit;
     }
   }
 }
