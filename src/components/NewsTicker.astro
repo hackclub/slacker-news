@@ -243,9 +243,34 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
         if (!(scroll instanceof HTMLElement) || !(set instanceof HTMLElement)) {
           return;
         }
+        const parent = scroll.parentElement;
+        if (!parent) return;
 
         scroll.setAttribute("data-ticker-initialized", "true");
-        scroll.style.animationDuration = `${set.offsetWidth / 30}s`;
+
+        const trackWidth = parent.offsetWidth;
+        const items = Array.from(set.children);
+        if (items.length === 0) return;
+
+        let i = 0;
+        while (set.offsetWidth < trackWidth) {
+          const clone = items[i % items.length].cloneNode(true);
+          set.appendChild(clone);
+          i++;
+        }
+
+        const dupe = set.cloneNode(true);
+        if (!(dupe instanceof HTMLElement)) return;
+        dupe.setAttribute("aria-hidden", "true");
+        scroll.appendChild(dupe);
+
+        const setWidth = set.offsetWidth;
+        const pxPerSecond = 30;
+        const duration = setWidth / pxPerSecond;
+
+        scroll.style.animationDuration = duration + "s";
+        scroll.style.setProperty("--set-width", "-" + setWidth + "px");
+        scroll.classList.add("news-ticker-animate");
       });
   }
 
@@ -394,12 +419,6 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
     border-bottom: 3px double #000;
   }
 
-  .news-ticker--loading {
-    min-height: 31px;
-    align-items: center;
-    padding: 0 1em;
-  }
-
   .news-ticker-skeleton {
     display: block;
     width: min(28rem, 55%);
@@ -423,30 +442,6 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
     overflow: hidden;
     display: flex;
     align-items: center;
-  }
-
-  .news-ticker-label {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    padding: 8px 1em;
-    margin-right: 12px;
-    box-sizing: border-box;
-    border: 3px double transparent;
-    background: var(--hc-red);
-    color: #fff;
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-
-  .news-ticker-label:hover {
-    background: color-mix(in srgb, var(--hc-red) 85%, #000);
   }
 
   .news-ticker-scroll {

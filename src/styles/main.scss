@@ -261,30 +261,36 @@ a {
   align-items: center;
   min-height: 31px;
   overflow: hidden;
-  padding: 0 1em;
   border-top: 3px solid #000;
   border-bottom: 3px double #000;
   background: #f5f5f0;
 }
 
+// Global (not scoped to NewsTicker.astro): this markup is also rendered by
+// BaseLayout's server:defer fallback and by NewsTicker's own cache-restore
+// script, neither of which carry NewsTicker's component scope attribute.
 .news-ticker-label {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   padding: 8px 1em;
   margin-right: 12px;
+  box-sizing: border-box;
+  border: 3px double transparent;
   background: var(--hc-red);
   color: #fff;
+  font-family: inherit;
+  font-size: inherit;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .news-ticker-skeleton-scroll {
-    transition: none;
-  }
+.news-ticker-label:hover {
+  background: color-mix(in srgb, var(--hc-red) 85%, #000);
 }
 
 .news-ticker-skeleton-set {
@@ -302,7 +308,28 @@ a {
 .news-ticker-skeleton-scroll {
   display: flex;
   width: max-content;
-  transition: transform 900ms ease-in-out;
+}
+
+// Global (not scoped): reuses NewsTicker.astro's keyframe/class names for
+// the skeleton fallback, which is rendered by BaseLayout and so can't reach
+// that component's scoped copy.
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(var(--set-width));
+  }
+}
+
+.news-ticker-animate {
+  animation: ticker-scroll linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-ticker-animate {
+    animation: none;
+  }
 }
 
 .news-ticker-skeleton-entry {

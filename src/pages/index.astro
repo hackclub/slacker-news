@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import AuthorList from "../components/AuthorList.astro";
+import SlackChannel from "../components/SlackChannel.astro";
 import {
   getChangelogEntries,
   getPosts,
@@ -68,6 +69,11 @@ function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): nu
 
 function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLimit?: number; limit?: number }): number {
   return Math.min(Math.max(Math.round(column.homepageLimit ?? column.homepageFetchLimit ?? column.limit ?? 5), 1), 100);
+}
+
+function splitSubtitle(subtitle: string): { prefix: string; channelLabel: string | null } {
+  const match = subtitle.match(/^(.*)#(\S+)$/);
+  return match ? { prefix: match[1], channelLabel: match[2] } : { prefix: subtitle, channelLabel: null };
 }
 
 ---
@@ -164,7 +170,15 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
             >
               <div class="section-kicker">
                 <span class="section-label">{column.title}</span>
-                {column.subtitle && <span class="section-kicker-note">{column.subtitle}</span>}
+                {column.subtitle && (() => {
+                  const { prefix, channelLabel } = splitSubtitle(column.subtitle);
+                  return (
+                    <span class="section-kicker-note">
+                      {prefix}
+                      {channelLabel && <SlackChannel id={column.channelId ?? column.column} label={channelLabel} />}
+                    </span>
+                  );
+                })()}
               </div>
               <div
                 class:list={[
@@ -242,25 +256,30 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
 
 
     <div class="front-changelog front-changelog--full">
-      <div class="front-block changelog-block accent-green">
+      <div class="front-block changelog-block accent-muted">
         <div class="section-label">Changelog</div>
         <hr class="block-rule" />
         <div class="changelog-list">
-          {recentChangelog.map((entry, index) => (
-            <>
-              <div class="changelog-item">
-                {entry.kind === "long" ? (
-                  <a href={entry.url} class="changelog-change changelog-change-link">{entry.title}</a>
-                ) : (
-                  <span class="changelog-change">{entry.change}</span>
+          {(() => {
+            const rowsPerColumn = Math.ceil(recentChangelog.length / 2);
+            return recentChangelog.map((entry, index) => (
+              <>
+                <div class="changelog-item">
+                  {entry.kind === "long" ? (
+                    <a href={entry.url} class="changelog-change changelog-change-link">{entry.title}</a>
+                  ) : (
+                    <span class="changelog-change">{entry.change}</span>
+                  )}
+                  <span class="changelog-meta">
+                    {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
+                  </span>
+                </div>
+                {(index + 1) % rowsPerColumn !== 0 && index < recentChangelog.length - 1 && (
+                  <hr class="changelog-divider" />
                 )}
-                <span class="changelog-meta">
-                  {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
-                </span>
-              </div>
-              {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}
-            </>
-          ))}
+              </>
+            ));
+          })()}
         </div>
         {recentChangelog.length > 0 && <hr class="changelog-divider" />}
         <a href="/changelogs/" class="archive-link">All changelogs &rarr;</a>

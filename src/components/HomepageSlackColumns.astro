@@ -1,9 +1,15 @@
 ---
 import IndigestMetadata from "./IndigestMetadata.astro";
+import SlackChannel from "./SlackChannel.astro";
 import SlackRichText from "./SlackRichText.astro";
 import { getSlackColumnData, getSlackColumns, firstMetadataValue } from "../lib/indigest";
 import { getPosts } from "../lib/content";
 import type { IndigestMessage } from "../lib/indigest";
+
+function splitSubtitle(subtitle: string): { prefix: string; channelLabel: string | null } {
+  const match = subtitle.match(/^(.*)#(\S+)$/);
+  return match ? { prefix: match[1], channelLabel: match[2] } : { prefix: subtitle, channelLabel: null };
+}
 interface Props {
   returnTo?: string;
   }
@@ -37,7 +43,15 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
     <section class="slack-column-row" style={column.accent ? `--accent: ${column.accent}` : undefined}>
       <div class="section-kicker">
         <span class="section-label">{column.title}</span>
-        {column.subtitle && <span class="section-kicker-note">{column.subtitle}</span>}
+        {column.subtitle && (() => {
+          const { prefix, channelLabel } = splitSubtitle(column.subtitle);
+          return (
+            <span class="section-kicker-note">
+              {prefix}
+              {channelLabel && <SlackChannel id={column.channelId ?? column.column} label={channelLabel} />}
+            </span>
+          );
+        })()}
       </div>
       <div
         class:list={["slack-column-row-items", `slack-column-row-items--${getMessagesPerRow(column)}`]}
@@ -78,7 +92,7 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
   ))}
   {protectedHomepageColumns.length > 0 && (
     <div class="slack-auth-prompt">
-      <strong class="slack-auth-prompt-label">Members-only</strong>
+      <strong class="slack-auth-prompt-label">Members-only area</strong>
       <p>
         <a href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>Sign in with Hack Club</a>
         {" "}to access members-only posts.
