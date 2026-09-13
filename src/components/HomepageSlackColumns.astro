@@ -77,8 +77,11 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
     </>
   ))}
   {protectedHomepageColumns.length > 0 && (
-    <p class="slack-auth-prompt">
-      <a href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>Sign in with Hack Club</a>
-      {" "}to access members-only posts.
-    </p>
+    <div class="slack-auth-prompt">
+      <strong class="slack-auth-prompt-label">Members-only</strong>
+      <p>
+        <a href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>Sign in with Hack Club</a>
+        {" "}to access members-only posts.
+      </p>
+    </div>
   )}

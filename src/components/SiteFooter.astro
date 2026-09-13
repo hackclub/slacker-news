@@ -92,6 +92,12 @@ try {
     height: 1.2em;
     width: auto;
     vertical-align: middle;
+    filter: grayscale(100%);
+    transition: filter 0.15s;
+  }
+
+  .site-footer:hover .footer-hc-inline {
+    filter: grayscale(0%);
   }
 
   .footer-commit {

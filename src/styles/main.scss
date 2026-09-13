@@ -666,9 +666,22 @@ article.front-block:hover::after,
 
 .slack-auth-prompt {
   margin: 0;
+  border: 2px dashed #999;
+  border-radius: 14px;
+  padding: 16px 20px;
   font-family: Georgia, serif;
   font-size: 0.85rem;
   color: #666;
+
+  .slack-auth-prompt-label {
+    display: block;
+    margin-bottom: 4px;
+    color: #000;
+  }
+
+  p {
+    margin: 0;
+  }
 
   a {
     color: inherit;
