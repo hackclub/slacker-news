@@ -538,6 +538,10 @@ article.front-block:hover::after,
 .opinion-block {
   display: flex;
   flex-direction: column;
+
+  &:hover {
+    background: #{$accent-wash};
+  }
 }
 
 .opinion-item {
