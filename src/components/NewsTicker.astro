@@ -6,6 +6,7 @@ import {
   getSlackColumns,
 } from "../lib/indigest";
 import { getTickerFigures, type TickerFigure } from "../lib/otter";
+import { getSlackDataFigures } from "../lib/slack-data";
 
 type Headline = {
   title: string;
@@ -69,7 +70,11 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
   columnCounts.set(candidate.columnKey, count + 1);
 }
 
-const figures = await getTickerFigures();
+const [otterFigures, slackDataFigures] = await Promise.all([
+  getTickerFigures(),
+  getSlackDataFigures(),
+]);
+const figures = [...otterFigures, ...slackDataFigures];
 
 type TickerEntry =
   | { kind: "headline"; headline: Headline }
@@ -317,16 +322,16 @@ for (const figure of figures.slice(Math.ceil(headlines.length / HEADLINES_PER_FI
   }
 
   function initializeHoverPause() {
-    document.querySelectorAll(".news-ticker:not([data-hover-pause-initialized])").forEach((ticker) => {
-      ticker.setAttribute("data-hover-pause-initialized", "true");
-      const scroll = ticker.querySelector(".news-ticker-scroll");
+    document.querySelectorAll(".news-ticker-track:not([data-hover-pause-initialized])").forEach((track) => {
+      track.setAttribute("data-hover-pause-initialized", "true");
+      const scroll = track.querySelector(".news-ticker-scroll");
       if (!(scroll instanceof HTMLElement)) return;
 
-      ticker.addEventListener("mouseenter", () => {
+      track.addEventListener("mouseenter", () => {
         scroll.getAnimations().forEach((a) => a.pause());
       });
 
-      ticker.addEventListener("mouseleave", () => {
+      track.addEventListener("mouseleave", () => {
         // Leave it paused if the user explicitly paused it with the button.
         if (isPausedPreference()) return;
         scroll.getAnimations().forEach((a) => a.play());

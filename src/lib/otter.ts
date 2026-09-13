@@ -15,8 +15,6 @@ type OtterStats = {
   overview?: {
     total_projects?: number;
     total_hours?: number;
-    unique_shippers?: number;
-    total_ysws?: number;
     total_countries?: number;
   };
   projects_by_month?: Array<{ period?: string; total_projects?: number }>;
@@ -34,8 +32,6 @@ const wholeNumber = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
 const MOCK_OVERVIEW_CHANGES: Record<string, TickerFigure["change"]> = {
   total_projects: { direction: "up", text: "4%" },
   total_hours: { direction: "up", text: "12%" },
-  unique_shippers: { direction: "up", text: "2%" },
-  total_ysws: { direction: "down", text: "1%" },
   total_countries: { direction: "up", text: "1%" },
 };
 
@@ -68,8 +64,6 @@ function toFigures(stats: OtterStats): TickerFigure[] {
 
   pushOverviewFigure("total_projects", "Projects shipped", overview.total_projects);
   pushOverviewFigure("total_hours", "Hours logged", overview.total_hours);
-  pushOverviewFigure("unique_shippers", "Shippers", overview.unique_shippers);
-  pushOverviewFigure("total_ysws", "YSWS programs", overview.total_ysws);
   pushOverviewFigure("total_countries", "Countries", overview.total_countries);
 
   // The newest bucket is the current, partial month, so compare the two months
