@@ -123,6 +123,14 @@ const thumbnailFallback = `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqde
     width: 100%;
     height: 100%;
     object-fit: cover;
+    /* Colour is the hover cue, so the still sits quiet until pointed at. */
+    filter: grayscale(1);
+    transition: filter 0.2s;
+  }
+
+  .video-embed-play:hover .video-embed-thumb,
+  .video-embed-play:focus-visible .video-embed-thumb {
+    filter: none;
   }
 
   .video-embed-badge {
@@ -165,6 +173,11 @@ const thumbnailFallback = `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqde
     filter: grayscale(1) invert(1) hue-rotate(180deg);
   }
 
+  :global(html.dark-mode) .video-embed-play:hover .video-embed-thumb,
+  :global(html.dark-mode) .video-embed-play:focus-visible .video-embed-thumb {
+    filter: invert(1) hue-rotate(180deg);
+  }
+
   :global(html.dark-mode) .video-embed-frame :global(iframe) {
     filter: invert(1) hue-rotate(180deg);
   }
@@ -177,6 +190,13 @@ const thumbnailFallback = `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqde
   @media (prefers-color-scheme: dark) {
     :global(html:not(.light-mode):not(.dark-mode)) .video-embed-thumb {
       filter: grayscale(1) invert(1) hue-rotate(180deg);
+    }
+
+    :global(html:not(.light-mode):not(.dark-mode)) .video-embed-play:hover .video-embed-thumb,
+    :global(html:not(.light-mode):not(.dark-mode))
+      .video-embed-play:focus-visible
+      .video-embed-thumb {
+      filter: invert(1) hue-rotate(180deg);
     }
 
     :global(html:not(.light-mode):not(.dark-mode)) .video-embed-frame :global(iframe) {
