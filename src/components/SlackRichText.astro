@@ -7,7 +7,7 @@ interface Props {
 }
 
 const { text } = Astro.props;
-const tokenPattern = /(\*[^*\n]+\*|(?<!\w)_[^_\n]+_(?!\w)|<https?:\/\/[^>\s]+>|<@[^>]+>|<![^>]+>|<#.+?>|#[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z0-9_+-]+:)/g;
+const tokenPattern = /(\*[^*\n]+\*|(?<!\w)_[^_\n]+_(?!\w)|<https?:\/\/[^>\s]+>|<@[^>]+>|<![^>]+>|<#.+?>|#[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z0-9_+-]+:|\b(?<![@\w.<&!#])(?:https?:\/\/)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d{1,5})?(?:[/?#][^\s<>'"]*)?(?![a-z0-9-]))/gi;
 
 function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
@@ -37,6 +37,15 @@ function tokenize(input: string): Token[] {
       tokens.push({ type: "channel", id: channel[0], name: channel[1] });
     } else if (raw.startsWith("#")) {
       tokens.push({ type: "channel-candidate", value: raw });
+    } else if (/^(?:https?:\/\/)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}/i.test(raw)) {
+      const trailing = raw.match(/[.,;:!?)\]'"”’»]+$/)?.[0] ?? "";
+      const cleanUrl = trailing ? raw.slice(0, -trailing.length) : raw;
+      tokens.push({
+        type: "link",
+        url: /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`,
+        label: cleanUrl,
+      });
+      if (trailing) tokens.push({ type: "text", value: trailing });
     } else {
       const parts = raw.slice(2, -1).split("|", 2);
       const target = parts[0].replace(/^subteam\^/, "");
