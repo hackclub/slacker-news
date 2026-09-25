@@ -80,9 +80,9 @@ const followUpLinks =
   articlePublishedTime={new Date(post.date).toISOString()}
   accentColor={CATEGORY_ACCENT_COLORS[post.category ?? ""] ?? "var(--hc-red)"}
 >
-  <article class:list={["story-page", CATEGORY_ACCENTS[post.category ?? ""] ?? "accent-red"]}>
+  <article class:list={["story-page", CATEGORY_ACCENTS[post.category ?? ""] ?? "accent-red", post.leadingImage && "has-leading-image"]}>
     <header class="story-header">
-      <h1 class="story-title" transition:name={`title-${post.slug}`} transition:animate="fade">{post.title}</h1>
+      <h1 class="story-title" transition:name={`title-${post.slug}`}>{post.title}</h1>
       <div class="story-meta">
         {
           post.category && (
@@ -106,6 +106,20 @@ const followUpLinks =
       </div>
       <hr class="story-rule" />
     </header>
+
+    {
+      post.leadingImage && (
+        <div class="story-leading-media">
+          <img
+            src={post.leadingImage.src}
+            alt={post.leadingImage.alt}
+            loading="eager"
+            decoding="async"
+            transition:name={`image-${post.slug}`}
+          />
+        </div>
+      )
+    }
 
     {
       responseLinks.length > 0 && (

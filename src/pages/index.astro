@@ -97,12 +97,13 @@ function splitSubtitle(subtitle: string): { prefix: string; channelLabel: string
                 alt={headline.leadingImage.alt}
                 loading="eager"
                 decoding="async"
+                transition:name={`image-${headline.slug}`}
               />
             </div>
           )}
 
           <div class="headline-content">
-            <h2 class="block-headline" transition:name={`title-${headline.slug}`} transition:animate="fade">{headline.title}</h2>
+            <h2 class="block-headline" transition:name={`title-${headline.slug}`}>{headline.title}</h2>
             <hr class="block-rule" />
             <div class="block-excerpts">
               <p

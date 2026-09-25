@@ -27,7 +27,6 @@ const truncatedExcerpt = truncateWords(excerpt, 18);
              <h3
                class:list={[variant === "opinion" ? "opinion-title" : "story-block-title"]}
                transition:name={item.kind !== "slack" ? `title-${item.post.slug}` : undefined}
-               transition:animate="fade"
              >{title}</h3>
 
              {date && !homepage ? (<time class="story-card-date" datetime={date.toISOString()}>{formatStoryDate(date)}</time>) : null}
