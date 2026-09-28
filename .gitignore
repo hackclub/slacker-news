@@ -21,3 +21,5 @@ review-import.json
 .env.test
 .env.production
 .vercel
+
+.herdr
