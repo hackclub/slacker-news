@@ -384,11 +384,12 @@ a {
   }
 }
 
+// Matches .news-ticker-divider in NewsTicker.astro: the skeleton's separators
+// must not change color when the real ticker replaces the fallback.
 .news-ticker-skeleton-dot {
   margin: 0 1.2em;
-  color: var(--hc-red);
+  color: var(--hc-muted);
   font-size: 0.45em;
-  opacity: 0.55;
 }
 
 @keyframes news-ticker-loading {
@@ -447,7 +448,7 @@ a {
   padding: 24px 22px;
   display: block;
   color: #000;
-  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, transform 0.15s;
   overflow: hidden;
 
   &:hover {
@@ -461,7 +462,6 @@ article.front-block {
   &:hover {
     background: #{$accent-wash};
     transform: translateY(-2px);
-    box-shadow: 0 4px 0 -1px var(--accent);
   }
 }
 
