@@ -672,14 +672,72 @@ a {
   }
 }
 
+.acknowledgements-section {
+  margin-bottom: 32px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.acknowledgements-heading {
+  font-family: Georgia, serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
 .acknowledgements-full-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px 20px;
+  gap: 10px;
 
   .acknowledgement-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 2px solid #000;
+    border-radius: 10px;
+    background: #fff;
     font-size: 1.05rem;
-    line-height: 1.75;
+    line-height: 1.4;
+
+    // Avatars stay muted until the box is hovered. The filter sits on the box
+    // rather than the image so that dark mode's own invert on <img> still
+    // applies underneath it; the box's text is black, so graying it is a no-op.
+    filter: grayscale(1);
+    transition: filter 0.15s ease;
+
+    &:hover,
+    &:focus-within {
+      filter: grayscale(0);
+    }
+
+    // The mention is the only text in the box, so let it take the space left
+    // over and trim rather than push the avatar around.
+    .slack_user {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .acknowledgement-avatar {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #000;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #e8e8e0;
+  }
+
+  @media screen and (max-width: 600px) {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
