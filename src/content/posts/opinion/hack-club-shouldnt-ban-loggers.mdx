@@ -8,7 +8,7 @@ date: 2026-09-29
 
 When you hit "Delete" on a message, you expect it to go away and never haunt you again.
 
-Here is what actually happens when you delete a message: Slack's server sends every client a nice request of "pretty please remove that message :3" Your normal Slack client would comply. A message logger keeps the message and marks it as deleted instead.
+Here is what actually happens when you delete a message: Slack's server sends every client a nice request of "pretty please remove that message. :3" Your normal Slack client would comply. A message logger keeps the message and marks it as deleted instead.
 
 The idea is new to Slack but not new in general. On Discord, the MessageLogger plugin is one of the headline features of [Vencord](https://vencord.dev/), a popular client mod. Vencord's own README [admits that client mods break Discord's ToS](https://github.com/Vendicated/Vencord#disclaimer), then notes that Discord seems indifferent and that no bans over it are known. It is a rule on paper that never gets enforced. Keep that in mind.
 
@@ -18,7 +18,7 @@ The idea is new to Slack but not new in general. On Discord, the MessageLogger p
 
 Loggers make some people uneasy, and that is expected. But that unease comes from an assumption that deleting something from the Internet means that it is gone for good. I think we have all heard of the phrase “The Internet never forgets.” Yeah, people don’t say that for no reason.
 
-If we focus only on Slack, a deleted message can already survive in plenty of places. Someone screenshotted it. It popped up as a notification and sits in someone's notification history. It got emailed to someone with email notifications on. A bot in the channel stored it. None of this requires a fancy mod and can be done completely by accident.
+If we focus only on Slack, a deleted message can already survive in plenty of places. Someone screenshotted it. It popped up as a notification and sits in someone's notification history. It got emailed to someone with email notifications on. A bot in the channel stored it. None of this requires a fancy mod, and all of it can happen by accident.
 
 A logger saves what Slack already sent to your client. It does not break into Slack or use any trick to get data it wasn't given. When the FD asked the community for its takes on message logging [in a \#fire-dept thread](https://hackclub.slack.com/archives/C0707TCFG7J/p1785948354865839), it said it had no plans to log messages itself, but made it clear that any Hack Clubber could already log yours.
 
@@ -28,7 +28,7 @@ Loggers make the gap between what is deleted and what is truly gone visible. In 
 
 But the million dollar question is: could a ban even work? A logger runs on the user's own machine. Nothing it does is visible to Slack, to the FD, or to anyone else in the channel. The only way the FD learns someone runs one is if they say so. A "no message loggers" rule punishes the people who tell you the truth. Anyone who uses a logger but keeps quiet is untouchable. You end up rewarding secrecy over honesty.
 
-This is where Discord comes back into play. Discord bans client mods on paper, but in practice, they do nothing about it. Instead, people on Discord know that since Message Loggers are common, they should think twice before sending something they don't want to stick around. We don't have to look at Discord to see how this plays out, either. Slick's logger has been public since July and is used openly across the Slack, and nothing has blown up.
+This is where Discord comes back into play. Discord bans client mods on paper, but in practice, they do nothing about it. Instead, people on Discord know that since message loggers are common, they should think twice before sending something they don't want to stick around. We don't have to look at Discord to see how this plays out, either. Slick's logger has been public since July and is used openly across the Slack, and nothing has blown up.
 
 **Counterclaim**
 
