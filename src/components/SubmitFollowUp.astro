@@ -1,0 +1,51 @@
+---
+import SlackChannel from "./SlackChannel.astro";
+---
+
+<aside class="submit-cta">
+  <strong>Have something to add to the conversation?</strong>
+  <p>
+    We enocourage you to <a href="/submissions/">submit</a> a follow up or response article sharing your perspective or proposal.
+    Want to know more about submitting? Ask questions in <SlackChannel id="slacker-news" /> or by DM'ing an editor.
+  </p>
+</aside>
+
+<style>
+  .submit-cta {
+    padding: 1rem 1.25rem;
+    margin: 2rem 0 1.5rem;
+    border: 3px double #000;
+    background: #fff;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .submit-cta strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .submit-cta p {
+    margin: 0;
+  }
+
+  .submit-cta a {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  html.dark .submit-cta {
+    border-color: #fff;
+    background: #222;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  html.dark .submit-cta a {
+    color: #fff;
+  }
+</style>
