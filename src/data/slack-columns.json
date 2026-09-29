@@ -30,6 +30,7 @@
     "homepageLimit": 12,
     "showMetadata": false,
     "authRequired": true,
+    "rss": true,
     "limit": 1000
   },
   {
@@ -42,6 +43,7 @@
     "homepageLimit": 3,
     "limit": 1000,
     "authRequired": true,
+    "rss": true,
     "showMetadata": false
   }
 ]

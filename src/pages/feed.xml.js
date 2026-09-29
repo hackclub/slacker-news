@@ -1,10 +1,56 @@
 import rss from "@astrojs/rss";
+import { timingSafeEqual } from "node:crypto";
 import { getChangelogEntries, getPosts, getSiteConfig } from "../lib/content";
 import { legacyRedirects } from "../data/legacy-redirects.mjs";
+import {
+  firstMetadataValue,
+  getSlackColumnData,
+  getSlackColumns,
+} from "../lib/indigest";
 
 const legacyPaths = new Set(
   Object.keys(legacyRedirects).map((path) => path.replace(/\/$/, "")),
 );
+
+function hasValidRssToken(context) {
+  const expected = import.meta.env.RSS_ACCESS_TOKEN;
+  if (!expected) return false;
+
+  const provided = context.url.searchParams.get("token");
+  if (!provided) return false;
+
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+  if (expectedBuf.length !== providedBuf.length) return false;
+
+  return timingSafeEqual(expectedBuf, providedBuf);
+}
+
+async function getProtectedSlackItems(context) {
+  if (!hasValidRssToken(context)) return [];
+
+  const rssColumns = getSlackColumns().filter((column) => column.rss);
+  const columnData = await Promise.all(
+    rssColumns.map((column) => getSlackColumnData(column.column)),
+  );
+
+  return columnData
+    .filter((column) => column !== undefined)
+    .flatMap((column) =>
+      column.messages
+        .map((message) => ({
+          title:
+            firstMetadataValue(message.metadata) ?? column.title ?? "Slack message",
+          description: column.title,
+          pubDate: new Date(message.timestamp),
+          link: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
+          content: `<p>${escapeHtml(message.text)}</p>`,
+        }))
+        // Indigest occasionally returns a malformed timestamp; drop those
+        // rather than let one bad record break the whole feed.
+        .filter((item) => !Number.isNaN(item.pubDate.getTime())),
+    );
+}
 
 function escapeHtml(input) {
   return input
@@ -51,6 +97,7 @@ export async function GET(context) {
   const site = await getSiteConfig();
   const posts = await getPosts();
   const changelogs = await getChangelogEntries();
+  const protectedSlackItems = await getProtectedSlackItems(context);
 
   await trackFeedView(context);
 
@@ -105,7 +152,7 @@ export async function GET(context) {
       };
     });
 
-  const items = [...postItems, ...longChangelogItems].sort(
+  const items = [...postItems, ...longChangelogItems, ...protectedSlackItems].sort(
     (a, b) => b.pubDate.getTime() - a.pubDate.getTime(),
   );
 

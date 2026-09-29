@@ -33,7 +33,9 @@ const allCandidates = [
   ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-const headline = allCandidates[0];
+const headline = site.headlineOverride
+  ? allCandidates.find((c) => c.slug === site.headlineOverride) ?? allCandidates[0]
+  : allCandidates[0];
 const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
   const paras = headline?.paragraphs ?? [];
@@ -90,7 +92,9 @@ const displayEssays = essayItems.slice(0, 4);
 
 const recentChangelog = allChangelogs.slice(0, 3);
 const acknowledgements = await getAcknowledgements();
-const homepageSlackColumns = getSlackColumns().filter((column) => column.homepage);
+const homepageSlackColumns = getSlackColumns().filter(
+  (column) => column.homepage && (!column.authRequired || Astro.locals.user)
+);
 
 function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
   return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 4), 1), 8);
