@@ -1,13 +1,36 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SlackMention from "../components/SlackMention.astro";
-import { getAcknowledgements, getSiteConfig } from "../lib/content";
+import {
+  getAcknowledgementGroups,
+  getSiteConfig,
+  type Acknowledgement,
+} from "../lib/content";
 
 const site = await getSiteConfig();
-const acknowledgements = await getAcknowledgements();
+const { editors, technical, content, submitters, other } =
+  await getAcknowledgementGroups();
+
+const sections: { title: string; people: Acknowledgement[] }[] = [
+  { title: "Editors", people: editors },
+  { title: "Technical contributors", people: technical },
+  { title: "Content contributors", people: content },
+  { title: "Article submitters", people: submitters },
+  { title: "With thanks", people: other },
+];
+
+// Cachet redirects this straight to the user's Slack avatar, so the picture
+// costs no API call of our own.
+function avatarUrl(slackId: string): string {
+  return `https://cachet.hackclub.com/users/${encodeURIComponent(slackId)}/r`;
+}
 ---
 
-<BaseLayout title="Acknowledgements" siteTitle={site.title} siteDescription={site.description}>
+<BaseLayout
+  title="Acknowledgements"
+  siteTitle={site.title}
+  siteDescription={site.description}
+>
   <article class="story-page">
     <header class="story-header">
       <h1 class="story-title">Acknowledgements</h1>
@@ -15,16 +38,32 @@ const acknowledgements = await getAcknowledgements();
     </header>
 
     <div class="story-body">
-      <div class="acknowledgements-full-grid">
-        {acknowledgements.map((person) => {
-          const userName = person.name.trim().replace(/^@+/, "");
-          return (
-            <span class="acknowledgement-name">
-              {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
-            </span>
-          );
-        })}
-      </div>
+      {sections.filter((section) => section.people.length > 0).map((section) => (
+        <section class="acknowledgements-section">
+          <h2 class="acknowledgements-heading">{section.title}</h2>
+          <div class="acknowledgements-full-grid">
+            {section.people.map((person) => {
+              const userName = person.name.trim().replace(/^@+/, "");
+              return (
+                <span class="acknowledgement-name">
+                  {person.slackId && (
+                    <img
+                      class="acknowledgement-avatar"
+                      src={avatarUrl(person.slackId)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      width="32"
+                      height="32"
+                    />
+                  )}
+                  {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
+                </span>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
 
     <footer class="story-footer">
