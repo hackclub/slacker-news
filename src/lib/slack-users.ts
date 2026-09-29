@@ -50,7 +50,7 @@ export function getSlackUserDisplayName(
   if (cached) return cached;
 
   const request = fetch(
-    `https://cachet.hackclub.com/get/users/${encodeURIComponent(id)}`,
+    `https://cachet.hackclub.com/users/${encodeURIComponent(id)}`,
     {
       headers: { Accept: "application/json" },
     },
