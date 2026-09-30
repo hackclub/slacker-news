@@ -7,6 +7,15 @@ function safeReturnTo(value: string | null): string {
 }
 
 export const GET: APIRoute = async ({ request, url }) => {
+  // Without this, Hack Club Auth only reports "Missing required parameter:
+  // client_id". The auth instance is cached, so restart after setting it.
+  if (!import.meta.env.HACKCLUB_CLIENT_ID) {
+    console.error("HACKCLUB_CLIENT_ID is not configured");
+    return new Response("Login is not configured on this server.", {
+      status: 500,
+    });
+  }
+
   const callbackURL = safeReturnTo(url.searchParams.get("returnTo"));
 
   const response = await getAuth().api.signInWithOAuth2({

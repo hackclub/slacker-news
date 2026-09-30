@@ -1,0 +1,472 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getSiteConfig } from "../lib/content";
+import { getSlackColumns } from "../lib/indigest";
+import {
+  mintFeedToken,
+  revokeFeedToken,
+  revokeFeedTokens,
+} from "../lib/feed-tokens";
+
+// Accept a pasted feed link or a bare token.
+function tokenFromInput(value: FormDataEntryValue | null | undefined) {
+  const input = typeof value === "string" ? value.trim() : "";
+  if (!input) return undefined;
+  try {
+    return new URL(input).searchParams.get("token") ?? undefined;
+  } catch {
+    return input;
+  }
+}
+
+type FeedOption = {
+  id: string;
+  label: string;
+  detail?: string;
+  membersOnly: boolean;
+  default: boolean;
+};
+
+const site = await getSiteConfig();
+const user = Astro.locals.user;
+const feedUrl = new URL("/feed.xml", Astro.site ?? Astro.url).toString();
+const slackColumns = getSlackColumns();
+const protectedColumns = slackColumns.filter((column) => column.authRequired);
+
+// Mirrors the ids /feed.xml?columns= understands. Defaults match the feed
+// without ?columns=: every article plus the columns marked rss.
+const articleOptions: FeedOption[] = [
+  { id: "news", label: "News", membersOnly: false, default: true },
+  { id: "opinion", label: "Opinion", membersOnly: false, default: true },
+  { id: "essays", label: "Essays", membersOnly: false, default: true },
+  { id: "changelogs", label: "Changelogs", membersOnly: false, default: true },
+];
+const slackOptions: FeedOption[] = slackColumns.map((column) => ({
+  id: `slack-${column.column}`,
+  label: column.title,
+  detail: column.subtitle,
+  membersOnly: Boolean(column.authRequired),
+  default: Boolean(column.rss),
+}));
+const allOptions = [...articleOptions, ...slackOptions];
+
+// Slack ID when the session has one, else the account email; either names
+// the reader to Indigest so their link can be rotated or revoked later.
+const subject = user ? (user.slackId ?? user.email) : undefined;
+
+let form: FormData | undefined;
+let token: string | undefined;
+let notice: string | undefined;
+let error: string | undefined;
+
+if (Astro.request.method === "POST") {
+  const origin = Astro.request.headers.get("origin");
+  const sameOrigin = origin === Astro.url.origin;
+  form = await Astro.request.formData().catch(() => undefined);
+  const action = form?.get("action");
+
+  if (!subject) {
+    Astro.response.status = 401;
+    error = "Log in to manage your private feed link.";
+  } else if (!sameOrigin) {
+    Astro.response.status = 403;
+    error = "That request did not come from this site.";
+  } else if (action === "create") {
+    try {
+      token = await mintFeedToken(
+        subject,
+        protectedColumns.map((column) => column.channelId ?? column.column),
+      );
+    } catch (cause) {
+      console.error("Unable to create feed token", cause);
+      Astro.response.status = 502;
+      error = "Could not create a private link right now. Try again in a minute.";
+    }
+  } else if (action === "revoke-link") {
+    const pasted = tokenFromInput(form?.get("link"));
+    try {
+      if (!pasted) {
+        Astro.response.status = 400;
+        error = "Paste a private feed link to revoke it.";
+      } else if (await revokeFeedToken(pasted)) {
+        notice = "That link is revoked. Readers using it will see a notice instead of members-only posts.";
+      } else {
+        Astro.response.status = 404;
+        error = "That is not a private feed link.";
+      }
+    } catch (cause) {
+      console.error("Unable to revoke feed token", cause);
+      Astro.response.status = 502;
+      error = "Could not revoke that link right now. Try again in a minute.";
+    }
+  } else if (action === "revoke") {
+    try {
+      await revokeFeedTokens(subject);
+      notice = "Your private link is revoked. Readers using it will stop getting members-only posts within a few minutes.";
+    } catch (cause) {
+      console.error("Unable to revoke feed tokens", cause);
+      Astro.response.status = 502;
+      error = "Could not revoke your private link right now. Try again in a minute.";
+    }
+  }
+}
+
+// The builder form posts (create) or gets (no-JS update) its checkboxes, so
+// either source can carry the reader's selection.
+const source = form ?? Astro.url.searchParams;
+const submitted = source.has("built") ? source.getAll("columns") : undefined;
+const selected = new Set(
+  submitted
+    ? submitted.map(String)
+    : allOptions.filter((option) => option.default).map((option) => option.id),
+);
+const usable = (option: FeedOption) => !option.membersOnly || Boolean(user);
+const chosen = allOptions.filter(
+  (option) => usable(option) && selected.has(option.id),
+);
+const wantsMembersOnly = chosen.some((option) => option.membersOnly);
+
+// Links name only departures from the feed's defaults (see /feed.xml), so
+// a later change to the defaults reaches existing subscribers. Members-only
+// columns count only when the link carries a token.
+function buildFeedUrl(ids: string[], feedToken?: string) {
+  const relevant = allOptions.filter(
+    (option) => feedToken || !option.membersOnly,
+  );
+  const exclude = relevant
+    .filter((option) => option.default && !ids.includes(option.id))
+    .map((option) => option.id);
+  const include = relevant
+    .filter((option) => !option.default && ids.includes(option.id))
+    .map((option) => option.id);
+  const params = new URLSearchParams();
+  if (include.length) params.set("include", include.join(","));
+  if (exclude.length) params.set("exclude", exclude.join(","));
+  if (feedToken) params.set("token", feedToken);
+  const query = params.toString().replaceAll("%2C", ",");
+  return query ? `${feedUrl}?${query}` : feedUrl;
+}
+
+const builtUrl =
+  chosen.length === 0 || (wantsMembersOnly && !token)
+    ? undefined
+    : buildFeedUrl(
+        chosen.map((option) => option.id),
+        wantsMembersOnly ? token : undefined,
+      );
+
+const loginUrl = `/auth/login?returnTo=${encodeURIComponent("/rss/")}`;
+
+Astro.response.headers.set("Cache-Control", "private, no-store");
+---
+
+<BaseLayout title="RSS" siteTitle={site.title} siteDescription={site.description}>
+  <div class="archive-page rss-page">
+    <div class="section-label">RSS Feed Builder</div>
+    <hr class="section-rule" />
+
+    <div class="rss-body">
+      {error && <p class="rss-message rss-message--error" role="alert">{error}</p>}
+      {notice && <p class="rss-message" role="status">{notice}</p>}
+
+      <form
+        id="rss-builder"
+        class="rss-builder"
+        method="get"
+        action="/rss/"
+        data-feed-url={feedUrl}
+        data-token={token}
+      >
+        <input type="hidden" name="built" value="1" />
+
+        <fieldset class="rss-group">
+          <legend class="section-label">Articles</legend>
+          {articleOptions.map((option) => (
+            <label class="rss-option">
+              <input
+                type="checkbox"
+                name="columns"
+                value={option.id}
+                checked={selected.has(option.id)}
+                data-default={option.default ? "" : undefined}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </fieldset>
+
+        <fieldset class="rss-group">
+          <legend class="section-label">Slack columns</legend>
+          {slackOptions.map((option) => (
+            <label class:list={["rss-option", !usable(option) && "rss-option--locked"]}>
+              <input
+                type="checkbox"
+                name="columns"
+                value={option.id}
+                checked={usable(option) && selected.has(option.id)}
+                disabled={!usable(option)}
+                data-members-only={option.membersOnly ? "" : undefined}
+                data-default={option.default ? "" : undefined}
+              />
+              <span>
+                {option.label}
+                {option.detail && <span class="rss-detail"> {option.detail}</span>}
+                {option.membersOnly && <span class="rss-detail"> · members only</span>}
+              </span>
+            </label>
+          ))}
+          {!user && protectedColumns.length > 0 && (
+            <p class="rss-hint">
+              <a href={loginUrl}>Log in</a> to add members-only columns.
+            </p>
+          )}
+        </fieldset>
+
+        <noscript>
+          <button class="rss-button rss-button--outline" type="submit">Update link</button>
+        </noscript>
+
+        <div class="rss-result" id="rss-result" hidden={!builtUrl}>
+          <label class="section-label" for="rss-url">Your feed</label>
+          <div class="rss-url-row">
+            <input
+              class="rss-url"
+              id="rss-url"
+              type="text"
+              readonly
+              value={builtUrl ?? ""}
+              onfocus="this.select()"
+            />
+            <button class="rss-button js-only" id="rss-copy" type="button">Copy</button>
+          </div>
+          <p class="rss-hint" id="rss-private-hint" hidden={!(wantsMembersOnly && token)}>
+            This link is tied to your Hack Club account, so do not share it. It is
+            shown only once: creating a new one revokes it.
+          </p>
+        </div>
+
+        {user && (
+          <div class="rss-private" id="rss-private" hidden={Boolean(builtUrl)}>
+            <p class="rss-hint">Members-only columns need a private link.</p>
+            <button class="rss-button" type="submit" formmethod="post" name="action" value="create">
+              Create private link
+            </button>
+          </div>
+        )}
+      </form>
+
+      {user && (
+        <section class="rss-manage">
+          <div class="section-label">Private links</div>
+          <form method="post" class="rss-actions">
+            <button class="rss-button rss-button--outline" type="submit" name="action" value="revoke">
+              Revoke my link
+            </button>
+          </form>
+
+          <form method="post" class="rss-revoke-link">
+            <label class="rss-hint" for="revoke-link">
+              Found someone's private link? Paste it here to revoke it.
+            </label>
+            <div class="rss-url-row">
+              <input class="rss-url" id="revoke-link" type="text" name="link" autocomplete="off" required />
+              <button class="rss-button rss-button--outline" type="submit" name="action" value="revoke-link">
+                Revoke
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("rss-builder") as HTMLFormElement | null;
+    const result = document.getElementById("rss-result");
+    const urlInput = document.getElementById("rss-url") as HTMLInputElement | null;
+    const privateBlock = document.getElementById("rss-private");
+    const privateHint = document.getElementById("rss-private-hint");
+    const copyButton = document.getElementById("rss-copy");
+
+    if (form && result && urlInput) {
+      const feedUrl = form.dataset.feedUrl ?? "/feed.xml";
+      const token = form.dataset.token;
+      const boxes = Array.from(
+        form.querySelectorAll<HTMLInputElement>('input[name="columns"]'),
+      );
+
+      // Keep in step with buildFeedUrl in the frontmatter.
+      const update = () => {
+        const chosen = boxes.filter((box) => box.checked && !box.disabled);
+        const membersOnly = chosen.some((box) => "membersOnly" in box.dataset);
+        const needsToken = membersOnly && !token;
+        const feedToken = membersOnly ? token : undefined;
+
+        const relevant = boxes.filter(
+          (box) => !box.disabled && (feedToken || !("membersOnly" in box.dataset)),
+        );
+        const isDefault = (box: HTMLInputElement) => "default" in box.dataset;
+        const exclude = relevant.filter((box) => isDefault(box) && !box.checked);
+        const include = relevant.filter((box) => !isDefault(box) && box.checked);
+
+        const params = new URLSearchParams();
+        if (include.length) params.set("include", include.map((box) => box.value).join(","));
+        if (exclude.length) params.set("exclude", exclude.map((box) => box.value).join(","));
+        if (feedToken) params.set("token", feedToken);
+        const query = params.toString().replaceAll("%2C", ",");
+
+        urlInput.value = needsToken ? "" : query ? `${feedUrl}?${query}` : feedUrl;
+        result.hidden = needsToken || chosen.length === 0;
+        if (privateBlock) privateBlock.hidden = !needsToken;
+        if (privateHint) privateHint.hidden = !(membersOnly && token);
+      };
+
+      boxes.forEach((box) => box.addEventListener("change", update));
+      update();
+
+      copyButton?.addEventListener("click", () => {
+        navigator.clipboard.writeText(urlInput.value).then(() => {
+          copyButton.textContent = "Copied";
+          setTimeout(() => (copyButton.textContent = "Copy"), 2000);
+        });
+      });
+    }
+  </script>
+
+  <style>
+    .rss-page {
+      max-width: 672px;
+    }
+
+    .rss-body {
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .rss-message {
+      font-weight: bold;
+      margin: 0 0 20px;
+    }
+
+    .rss-message--error {
+      color: #b00;
+    }
+
+    .rss-group {
+      border: none;
+      padding: 0;
+      margin: 0 0 24px;
+    }
+
+    .rss-group legend {
+      padding: 0;
+    }
+
+    .rss-option {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 4px 0;
+      cursor: pointer;
+    }
+
+    .rss-option input {
+      accent-color: #000;
+    }
+
+    .rss-option--locked {
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    .rss-detail {
+      color: #666;
+      font-size: 0.85rem;
+    }
+
+    .rss-hint {
+      color: #555;
+      font-size: 0.85rem;
+      margin: 8px 0 12px;
+    }
+
+    .rss-result,
+    .rss-private {
+      margin: 8px 0 32px;
+    }
+
+    .rss-result .section-label {
+      display: block;
+    }
+
+    .rss-url-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .rss-url {
+      flex: 1;
+      min-width: 0;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 0.8rem;
+      color: #111;
+      background: #fff;
+      border: 1px solid #000;
+      border-radius: 5px;
+    }
+
+    .rss-url:focus {
+      outline: 2px solid #000;
+      outline-offset: 1px;
+    }
+
+    /* Matches the header's Log in button. */
+    .rss-button {
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      color: #fff;
+      background: #000;
+      border: 1px solid #000;
+      border-radius: 5px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .rss-button:hover {
+      background: #333;
+    }
+
+    .rss-button--outline {
+      color: #000;
+      background: #fff;
+    }
+
+    .rss-button--outline:hover {
+      background: #f2f2f2;
+    }
+
+    .rss-manage {
+      border-top: 1px solid #000;
+      padding-top: 16px;
+    }
+
+    .rss-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 24px;
+    }
+
+    .rss-revoke-link .rss-hint {
+      display: block;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+</BaseLayout>

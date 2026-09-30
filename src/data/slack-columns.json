@@ -8,6 +8,7 @@
     "homepageMessagesPerRow": 3,
     "homepageLimit": 6,
     "showMetadata": false,
+    "rss": true,
     "limit": 1000
   },
   {
@@ -19,6 +20,7 @@
     "homepageMessagesPerRow": 4,
     "homepageLimit": 12,
     "showMetadata": false,
+    "rss": true,
     "limit": 1000
   },
   {

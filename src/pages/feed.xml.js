@@ -7,17 +7,15 @@ import {
   getSlackColumnData,
   getSlackColumns,
 } from "../lib/indigest";
+import { getFeedTokenStatus } from "../lib/feed-tokens";
 
 const legacyPaths = new Set(
   Object.keys(legacyRedirects).map((path) => path.replace(/\/$/, "")),
 );
 
-function hasValidRssToken(context) {
+function isLegacyRssToken(provided) {
   const expected = import.meta.env.RSS_ACCESS_TOKEN;
   if (!expected) return false;
-
-  const provided = context.url.searchParams.get("token");
-  if (!provided) return false;
 
   const expectedBuf = Buffer.from(expected);
   const providedBuf = Buffer.from(provided);
@@ -26,12 +24,83 @@ function hasValidRssToken(context) {
   return timingSafeEqual(expectedBuf, providedBuf);
 }
 
-async function getProtectedSlackItems(context) {
-  if (!hasValidRssToken(context)) return [];
+// Which protected Slack columns the ?token= may read: every one for the
+// shared legacy token, those in scope of a reader's Indigest feed token, or,
+// for a revoked feed token, none plus a notice.
+async function getTokenAccess(context) {
+  const token = context.url.searchParams.get("token");
+  if (!token) return { canRead: () => false };
+  if (isLegacyRssToken(token)) return { canRead: () => true };
 
-  const rssColumns = getSlackColumns().filter((column) => column.rss);
+  const status = await getFeedTokenStatus(token).catch((error) => {
+    console.error("Unable to validate feed token", error);
+    return { status: "unknown" };
+  });
+  if (status.status === "revoked") {
+    return { canRead: () => false, revokedAt: status.revokedAt };
+  }
+  if (status.status !== "active") return { canRead: () => false };
+  return {
+    canRead: (column) =>
+      status.channelIds.includes(column.channelId ?? column.column),
+  };
+}
+
+// The feed carries its defaults (every article category plus the Slack
+// columns marked rss), adjusted by ?exclude= and ?include=, as built on /rss/.
+// Ids are article categories (news, opinion, essays, changelogs) and
+// slack-<column>. Links only name departures from the defaults, so changing
+// a default later reaches existing subscribers.
+function listParam(context, name) {
+  return new Set(
+    (context.url.searchParams.get(name) ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+}
+
+function getColumnSelection(context) {
+  const include = listParam(context, "include");
+  const exclude = listParam(context, "exclude");
+  return (id, isDefault) => (isDefault || include.has(id)) && !exclude.has(id);
+}
+
+function getFeedSlackColumns(wants, tokenAccess) {
+  return getSlackColumns().filter(
+    (column) =>
+      wants(`slack-${column.column}`, Boolean(column.rss)) &&
+      (!column.authRequired || tokenAccess.canRead(column)),
+  );
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+// Keys revoked before Indigest recorded revocation times have no date, so
+// their notices fall on Mondays.
+const FALLBACK_REVOKED_AT = new Date(Date.UTC(1970, 0, 5));
+
+// Tell a reader still polling a revoked link how to get a new one. The notice
+// is a fresh item once a week, counted from the revocation.
+function revokedTokenNotice(context, revokedAt) {
+  const anchor = (revokedAt ?? FALLBACK_REVOKED_AT).getTime();
+  const week = Math.max(0, Math.floor((Date.now() - anchor) / WEEK_MS));
+  const loginUrl = new URL("/rss/", context.site ?? context.url).toString();
+  const message = `Your key is revoked. Log in to ${loginUrl} to make a new one.`;
+
+  return {
+    title: "Your key is revoked",
+    description: message,
+    pubDate: new Date(anchor + week * WEEK_MS),
+    // The link doubles as the item's GUID, so it changes every week. It is
+    // absolute so @astrojs/rss leaves it alone instead of adding a slash.
+    link: `${loginUrl}#revoked-${week}`,
+    content: `<p>Your key is revoked. Log in to <a href="${loginUrl}">${loginUrl}</a> to make a new one.</p>`,
+  };
+}
+
+async function getSlackItems(columns) {
   const columnData = await Promise.all(
-    rssColumns.map((column) => getSlackColumnData(column.column)),
+    columns.map((column) => getSlackColumnData(column.column)),
   );
 
   return columnData
@@ -97,11 +166,20 @@ export async function GET(context) {
   const site = await getSiteConfig();
   const posts = await getPosts();
   const changelogs = await getChangelogEntries();
-  const protectedSlackItems = await getProtectedSlackItems(context);
+  const wants = getColumnSelection(context);
+  const tokenAccess = await getTokenAccess(context);
+  const slackItems = await getSlackItems(
+    getFeedSlackColumns(wants, tokenAccess),
+  );
+  if ("revokedAt" in tokenAccess) {
+    slackItems.push(revokedTokenNotice(context, tokenAccess.revokedAt));
+  }
 
   await trackFeedView(context);
 
-  const postItems = posts.map((post) => {
+  const postItems = posts
+    .filter((post) => wants(post.category, true))
+    .map((post) => {
     const baseSlug = post.slug.split("/").pop();
     const legacyKey = baseSlug ? `/${baseSlug}` : null;
     const legacyLink =
@@ -135,7 +213,10 @@ export async function GET(context) {
   });
 
   const longChangelogItems = changelogs
-    .filter((entry) => entry.kind === "long")
+    .filter(
+      (entry) =>
+        entry.kind === "long" && wants("changelogs", true),
+    )
     .map((entry) => {
       const paragraphContent = entry.paragraphs.length
         ? entry.paragraphs
@@ -152,7 +233,7 @@ export async function GET(context) {
       };
     });
 
-  const items = [...postItems, ...longChangelogItems, ...protectedSlackItems].sort(
+  const items = [...postItems, ...longChangelogItems, ...slackItems].sort(
     (a, b) => b.pubDate.getTime() - a.pubDate.getTime(),
   );
 
