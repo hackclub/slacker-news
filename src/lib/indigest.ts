@@ -93,6 +93,22 @@ function startCachedRequest<T>(
   return request;
 }
 
+// An Indigest outage or a rejected key should empty a Slack column, not take
+// the page down with a 500. Failures are not cached, so the next request
+// retries.
+async function withFallback<T>(
+  label: string,
+  fallback: T,
+  load: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    console.error(`Unable to load Indigest ${label}`, error);
+    return fallback;
+  }
+}
+
 export function getSlackColumns(): SlackColumnConfig[] {
   return configuredColumns;
 }
@@ -117,23 +133,25 @@ export async function getIndigestMessages(
   url.searchParams.set("channel", channel);
   url.searchParams.set("limit", String(Math.min(Math.max(limit, 1), 10000)));
 
-  return getCached(`messages:${url.toString()}`, async () => {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: "application/json",
-      },
-    });
+  return withFallback(`channel ${channel}`, [] as IndigestMessage[], () =>
+    getCached(`messages:${url.toString()}`, async () => {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: "application/json",
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(
-        `Indigest returned ${response.status} for channel ${channel}`,
-      );
-    }
+      if (!response.ok) {
+        throw new Error(
+          `Indigest returned ${response.status} for channel ${channel}`,
+        );
+      }
 
-    const payload = (await response.json()) as { data?: IndigestMessage[] };
-    return payload.data ?? [];
-  });
+      const payload = (await response.json()) as { data?: IndigestMessage[] };
+      return payload.data ?? [];
+    }),
+  );
 }
 
 export async function getIndigestMessage(
@@ -148,31 +166,33 @@ export async function getIndigestMessage(
   const url = new URL(`/api/messages/${encodeURIComponent(slackTs)}`, apiURL);
   url.searchParams.set("channel", channel);
 
-  return getCached(`message:${url.toString()}`, async () => {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: "application/json",
-      },
-    });
-    if (response.status === 404) {
-      // Keep permalinks working if the single-message endpoint misses a message
-      // that is still returned by the channel listing endpoint.
-      const messages = await getIndigestMessages(channel, 10000);
-      return messages.find((message) => message.slackTs === slackTs);
-    }
-    if (!response.ok)
-      throw new Error(
-        `Indigest returned ${response.status} for message ${slackTs}`,
-      );
+  return withFallback(`message ${slackTs}`, undefined, () =>
+    getCached(`message:${url.toString()}`, async () => {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: "application/json",
+        },
+      });
+      if (response.status === 404) {
+        // Keep permalinks working if the single-message endpoint misses a message
+        // that is still returned by the channel listing endpoint.
+        const messages = await getIndigestMessages(channel, 10000);
+        return messages.find((message) => message.slackTs === slackTs);
+      }
+      if (!response.ok)
+        throw new Error(
+          `Indigest returned ${response.status} for message ${slackTs}`,
+        );
 
-    const payload = (await response.json()) as
-      | IndigestMessage
-      | { data?: IndigestMessage };
-    return ("data" in payload ? payload.data : payload) as
-      | IndigestMessage
-      | undefined;
-  });
+      const payload = (await response.json()) as
+        | IndigestMessage
+        | { data?: IndigestMessage };
+      return ("data" in payload ? payload.data : payload) as
+        | IndigestMessage
+        | undefined;
+    }),
+  );
 }
 
 export function slackLinkFromMessageId(channelId: string, slackTs: string) {
