@@ -50,7 +50,8 @@ async function getTokenAccess(context) {
 // columns marked rss), adjusted by ?exclude= and ?include=, as built on /rss/.
 // Ids are article categories (news, opinion, essays, changelogs) and
 // slack-<column>. Links only name departures from the defaults, so changing
-// a default later reaches existing subscribers.
+// a default later reaches existing subscribers. ?includeOnly opts out of
+// that: the feed is exactly ?include=, and defaults and ?exclude= are ignored.
 function listParam(context, name) {
   return new Set(
     (context.url.searchParams.get(name) ?? "")
@@ -60,8 +61,15 @@ function listParam(context, name) {
   );
 }
 
+// A bare ?name counts as set; only an explicit 0 or false turns it off.
+function isFlagSet(context, name) {
+  const value = context.url.searchParams.get(name);
+  return value !== null && value !== "0" && value.toLowerCase() !== "false";
+}
+
 function getColumnSelection(context) {
   const include = listParam(context, "include");
+  if (isFlagSet(context, "includeOnly")) return (id) => include.has(id);
   const exclude = listParam(context, "exclude");
   return (id, isDefault) => (isDefault || include.has(id)) && !exclude.has(id);
 }
