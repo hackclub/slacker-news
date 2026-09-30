@@ -23,3 +23,6 @@ review-import.json
 .vercel
 
 .herdr
+
+# Leftovers from the old monorepo layout
+apps/
