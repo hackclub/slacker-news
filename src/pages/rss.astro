@@ -67,6 +67,19 @@ const cookieOptions = {
   sameSite: "lax" as const,
 };
 
+// The cookie names the account that created the link, so on a shared
+// browser the next person to log in never sees someone else's link.
+function readTokenCookie(): string | undefined {
+  try {
+    const value = JSON.parse(Astro.cookies.get(TOKEN_COOKIE)?.value ?? "");
+    return subject && value?.subject === subject && typeof value.token === "string"
+      ? value.token
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 if (Astro.request.method === "POST") {
   const origin = Astro.request.headers.get("origin");
   const sameOrigin = origin === Astro.url.origin;
@@ -84,7 +97,10 @@ if (Astro.request.method === "POST") {
         subject,
         protectedColumns.map((column) => column.channelId ?? column.column),
       );
-      Astro.cookies.set(TOKEN_COOKIE, minted, { ...cookieOptions, maxAge: 600 });
+      Astro.cookies.set(TOKEN_COOKIE, JSON.stringify({ subject, token: minted }), {
+        ...cookieOptions,
+        maxAge: 600,
+      });
     } catch (cause) {
       console.error("Unable to create feed token", cause);
       flash.error = "Could not create a private link right now. Try again in a minute.";
@@ -96,7 +112,7 @@ if (Astro.request.method === "POST") {
         flash.error = "Paste a private feed link to revoke it.";
       } else if (await revokeFeedToken(pasted)) {
         flash.notice = "That link is revoked. Readers using it will see a notice instead of members-only posts.";
-        if (Astro.cookies.get(TOKEN_COOKIE)?.value === pasted)
+        if (readTokenCookie() === pasted)
           Astro.cookies.delete(TOKEN_COOKIE, cookieOptions);
       } else {
         flash.error = "That is not a private feed link.";
@@ -132,8 +148,7 @@ if (Astro.request.method === "POST") {
   return Astro.redirect(query ? `/rss/?${query}` : "/rss/", 303);
 }
 
-// Only a logged-in reader may see a token cookie's contents.
-const token = user ? Astro.cookies.get(TOKEN_COOKIE)?.value : undefined;
+const token = readTokenCookie();
 let notice: string | undefined;
 let error: string | undefined;
 try {
