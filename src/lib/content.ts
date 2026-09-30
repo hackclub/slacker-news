@@ -68,9 +68,20 @@ export type LongChangelogEntry = ChangelogBase & {
 
 export type ChangelogEntry = ShortChangelogEntry | LongChangelogEntry;
 
+export type AcknowledgementRole = "editor" | "technical" | "content";
+
 export type Acknowledgement = {
   name: string;
   slackId?: string;
+  roles?: AcknowledgementRole[];
+};
+
+export type AcknowledgementGroups = {
+  editors: Acknowledgement[];
+  technical: Acknowledgement[];
+  content: Acknowledgement[];
+  submitters: Acknowledgement[];
+  other: Acknowledgement[];
 };
 
 function normalizeWhitespace(input: string): string {
@@ -100,8 +111,25 @@ function truncateWords(input: string, count: number): string {
   return `${included.join(" ")}...`;
 }
 
+// Bylines sometimes carry a parenthetical alias, e.g. "@neven (hex4)". Drop it
+// so the handle still matches the acknowledgements file and one person is not
+// credited twice under two spellings.
 function normalizeHandle(handle: string): string {
-  return handle.trim().replace(/^@+/, "").toLowerCase();
+  return handle
+    .trim()
+    .replace(/^@+/, "")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim()
+    .toLowerCase();
+}
+
+// A byline can name several people in one string, e.g. "@eps and @zrl". Split
+// on separators only, never on spaces: handles like "@Raygen Rupe" have them.
+function splitAuthors(author: string): string[] {
+  return author
+    .split(/\s+and\s+|\s*[,&]\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 function getAuthorSlackId(author: string | undefined): string | undefined {
@@ -402,7 +430,77 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
 }
 
 export async function getAcknowledgements(): Promise<Acknowledgement[]> {
-  return acknowledgementsData;
+  return acknowledgementsData as Acknowledgement[];
+}
+
+function hasRole(person: Acknowledgement, role: AcknowledgementRole): boolean {
+  return (person.roles ?? []).includes(role);
+}
+
+function byName(a: Acknowledgement, b: Acknowledgement): number {
+  return normalizeHandle(a.name).localeCompare(normalizeHandle(b.name));
+}
+
+// Editors keep their order from the acknowledgements file; every other section
+// is sorted by handle. Sections may overlap: someone who writes and ships code
+// belongs in both lists.
+export async function getAcknowledgementGroups(): Promise<AcknowledgementGroups> {
+  const people = await getAcknowledgements();
+  const editors = people.filter((person) => hasRole(person, "editor"));
+  const editorHandles = new Set(
+    editors.map((person) => normalizeHandle(person.name)),
+  );
+
+  const posts = await getPosts();
+  const submitterHandles = new Map<string, Acknowledgement>();
+
+  for (const post of posts) {
+    const bylines = Array.isArray(post.author)
+      ? post.author
+      : post.author
+        ? [post.author]
+        : [];
+
+    for (const byline of bylines) {
+      for (const author of splitAuthors(byline)) {
+        const handle = normalizeHandle(author);
+        if (!handle || editorHandles.has(handle) || submitterHandles.has(handle)) {
+          continue;
+        }
+
+        // Authors missing from the acknowledgements file are still credited,
+        // just without a Slack mention to link them to.
+        const known = people.find(
+          (person) => normalizeHandle(person.name) === handle,
+        );
+        submitterHandles.set(handle, known ?? { name: author });
+      }
+    }
+  }
+
+  const submitters = [...submitterHandles.values()].sort(byName);
+
+  // A declared role always places someone, editors included: an editor who also
+  // writes the code should be credited for both. Only the derived submitter
+  // list excludes them, or the editors would dominate it by sheer byline count.
+  const byDeclaredRole = (role: AcknowledgementRole) =>
+    people.filter((person) => hasRole(person, role)).sort(byName);
+
+  const technical = byDeclaredRole("technical");
+  const content = byDeclaredRole("content");
+
+  const credited = new Set([
+    ...editorHandles,
+    ...technical.map((person) => normalizeHandle(person.name)),
+    ...content.map((person) => normalizeHandle(person.name)),
+    ...submitterHandles.keys(),
+  ]);
+
+  const other = people
+    .filter((person) => !credited.has(normalizeHandle(person.name)))
+    .sort(byName);
+
+  return { editors, technical, content, submitters, other };
 }
 
 export async function getRecentChangelogEntries(

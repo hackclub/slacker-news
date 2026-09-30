@@ -5,11 +5,17 @@
   },
   {
     "name": "@Mathias",
-    "slackId": "U080HHYN0JD"
+    "slackId": "U080HHYN0JD",
+    "roles": [
+      "technical"
+    ]
   },
   {
     "name": "@Kieran Klukas",
-    "slackId": "U062UG485EE"
+    "slackId": "U062UG485EE",
+    "roles": [
+      "technical"
+    ]
   },
   {
     "name": "@Raygen Rupe",
@@ -29,7 +35,10 @@
   },
   {
     "name": "@stellenium",
-    "slackId": "U07F6FMJ97U"
+    "slackId": "U07F6FMJ97U",
+    "roles": [
+      "technical"
+    ]
   },
   {
     "name": "@freddie",
@@ -37,23 +46,43 @@
   },
   {
     "name": "@Elliot-entity",
-    "slackId": "U096KJYT1PU"
+    "slackId": "U096KJYT1PU",
+    "roles": [
+      "content"
+    ]
   },
   {
     "name": "@karthik",
-    "slackId": "U04K5EPMZM1"
+    "slackId": "U04K5EPMZM1",
+    "roles": [
+      "content"
+    ]
   },
   {
     "name": "@sahil",
     "slackId": "U08PUHSMW4V"
   },
   {
+    "name": "@eps",
+    "slackId": "U09Q8MLTE58",
+    "roles": [
+      "editor"
+    ]
+  },
+  {
     "name": "@mat",
-    "slackId": "U07VA44DNBA"
+    "slackId": "U07VA44DNBA",
+    "roles": [
+      "editor",
+      "technical"
+    ]
   },
   {
     "name": "@miggy",
-    "slackId": "U07VC9705D4"
+    "slackId": "U07VC9705D4",
+    "roles": [
+      "technical"
+    ]
   },
   {
     "name": "@neven",
@@ -61,11 +90,17 @@
   },
   {
     "name": "@nora",
-    "slackId": "U06QK6AG3RD"
+    "slackId": "U06QK6AG3RD",
+    "roles": [
+      "technical"
+    ]
   },
   {
     "name": "@eternal",
-    "slackId": "U09H9PLB6E7"
+    "slackId": "U09H9PLB6E7",
+    "roles": [
+      "technical"
+    ]
   },
   {
     "name": "@rowan",
@@ -73,7 +108,10 @@
   },
   {
     "name": "@lfd",
-    "slackId": "U07UBCSSQH3"
+    "slackId": "U07UBCSSQH3",
+    "roles": [
+      "technical"
+    ]
   },
   {
     "name": "@Dev",
@@ -85,7 +123,10 @@
   },
   {
     "name": "@zrl",
-    "slackId": "U09UE480JHH"
+    "slackId": "U09UE480JHH",
+    "roles": [
+      "technical"
+    ]
   },
   {
     "name": "@eps",
@@ -94,5 +135,13 @@
   {
     "name": "@junya",
     "slackId": "U082PAFDDS5"
+  },
+  {
+    "name": "@clofour",
+    "slackId": "U0B0ZEYN0DT"
+  },
+  {
+    "name": "@lou",
+    "slackId": "U06EMBJH71S"
   }
 ]
