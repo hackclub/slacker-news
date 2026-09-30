@@ -1,4 +1,4 @@
-import { betterAuth } from "better-auth";
+import { betterAuth, type User } from "better-auth";
 import { genericOAuth } from "better-auth/plugins";
 
 const baseURL = import.meta.env.BETTER_AUTH_URL ?? "http://localhost:4000";
@@ -26,10 +26,18 @@ function createAuth() {
             scopes: ["openid", "profile", "email", "slack_id"],
             pkce: true,
             requireIssuerValidation: false,
+            // slackId is an additional user field the plugin's type can't see.
+            mapProfileToUser: (profile) =>
+              ({ slackId: profile.slack_id }) as Partial<User>,
           },
         ],
       }),
     ],
+    user: {
+      additionalFields: {
+        slackId: { type: "string", required: false, input: false },
+      },
+    },
     session: {
       cookieCache: {
         enabled: true,
