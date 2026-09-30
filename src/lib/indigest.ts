@@ -14,6 +14,9 @@ export type SlackColumnConfig = {
   limit?: number;
   subtitle?: string;
   rss?: boolean;
+  // ISO date. Feeds carry only this column's messages from then on, so a
+  // column can join the feed without replaying its history.
+  rssSince?: string;
 };
 
 export type IndigestMessage = {

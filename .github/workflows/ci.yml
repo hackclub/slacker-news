@@ -29,5 +29,38 @@ jobs:
       - name: Check formatting
         run: bun run format:check
 
+      - name: Test
+        run: bun run test
+
       - name: Build
         run: bun run build
+
+  # Readers treat every unseen GUID as new, so a change that puts old items
+  # into existing feeds floods subscribers. Compare the feeds each side of
+  # the pull request would serve, using the same Slack sample data.
+  feed-history:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: head
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Check no old items join existing feeds
+        run: |
+          if [ ! -f base/scripts/feed-guids.ts ]; then
+            echo "The base branch predates this check; nothing to compare."
+            exit 0
+          fi
+          bun base/scripts/feed-guids.ts head/tests/feed-cases.json > base.json
+          bun head/scripts/feed-guids.ts head/tests/feed-cases.json > head.json
+          bun head/scripts/check-feed-retroactive.ts base.json head.json
