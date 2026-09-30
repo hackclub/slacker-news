@@ -54,70 +54,102 @@ const allOptions = [...articleOptions, ...slackOptions];
 // the reader to Indigest so their link can be rotated or revoked later.
 const subject = user ? (user.slackId ?? user.email) : undefined;
 
-let form: FormData | undefined;
-let token: string | undefined;
-let notice: string | undefined;
-let error: string | undefined;
+// Actions POST, then redirect to a plain GET (post/redirect/get), so a
+// refresh never resubmits: a resubmitted "create" would mint a new link and
+// revoke the one just shown. The new token rides along in a short-lived
+// HttpOnly cookie, so refreshing shows the same link; messages are one-shot.
+const TOKEN_COOKIE = "sn_rss_token";
+const FLASH_COOKIE = "sn_rss_flash";
+const cookieOptions = {
+  path: "/rss/",
+  httpOnly: true,
+  secure: import.meta.env.PROD,
+  sameSite: "lax" as const,
+};
 
 if (Astro.request.method === "POST") {
   const origin = Astro.request.headers.get("origin");
   const sameOrigin = origin === Astro.url.origin;
-  form = await Astro.request.formData().catch(() => undefined);
+  const form = await Astro.request.formData().catch(() => undefined);
   const action = form?.get("action");
+  const flash: { notice?: string; error?: string } = {};
 
   if (!subject) {
-    Astro.response.status = 401;
-    error = "Log in to manage your private feed link.";
+    flash.error = "Log in to manage your private feed link.";
   } else if (!sameOrigin) {
-    Astro.response.status = 403;
-    error = "That request did not come from this site.";
+    flash.error = "That request did not come from this site.";
   } else if (action === "create") {
     try {
-      token = await mintFeedToken(
+      const minted = await mintFeedToken(
         subject,
         protectedColumns.map((column) => column.channelId ?? column.column),
       );
+      Astro.cookies.set(TOKEN_COOKIE, minted, { ...cookieOptions, maxAge: 600 });
     } catch (cause) {
       console.error("Unable to create feed token", cause);
-      Astro.response.status = 502;
-      error = "Could not create a private link right now. Try again in a minute.";
+      flash.error = "Could not create a private link right now. Try again in a minute.";
     }
   } else if (action === "revoke-link") {
     const pasted = tokenFromInput(form?.get("link"));
     try {
       if (!pasted) {
-        Astro.response.status = 400;
-        error = "Paste a private feed link to revoke it.";
+        flash.error = "Paste a private feed link to revoke it.";
       } else if (await revokeFeedToken(pasted)) {
-        notice = "That link is revoked. Readers using it will see a notice instead of members-only posts.";
+        flash.notice = "That link is revoked. Readers using it will see a notice instead of members-only posts.";
+        if (Astro.cookies.get(TOKEN_COOKIE)?.value === pasted)
+          Astro.cookies.delete(TOKEN_COOKIE, cookieOptions);
       } else {
-        Astro.response.status = 404;
-        error = "That is not a private feed link.";
+        flash.error = "That is not a private feed link.";
       }
     } catch (cause) {
       console.error("Unable to revoke feed token", cause);
-      Astro.response.status = 502;
-      error = "Could not revoke that link right now. Try again in a minute.";
+      flash.error = "Could not revoke that link right now. Try again in a minute.";
     }
   } else if (action === "revoke") {
     try {
       await revokeFeedTokens(subject);
-      notice = "Your private link is revoked. Readers using it will stop getting members-only posts within a few minutes.";
+      Astro.cookies.delete(TOKEN_COOKIE, cookieOptions);
+      flash.notice = "Your private link is revoked. Readers using it will stop getting members-only posts within a few minutes.";
     } catch (cause) {
       console.error("Unable to revoke feed tokens", cause);
-      Astro.response.status = 502;
-      error = "Could not revoke your private link right now. Try again in a minute.";
+      flash.error = "Could not revoke your private link right now. Try again in a minute.";
     }
   }
+
+  if (flash.notice || flash.error)
+    Astro.cookies.set(FLASH_COOKIE, JSON.stringify(flash), {
+      ...cookieOptions,
+      maxAge: 60,
+    });
+
+  // Keep the reader's selection across the redirect.
+  const next = new URLSearchParams();
+  if (form?.has("built")) {
+    next.set("built", "1");
+    for (const id of form.getAll("columns")) next.append("columns", String(id));
+  }
+  const query = next.toString();
+  return Astro.redirect(query ? `/rss/?${query}` : "/rss/", 303);
 }
 
-// The builder form posts (create) or gets (no-JS update) its checkboxes, so
-// either source can carry the reader's selection.
-const source = form ?? Astro.url.searchParams;
-const submitted = source.has("built") ? source.getAll("columns") : undefined;
+// Only a logged-in reader may see a token cookie's contents.
+const token = user ? Astro.cookies.get(TOKEN_COOKIE)?.value : undefined;
+let notice: string | undefined;
+let error: string | undefined;
+try {
+  const flash = JSON.parse(Astro.cookies.get(FLASH_COOKIE)?.value ?? "{}");
+  notice = typeof flash.notice === "string" ? flash.notice : undefined;
+  error = typeof flash.error === "string" ? flash.error : undefined;
+} catch {}
+if (Astro.cookies.has(FLASH_COOKIE)) Astro.cookies.delete(FLASH_COOKIE, cookieOptions);
+
+// The builder form carries the reader's selection (the no-JS update, or the
+// redirect after an action).
+const params = Astro.url.searchParams;
+const submitted = params.has("built") ? params.getAll("columns") : undefined;
 const selected = new Set(
   submitted
-    ? submitted.map(String)
+    ? submitted
     : allOptions.filter((option) => option.default).map((option) => option.id),
 );
 const usable = (option: FeedOption) => !option.membersOnly || Boolean(user);
@@ -240,8 +272,9 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
             <button class="rss-button js-only" id="rss-copy" type="button">Copy</button>
           </div>
           <p class="rss-hint" id="rss-private-hint" hidden={!(wantsMembersOnly && token)}>
-            This link is tied to your Hack Club account, so do not share it. It is
-            shown only once: creating a new one revokes it.
+            This link is tied to your Hack Club account, so do not share it. Copy
+            it now: it disappears from this page in ten minutes, and creating a
+            new one revokes it.
           </p>
         </div>
 
