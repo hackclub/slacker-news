@@ -7,9 +7,9 @@ import SlackChannel from "../../../components/SlackChannel.astro";
 import SlackMention from "../../../components/SlackMention.astro";
 import Emoji from "../../../components/Emoji.astro";
 
-Prox2 vanished from Hack Club on September 1st. Since then, <SlackChannel id="confessions" /> has been full of normal humans and there has been a lack of anonymous posts in <SlackChannel id="meta" /> too! The community has been asking for answers for weeks at this point and we finally have a answer.
+Prox2 vanished from Hack Club on September 1st. Since then, <SlackChannel id="confessions" /> has been full of normal humans and there has been a lack of anonymous posts in <SlackChannel id="meta" /> too! The community has been asking for answers for weeks at this point and we finally have an answer.
 
-CRT as it was is more more. <SlackMention name="Jeremy" id="U06UYA5GMB5" /> and I have been working to rework how the CRT works at a fundamental level. You may have many questions, so here are a few ones I can answer now:
+CRT as it was is no more. <SlackMention name="Jeremy" id="U06UYA5GMB5" /> and I have been working to rework how the CRT works at a fundamental level. You may have many questions, so here are a few I can answer now:
 
 **Why?**
 
@@ -17,7 +17,7 @@ And then comes Z! Jokes aside, CRT has been a great thing that has served us for
 
 **How secure is this thing?**
 
-The bot has two modes to send confessions. One that is tied to your Slack ID and one that is tied to a generated password. To quote the README:
+The bot has two modes to send confessions. One that is tied to a hashed and salted version of your Slack ID and one that is tied to a generated key. To quote the README:
 
 > the submission form lets you choose a salted account hash or a generated private reply key. neither mode stores your raw Slack user ID. the private key mode needs both the key and the original account for replies, reactions, and withdrawal. you gotta save the key when it is shown, if it is lost, then its gg.
 > 
@@ -27,28 +27,28 @@ The bot has two modes to send confessions. One that is tied to your Slack ID and
 
 You can use the bot by running `/owl` or DMing the bot directly: [redirects to Owl's profile](https://hackclub.slack.com/app_redirect?app=A0C5L27PB9P)
 
-**This new team is led by people who work closely with HQ? How are you going to make sure that the CRT is independent?**
+**But this new team is led by people who work closely with HQ! How are you going to make sure that the CRT is independent?**
 
-Good point! For full disclosure, Jeremy and I (Rowan) are both part of HQ. We both get paid by HQ for the work we do for it. However, we are not going to let that affect how the CRT operates. The CRT is a community team and it will be run by the community. We both have a history of not letting our other positions affect how we act in the community. Me personally, I have been doing work for HQ for quite some time and yet I still call them out when they do something wrong. I will continue to do so as part of the CRT. Jeremy has a similar history and I trust him to do the same.
+Good point! For full disclosure, Jeremy and I (Rowan) are both part of HQ. We both get paid by HQ for the work we do for it. However, we are not going to let that affect how the CRT operates. The CRT is a community team and it will be run by the community. We both have a history of not letting our other positions affect how we act in the community. Personally, I have been doing work for HQ for quite some time and yet I still call them out when they do something wrong. I will continue to do so as part of the CRT. Jeremy has a similar history and I trust him to do the same.
 
 **A new bot? Where is the source code?**
 
-Glad you asked! You can find it at [hackclub-community/owl](https://github.com/hackclub-community/prox3). Anyone is welcome to submit pull requests and I will try to review them on a regular basis.
+Glad you asked! You can find it at [hackclub-community/owl](https://github.com/hackclub-community/owl). Anyone is welcome to submit pull requests and I will try to review them on a regular basis.
 
 **Where is the bot hosted?**
 
-The bot is hosted in a server from [Njalla](https://njal.la/), a trusted privacy-focused hosting provider. Only I (Rowan) and Jeremy have access to the server. The bot will never be hosted on infrastructure that is owned, paid for, or controlled by HQ.
+The bot is hosted on a server from [Njalla](https://njal.la/), a trusted privacy-focused hosting provider. Only I (Rowan) and Jeremy have access to the server. The bot will never be hosted on infrastructure that is owned, paid for, or controlled by HQ.
 
 For comparison, the old Prox2 database (aka where all the confessions were stored) was hosted on a DigitalOcean droplet that was paid for by HQ as part of the long gone hack-as-a-service project. HQ had full access to the server at all times. Owl will be more independent than Prox2 ever claimed to be.
 
 **What about the old confessions?**
 
-Ani and I have copies of the old database in case they are needed. However we do not intend to restore old confessions. Any confessions made via Prox2 can not be replied to. If you had submitted a confession to Prox2 during the downtime, it is lost.
+Ani and I have copies of the old database in case they are needed. However, we do not intend to restore old confessions. Any confessions made via Prox2 cannot be replied to. If you submitted a confession to Prox2 during the downtime, it is lost.
 
 **How can I join the new CRT?**
 
-We are not looking to bring on new people right now. We will mostly be pulling in the existing CRT members that would like to join, however we still do have applications open and will keep them in case we decide to bring on new people. Do not treat this as a promise that the same application will be used in the future, we may change this.
+We are not looking to bring on new people right now. We will mostly be pulling in the existing CRT members who would like to join. However, applications are still open, and we will keep them in case we decide to bring on new people. Do not treat this as a promise that the same application will be used in the future; we may change this.
 
 ---
 
-Sorry that the wait took so long. Confessions is such a great part of the community and it's awesome to bring it back. We will be tweaking the bot and the team over time, so if you have any feedback, please let us know in <SlackChannel id="confessions-meta" />. Enjoy <Emoji name="ohneheart" />
+Sorry the wait took so long. Confessions is such a great part of the community and it's awesome to bring it back. We will be tweaking the bot and the team over time, so if you have any feedback, please let us know in <SlackChannel id="confessions-meta" />. Enjoy <Emoji name="ohneheart" />
