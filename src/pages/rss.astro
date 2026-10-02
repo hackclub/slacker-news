@@ -33,21 +33,23 @@ const feedUrl = new URL("/feed.xml", Astro.site ?? Astro.url).toString();
 const slackColumns = getSlackColumns();
 const protectedColumns = slackColumns.filter((column) => column.authRequired);
 
-// Mirrors the ids /feed.xml?columns= understands. Defaults match the feed
-// without ?columns=: every article plus the columns marked rss.
+// Mirrors the ids /feed.xml understands. Defaults match the bare feed:
+// every article. Slack columns marked rss are opt-in.
 const articleOptions: FeedOption[] = [
   { id: "news", label: "News", membersOnly: false, default: true },
   { id: "opinion", label: "Opinion", membersOnly: false, default: true },
   { id: "essays", label: "Essays", membersOnly: false, default: true },
   { id: "changelogs", label: "Changelogs", membersOnly: false, default: true },
 ];
-const slackOptions: FeedOption[] = slackColumns.map((column) => ({
-  id: `slack-${column.column}`,
-  label: column.title,
-  detail: column.subtitle,
-  membersOnly: Boolean(column.authRequired),
-  default: Boolean(column.rss),
-}));
+const slackOptions: FeedOption[] = slackColumns
+  .filter((column) => column.rss)
+  .map((column) => ({
+    id: `slack-${column.column}`,
+    label: column.title,
+    detail: column.subtitle,
+    membersOnly: Boolean(column.authRequired),
+    default: false,
+  }));
 const allOptions = [...articleOptions, ...slackOptions];
 
 // Slack ID when the session has one, else the account email; either names

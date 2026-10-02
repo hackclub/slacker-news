@@ -46,8 +46,9 @@ async function getTokenAccess(context) {
   };
 }
 
-// The feed carries its defaults (every article category plus the Slack
-// columns marked rss), adjusted by ?exclude= and ?include=, as built on /rss/.
+// The feed carries its defaults (every article category), adjusted by
+// ?exclude= and ?include=, as built on /rss/. Slack columns marked rss are
+// opt-in through ?include=.
 // Ids are article categories (news, opinion, essays, changelogs) and
 // slack-<column>. Links only name departures from the defaults, so changing
 // a default later reaches existing subscribers.
@@ -69,7 +70,8 @@ function getColumnSelection(context) {
 function getFeedSlackColumns(wants, tokenAccess) {
   return getSlackColumns().filter(
     (column) =>
-      wants(`slack-${column.column}`, Boolean(column.rss)) &&
+      column.rss &&
+      wants(`slack-${column.column}`, false) &&
       (!column.authRequired || tokenAccess.canRead(column)),
   );
 }
