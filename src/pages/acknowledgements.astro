@@ -8,14 +8,13 @@ import {
 } from "../lib/content";
 
 const site = await getSiteConfig();
-const { editors, technical, content, submitters, other } =
+const { editors, technical, content, other } =
   await getAcknowledgementGroups();
 
 const sections: { title: string; people: Acknowledgement[] }[] = [
   { title: "Editors", people: editors },
   { title: "Technical contributors", people: technical },
   { title: "Content contributors", people: content },
-  { title: "Article submitters", people: submitters },
   { title: "With thanks", people: other },
 ];
 

@@ -66,7 +66,9 @@
     "name": "@eps",
     "slackId": "U09Q8MLTE58",
     "roles": [
-      "editor"
+      "editor",
+      "technical",
+      "content"
     ]
   },
   {
@@ -74,7 +76,8 @@
     "slackId": "U07VA44DNBA",
     "roles": [
       "editor",
-      "technical"
+      "technical",
+      "content"
     ]
   },
   {
@@ -139,5 +142,12 @@
   {
     "name": "@lou",
     "slackId": "U06EMBJH71S"
+  },
+  {
+    "name": "@Jason Cameron",
+    "slackId": "U06L6GPJYUR",
+    "roles": [
+      "technical"
+    ]
   }
 ]

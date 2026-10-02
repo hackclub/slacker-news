@@ -10,14 +10,14 @@ const { name, id } = Astro.props;
 const suppliedName = name?.trim();
 let displayName: string | undefined = suppliedName;
 
-if (/^[UW][A-Z0-9]+$/i.test(id)) {
+if (/^[UW][A-Z0-9]+$/.test(id)) {
     displayName = await getSlackUserDisplayName(id)
-        ?? (suppliedName && !/^[UW][A-Z0-9]+$/i.test(suppliedName) && suppliedName.toLowerCase() !== "slack user"
+        ?? (suppliedName && !/^[UW][A-Z0-9]+$/.test(suppliedName) && suppliedName.toLowerCase() !== "slack user"
             ? suppliedName
             : undefined);
 }
 
-if (!displayName || /^[UW][A-Z0-9]+$/i.test(displayName)) {
+if (!displayName || /^[UW][A-Z0-9]+$/.test(displayName)) {
     displayName = id === "here" || id === "channel" || id === "everyone" ? id : "Slack user";
 }
 ---

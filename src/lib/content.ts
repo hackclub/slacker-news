@@ -80,7 +80,6 @@ export type AcknowledgementGroups = {
   editors: Acknowledgement[];
   technical: Acknowledgement[];
   content: Acknowledgement[];
-  submitters: Acknowledgement[];
   other: Acknowledgement[];
 };
 
@@ -443,7 +442,8 @@ function byName(a: Acknowledgement, b: Acknowledgement): number {
 
 // Editors keep their order from the acknowledgements file; every other section
 // is sorted by handle. Sections may overlap: someone who writes and ships code
-// belongs in both lists.
+// belongs in both lists. Content contributors are everyone with the content
+// role plus every article author.
 export async function getAcknowledgementGroups(): Promise<AcknowledgementGroups> {
   const people = await getAcknowledgements();
   const editors = people.filter((person) => hasRole(person, "editor"));
@@ -478,29 +478,31 @@ export async function getAcknowledgementGroups(): Promise<AcknowledgementGroups>
     }
   }
 
-  const submitters = [...submitterHandles.values()].sort(byName);
-
   // A declared role always places someone, editors included: an editor who also
-  // writes the code should be credited for both. Only the derived submitter
-  // list excludes them, or the editors would dominate it by sheer byline count.
+  // writes the code should be credited for both. Only the byline-derived list
+  // excludes them, or the editors would dominate it by sheer byline count.
   const byDeclaredRole = (role: AcknowledgementRole) =>
-    people.filter((person) => hasRole(person, role)).sort(byName);
+    people.filter((person) => hasRole(person, role));
 
-  const technical = byDeclaredRole("technical");
-  const content = byDeclaredRole("content");
+  const technical = byDeclaredRole("technical").sort(byName);
+
+  const contentHandles = new Map(submitterHandles);
+  for (const person of byDeclaredRole("content")) {
+    contentHandles.set(normalizeHandle(person.name), person);
+  }
+  const content = [...contentHandles.values()].sort(byName);
 
   const credited = new Set([
     ...editorHandles,
     ...technical.map((person) => normalizeHandle(person.name)),
-    ...content.map((person) => normalizeHandle(person.name)),
-    ...submitterHandles.keys(),
+    ...contentHandles.keys(),
   ]);
 
   const other = people
     .filter((person) => !credited.has(normalizeHandle(person.name)))
     .sort(byName);
 
-  return { editors, technical, content, submitters, other };
+  return { editors, technical, content, other };
 }
 
 export async function getRecentChangelogEntries(
