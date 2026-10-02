@@ -2,11 +2,12 @@ import rss from "@astrojs/rss";
 import { timingSafeEqual } from "node:crypto";
 import { getChangelogEntries, getPosts, getSiteConfig } from "../lib/content";
 import { legacyRedirects } from "../data/legacy-redirects.mjs";
+import { getSlackColumnData, getSlackColumns } from "../lib/indigest";
 import {
-  firstMetadataValue,
-  getSlackColumnData,
-  getSlackColumns,
-} from "../lib/indigest";
+  buildFeedItems,
+  getFeedSelection,
+  getFeedSlackColumns,
+} from "../lib/feed-items";
 import { getFeedTokenStatus } from "../lib/feed-tokens";
 
 const legacyPaths = new Set(
@@ -46,34 +47,6 @@ async function getTokenAccess(context) {
   };
 }
 
-// The feed carries its defaults (every article category plus the Slack
-// columns marked rss), adjusted by ?exclude= and ?include=, as built on /rss/.
-// Ids are article categories (news, opinion, essays, changelogs) and
-// slack-<column>. Links only name departures from the defaults, so changing
-// a default later reaches existing subscribers.
-function listParam(context, name) {
-  return new Set(
-    (context.url.searchParams.get(name) ?? "")
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean),
-  );
-}
-
-function getColumnSelection(context) {
-  const include = listParam(context, "include");
-  const exclude = listParam(context, "exclude");
-  return (id, isDefault) => (isDefault || include.has(id)) && !exclude.has(id);
-}
-
-function getFeedSlackColumns(wants, tokenAccess) {
-  return getSlackColumns().filter(
-    (column) =>
-      wants(`slack-${column.column}`, Boolean(column.rss)) &&
-      (!column.authRequired || tokenAccess.canRead(column)),
-  );
-}
-
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 // Keys revoked before Indigest recorded revocation times have no date, so
 // their notices fall on Mondays.
@@ -96,36 +69,6 @@ function revokedTokenNotice(context, revokedAt) {
     link: `${loginUrl}#revoked-${week}`,
     content: `<p>Your key is revoked. Log in to <a href="${loginUrl}">${loginUrl}</a> to make a new one.</p>`,
   };
-}
-
-async function getSlackItems(columns) {
-  const columnData = await Promise.all(
-    columns.map((column) => getSlackColumnData(column.column)),
-  );
-
-  return columnData
-    .filter((column) => column !== undefined)
-    .flatMap((column) =>
-      column.messages
-        .map((message) => ({
-          title:
-            firstMetadataValue(message.metadata) ?? column.title ?? "Slack message",
-          description: column.title,
-          pubDate: new Date(message.timestamp),
-          link: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
-          content: `<p>${escapeHtml(message.text)}</p>`,
-        }))
-        // Indigest occasionally returns a malformed timestamp; drop those
-        // rather than let one bad record break the whole feed.
-        .filter((item) => !Number.isNaN(item.pubDate.getTime())),
-    );
-}
-
-function escapeHtml(input) {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }
 
 async function trackFeedView(context) {
@@ -166,76 +109,33 @@ export async function GET(context) {
   const site = await getSiteConfig();
   const posts = await getPosts();
   const changelogs = await getChangelogEntries();
-  const wants = getColumnSelection(context);
+  const wants = getFeedSelection(context.url.searchParams);
   const tokenAccess = await getTokenAccess(context);
-  const slackItems = await getSlackItems(
-    getFeedSlackColumns(wants, tokenAccess),
+  const slackColumns = getFeedSlackColumns(
+    getSlackColumns(),
+    wants,
+    tokenAccess.canRead,
   );
-  if ("revokedAt" in tokenAccess) {
-    slackItems.push(revokedTokenNotice(context, tokenAccess.revokedAt));
-  }
+  const slack = (
+    await Promise.all(
+      slackColumns.map((column) => getSlackColumnData(column.column)),
+    )
+  )
+    .filter((column) => column !== undefined)
+    .map((column) => ({ column, messages: column.messages }));
 
   await trackFeedView(context);
 
-  const postItems = posts
-    .filter((post) => wants(post.category, true))
-    .map((post) => {
-    const baseSlug = post.slug.split("/").pop();
-    const legacyKey = baseSlug ? `/${baseSlug}` : null;
-    const legacyLink =
-      legacyKey && legacyPaths.has(legacyKey) ? `${legacyKey}/` : post.url;
-    const leadingImageSrc =
-      post.leadingImage?.src ??
-      "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png";
-    const leadingImageAlt =
-      post.leadingImage?.alt ?? `Slacker News social preview`;
-
-    const paragraphContent = post.paragraphs.length
-      ? post.paragraphs
-          .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-          .join("")
-      : `<p>${escapeHtml(post.excerpt)}</p>`;
-
-    return {
-      title: post.title,
-      description: post.excerpt,
-      pubDate: post.date,
-      link: legacyLink,
-      content: paragraphContent,
-
-      // @astrojs/rss doesn't support Media RSS
-      customData: `
-                <media:content url="${leadingImageSrc}" medium="image" />
-                <media:thumbnail url="${leadingImageSrc}" />
-                <media:title type="plain">${leadingImageAlt}</media:title>
-            `,
-    };
+  const items = buildFeedItems({
+    posts,
+    changelogs: changelogs.filter((entry) => entry.kind === "long"),
+    slack,
+    wants,
+    legacyPaths,
   });
-
-  const longChangelogItems = changelogs
-    .filter(
-      (entry) =>
-        entry.kind === "long" && wants("changelogs", true),
-    )
-    .map((entry) => {
-      const paragraphContent = entry.paragraphs.length
-        ? entry.paragraphs
-            .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-            .join("")
-        : `<p>${escapeHtml(entry.excerpt)}</p>`;
-
-      return {
-        title: entry.title,
-        description: entry.excerpt,
-        pubDate: new Date(`${entry.date}T00:00:00Z`),
-        link: entry.url,
-        content: paragraphContent,
-      };
-    });
-
-  const items = [...postItems, ...longChangelogItems, ...slackItems].sort(
-    (a, b) => b.pubDate.getTime() - a.pubDate.getTime(),
-  );
+  if ("revokedAt" in tokenAccess) {
+    items.unshift(revokedTokenNotice(context, tokenAccess.revokedAt));
+  }
 
   return rss({
     title: site.title,

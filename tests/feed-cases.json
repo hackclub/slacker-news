@@ -1,0 +1,22 @@
+[
+  { "name": "default", "query": "" },
+  { "name": "default, member", "query": "", "member": true },
+  {
+    "name": "no slack columns",
+    "query": "exclude=slack-classifieds,slack-ysws"
+  },
+  { "name": "no news", "query": "exclude=news", "member": true },
+  {
+    "name": "articles only",
+    "query": "includeOnly&include=news,opinion,essays,changelogs"
+  },
+  {
+    "name": "news and ysws only",
+    "query": "includeOnly&include=news,slack-ysws"
+  },
+  {
+    "name": "members-only columns only",
+    "query": "includeOnly&include=slack-opinion,slack-ship-of-the-week",
+    "member": true
+  }
+]
