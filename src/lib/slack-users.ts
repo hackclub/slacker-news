@@ -1,5 +1,11 @@
 const userPromises = new Map<string, Promise<string | undefined>>();
 
+// Lookup services answer with a stand-in name while they cannot reach Slack.
+// Treat those like no answer, so the next source (or the supplied name) wins.
+function isPlaceholderName(name: string): boolean {
+  return /^(unknown|slack user)$/i.test(name) || /^[UW][A-Z0-9]+$/.test(name);
+}
+
 function nameFromPayload(
   payload: unknown,
   preferHandle = false,
@@ -34,7 +40,9 @@ function nameFromPayload(
         typeof value === "string" && Boolean(value.trim()),
     )
     ?.trim();
-  if (name) return name.replace(/^@+/, "");
+  if (name && !isPlaceholderName(name.replace(/^@+/, ""))) {
+    return name.replace(/^@+/, "");
+  }
 
   return [record.data, record.user, record.profile]
     .map((value) => nameFromPayload(value, preferHandle, depth + 1))
