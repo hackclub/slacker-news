@@ -1,5 +1,6 @@
 ---
 import AbacusCounter from "../components/AbacusCounter.astro";
+import SiteFooter from "../components/SiteFooter.astro";
 
 interface Props {
   title?: string;
@@ -244,5 +245,6 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       })();
     </script>
     <AbacusCounter pathname={Astro.url.pathname} />
+    <SiteFooter />
   </body>
 </html>
