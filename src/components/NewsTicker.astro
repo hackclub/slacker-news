@@ -1,0 +1,340 @@
+---
+import { getPosts } from "../lib/content";
+import {
+  firstMetadataValue,
+  getIndigestMessages,
+  getSlackColumns,
+} from "../lib/indigest";
+
+type Headline = {
+  title: string;
+  href: string;
+  date: number;
+};
+
+function timestampToNumber(timestamp: string | Date): number {
+  const parsed = new Date(timestamp).getTime();
+  if (!Number.isNaN(parsed)) return parsed;
+
+  const slackTimestamp = Number(timestamp);
+  return Number.isFinite(slackTimestamp) ? slackTimestamp * 1000 : 0;
+}
+
+const regularHeadlines: Headline[] = (await getPosts()).map((post) => ({
+  title: post.title,
+  href: post.url,
+  date: post.date.getTime(),
+}));
+
+const slackHeadlines = (
+  await Promise.all(
+    getSlackColumns().map(async (column) => {
+      try {
+        const messages = await getIndigestMessages(
+          column.channelId ?? column.column,
+          20,
+        );
+
+        return messages.map((message): Headline => ({
+          title: `${column.noun ?? column.title}: ${firstMetadataValue(message.metadata) ?? column.title}`,
+          href: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
+          date: timestampToNumber(message.timestamp || message.slackTs),
+        }));
+      } catch {
+        return [];
+      }
+    }),
+  )
+).flat();
+
+const headlines = [...regularHeadlines, ...slackHeadlines]
+  .sort((a, b) => b.date - a.date)
+  .slice(0, 20);
+---
+
+<div class="news-ticker" aria-label="News ticker">
+  <span class="news-ticker-label">Newswire</span>
+  <div class="news-ticker-track">
+    <div class="news-ticker-scroll" data-ticker>
+      <span class="news-ticker-set" data-ticker-set>
+        {headlines.map((headline) => (
+          <>
+            <span class="news-ticker-entry">
+              <a class="news-ticker-item" href={headline.href}>
+                {headline.title}
+              </a>
+              <span class="news-ticker-divider" aria-hidden="true">◆</span>
+            </span>
+          </>
+        ))}
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const TICKER_CACHE_KEY = "news-ticker:headlines:v2";
+
+  function cacheTicker() {
+    const set = document.querySelector("#news-ticker .news-ticker-set");
+    if (!(set instanceof HTMLElement)) return;
+    if (set.closest(".news-ticker--loading")) return;
+
+    try {
+      localStorage.setItem(
+        TICKER_CACHE_KEY,
+        JSON.stringify({ markup: set.innerHTML, cachedAt: Date.now() }),
+      );
+    } catch (_error) {
+      // Ignore unavailable or full browser storage.
+    }
+  }
+
+  function initializeTickers() {
+    document
+      .querySelectorAll("[data-ticker]:not([data-ticker-initialized])")
+      .forEach((scroll) => {
+        if (!(scroll instanceof HTMLElement)) return;
+        scroll.setAttribute("data-ticker-initialized", "true");
+        const set = scroll.querySelector("[data-ticker-set]");
+        if (!(set instanceof HTMLElement)) return;
+        const parent = scroll.parentElement;
+        if (!parent) return;
+
+        const items = Array.from(set.querySelectorAll(".news-ticker-entry"));
+        if (items.length === 0) return;
+
+        const dupe = set.cloneNode(true);
+        if (!(dupe instanceof HTMLElement)) return;
+        dupe.setAttribute("aria-hidden", "true");
+        scroll.appendChild(dupe);
+
+        let index = 0;
+        const step = () => {
+          index++;
+          const next = items[index];
+          if (next instanceof HTMLElement) {
+            scroll.style.transform = `translateX(-${next.offsetLeft}px)`;
+            return;
+          }
+
+          scroll.addEventListener(
+            "transitionend",
+            () => {
+              scroll.style.transition = "none";
+              scroll.style.transform = "translateX(0)";
+              index = 0;
+              requestAnimationFrame(() => {
+                scroll.style.transition = "";
+              });
+            },
+            { once: true },
+          );
+          scroll.style.transform = `translateX(-${set.offsetWidth}px)`;
+        };
+
+        window.setInterval(step, 5000);
+      });
+  }
+
+  function initializeSkeletonTickers() {
+    document
+      .querySelectorAll(
+        ".news-ticker-skeleton-scroll:not([data-ticker-initialized])",
+      )
+      .forEach((scroll) => {
+        const set = scroll.querySelector(".news-ticker-skeleton-set");
+        if (!(scroll instanceof HTMLElement) || !(set instanceof HTMLElement)) {
+          return;
+        }
+
+        scroll.setAttribute("data-ticker-initialized", "true");
+        const items = Array.from(
+          set.querySelectorAll(".news-ticker-skeleton-entry"),
+        );
+        if (items.length === 0) return;
+        const duplicate = set.cloneNode(true);
+        if (!(duplicate instanceof HTMLElement)) return;
+        duplicate.setAttribute("aria-hidden", "true");
+        scroll.appendChild(duplicate);
+
+        let index = 0;
+        window.setInterval(() => {
+          index++;
+          const next = items[index];
+          if (next instanceof HTMLElement) {
+            scroll.style.transform = `translateX(-${next.offsetLeft}px)`;
+            return;
+          }
+          scroll.addEventListener(
+            "transitionend",
+            () => {
+              scroll.style.transition = "none";
+              scroll.style.transform = "translateX(0)";
+              index = 0;
+              requestAnimationFrame(() => {
+                scroll.style.transition = "";
+              });
+            },
+            { once: true },
+          );
+          scroll.style.transform = `translateX(-${set.offsetWidth}px)`;
+        }, 5000);
+      });
+  }
+
+  function initializeAllTickers() {
+    initializeTickers();
+    initializeSkeletonTickers();
+    cacheTicker();
+  }
+
+  function saveTickerPositions() {
+    document
+      .querySelectorAll(
+        ".news-ticker-scroll, .news-ticker-skeleton-scroll, .news-ticker-stale-scroll",
+      )
+      .forEach((scroll) => {
+        if (!(scroll instanceof HTMLElement)) return;
+
+        const currentTime = scroll.getAnimations()[0]?.currentTime;
+        if (typeof currentTime === "number") {
+          scroll.setAttribute("data-ticker-current-time", String(currentTime));
+          scroll.setAttribute("data-ticker-saved-at", String(performance.now()));
+        }
+      });
+  }
+
+  function restoreTickerPositions() {
+    document
+      .querySelectorAll(
+        ".news-ticker-scroll[data-ticker-current-time], .news-ticker-skeleton-scroll[data-ticker-current-time], .news-ticker-stale-scroll[data-ticker-current-time]",
+      )
+      .forEach((scroll) => {
+        if (!(scroll instanceof HTMLElement)) return;
+
+        const currentTime = Number(scroll.getAttribute("data-ticker-current-time"));
+        const savedAt = Number(scroll.getAttribute("data-ticker-saved-at"));
+        const duration = parseFloat(getComputedStyle(scroll).animationDuration) * 1000;
+        const navigationTime = Number.isFinite(savedAt)
+          ? performance.now() - savedAt
+          : 0;
+
+        if (!Number.isFinite(currentTime) || duration <= 0) return;
+
+        const animation = scroll.getAnimations()[0];
+        if (!animation) return;
+
+        scroll.style.animationDelay = "0s";
+        animation.currentTime = (currentTime + navigationTime) % duration;
+        animation.play();
+      });
+  }
+
+  function initializeAllTickersAndRestorePosition() {
+    initializeAllTickers();
+    restoreTickerPositions();
+  }
+
+  initializeAllTickers();
+  document.addEventListener("astro:before-swap", saveTickerPositions);
+  document.addEventListener("astro:after-swap", initializeAllTickersAndRestorePosition);
+  document.addEventListener("astro:page-load", initializeAllTickersAndRestorePosition);
+  new MutationObserver(initializeAllTickers).observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+</script>
+
+<style>
+  .news-ticker {
+    background: #fff;
+    color: #000;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
+  }
+
+  .news-ticker--loading {
+    min-height: 31px;
+    align-items: center;
+    padding: 0;
+  }
+
+  .news-ticker-skeleton {
+    display: block;
+    width: min(28rem, 55%);
+    height: 0.8em;
+    background: linear-gradient(90deg, #fff 25%, #f0f0eb 50%, #fff 75%);
+    background-size: 200% 100%;
+    animation: news-ticker-loading 1.5s infinite;
+  }
+
+  @keyframes news-ticker-loading {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  .news-ticker-track {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .news-ticker-label {
+    flex: 0 0 auto;
+    padding: 8px 1em;
+    border-right: 2px solid #000;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .news-ticker-scroll {
+    display: flex;
+    width: max-content;
+    transition: transform 900ms ease-in-out;
+  }
+
+  .news-ticker-set {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .news-ticker-entry {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .news-ticker-item {
+    padding: 8px 0;
+  }
+
+  .news-ticker-divider {
+    margin: 0 1.2em;
+    font-size: 0.45em;
+    vertical-align: middle;
+    color: #555;
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .news-ticker-scroll {
+      transition: none;
+    }
+  }
+</style>

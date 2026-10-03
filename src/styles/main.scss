@@ -46,15 +46,16 @@ a {
 
 .site-header {
   border-top: 5px solid #000;
-  border-bottom: 3px double #000;
+  border-bottom: none;
   background-color: #fff;
   text-align: center;
-  padding: 12px 0;
+  padding: 0;
 
   .wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 12px 0;
   }
 }
 
@@ -76,6 +77,8 @@ a {
   text-align: center;
   line-height: normal;
   margin-top: 10px;
+  position: relative;
+  z-index: 2;
   .trigger {
     display: flex;
     align-items: center;
@@ -98,6 +101,181 @@ a {
       display: none;
     }
   }
+}
+
+// ─── Deferred news ticker fallback ──────────────────────────────────────────
+
+.news-ticker--loading {
+  display: flex;
+  align-items: center;
+  min-height: 31px;
+  overflow: hidden;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  background: #fff;
+}
+
+#news-ticker {
+  position: relative;
+  z-index: 0;
+}
+
+#news-ticker-stale {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  min-height: 31px;
+  background: #fff;
+  color: #000;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+}
+
+#news-ticker-stale[hidden] {
+  display: none !important;
+}
+
+.news-ticker-stale-track {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.news-ticker-stale-track .news-ticker-scroll {
+  display: flex;
+  width: max-content;
+  transition: transform 900ms ease-in-out;
+}
+
+.news-ticker-label {
+  flex: 0 0 auto;
+  padding: 8px 1em;
+  margin-right: 8px;
+  border-right: 2px solid #000;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.news-ticker-stale-track .news-ticker-set {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 max-content;
+  white-space: nowrap;
+}
+
+.news-ticker-stale-track .news-ticker-entry {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.news-ticker-stale-track .news-ticker-item {
+  padding: 8px 0;
+}
+
+.news-ticker-stale-track .news-ticker-divider {
+  margin: 0 1.2em;
+  font-size: 0.45em;
+  vertical-align: middle;
+  color: #555;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-ticker-stale-track .news-ticker-scroll,
+  .news-ticker-skeleton-scroll {
+    transition: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .news-ticker-label {
+    display: none;
+  }
+
+  #news-ticker .news-ticker,
+  #news-ticker-stale {
+    padding-left: 8px;
+  }
+
+  .site-nav {
+    position: absolute;
+    z-index: 2;
+  }
+}
+
+.news-ticker-skeleton-set {
+  display: flex;
+  align-items: center;
+  flex: 0 0 max-content;
+  white-space: nowrap;
+}
+
+.news-ticker-skeleton-track {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.news-ticker-track {
+  position: relative;
+}
+
+.news-ticker-track::after,
+.news-ticker-stale-track::after,
+.news-ticker-skeleton-track::after {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2.5rem;
+  background: linear-gradient(to right, transparent, #fff);
+  content: "";
+  pointer-events: none;
+}
+
+.news-ticker-skeleton-scroll {
+  display: flex;
+  width: max-content;
+  transition: transform 900ms ease-in-out;
+}
+
+.news-ticker-skeleton-entry {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.news-ticker-skeleton-text {
+  display: inline-block;
+  flex: 0 0 var(--skeleton-width, 10em);
+  height: 0.8em;
+  background: linear-gradient(90deg, #fff 25%, #f0f0eb 50%, #fff 75%);
+  background-size: 200% 100%;
+  animation: news-ticker-loading 1.5s infinite;
+}
+
+.news-ticker-skeleton-dot {
+  margin: 0 1.2em;
+  font-size: 0.45em;
+  opacity: 1;
+  color: #555;
+}
+
+@keyframes news-ticker-loading {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 
 // ─── Front page grid ─────────────────────────────────────────────────────────
