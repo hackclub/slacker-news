@@ -331,56 +331,60 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
   </div>
 
   <script>
-    const form = document.getElementById("rss-builder") as HTMLFormElement | null;
-    const result = document.getElementById("rss-result");
-    const urlInput = document.getElementById("rss-url") as HTMLInputElement | null;
-    const privateBlock = document.getElementById("rss-private");
-    const privateHint = document.getElementById("rss-private-hint");
-    const copyButton = document.getElementById("rss-copy");
+    // Bundled scripts run once per full page load, so re-run on every
+    // client-side navigation to set up the feed builder on this page again.
+    document.addEventListener("astro:page-load", () => {
+      const form = document.getElementById("rss-builder") as HTMLFormElement | null;
+      const result = document.getElementById("rss-result");
+      const urlInput = document.getElementById("rss-url") as HTMLInputElement | null;
+      const privateBlock = document.getElementById("rss-private");
+      const privateHint = document.getElementById("rss-private-hint");
+      const copyButton = document.getElementById("rss-copy");
 
-    if (form && result && urlInput) {
-      const feedUrl = form.dataset.feedUrl ?? "/feed.xml";
-      const token = form.dataset.token;
-      const boxes = Array.from(
-        form.querySelectorAll<HTMLInputElement>('input[name="columns"]'),
-      );
-
-      // Keep in step with buildFeedUrl in the frontmatter.
-      const update = () => {
-        const chosen = boxes.filter((box) => box.checked && !box.disabled);
-        const membersOnly = chosen.some((box) => "membersOnly" in box.dataset);
-        const needsToken = membersOnly && !token;
-        const feedToken = membersOnly ? token : undefined;
-
-        const relevant = boxes.filter(
-          (box) => !box.disabled && (feedToken || !("membersOnly" in box.dataset)),
+      if (form && result && urlInput) {
+        const feedUrl = form.dataset.feedUrl ?? "/feed.xml";
+        const token = form.dataset.token;
+        const boxes = Array.from(
+          form.querySelectorAll<HTMLInputElement>('input[name="columns"]'),
         );
-        const isDefault = (box: HTMLInputElement) => "default" in box.dataset;
-        const exclude = relevant.filter((box) => isDefault(box) && !box.checked);
-        const include = relevant.filter((box) => !isDefault(box) && box.checked);
 
-        const params = new URLSearchParams();
-        if (include.length) params.set("include", include.map((box) => box.value).join(","));
-        if (exclude.length) params.set("exclude", exclude.map((box) => box.value).join(","));
-        if (feedToken) params.set("token", feedToken);
-        const query = params.toString().replaceAll("%2C", ",");
+        // Keep in step with buildFeedUrl in the frontmatter.
+        const update = () => {
+          const chosen = boxes.filter((box) => box.checked && !box.disabled);
+          const membersOnly = chosen.some((box) => "membersOnly" in box.dataset);
+          const needsToken = membersOnly && !token;
+          const feedToken = membersOnly ? token : undefined;
 
-        urlInput.value = needsToken ? "" : query ? `${feedUrl}?${query}` : feedUrl;
-        result.hidden = needsToken || chosen.length === 0;
-        if (privateBlock) privateBlock.hidden = !needsToken;
-        if (privateHint) privateHint.hidden = !(membersOnly && token);
-      };
+          const relevant = boxes.filter(
+            (box) => !box.disabled && (feedToken || !("membersOnly" in box.dataset)),
+          );
+          const isDefault = (box: HTMLInputElement) => "default" in box.dataset;
+          const exclude = relevant.filter((box) => isDefault(box) && !box.checked);
+          const include = relevant.filter((box) => !isDefault(box) && box.checked);
 
-      boxes.forEach((box) => box.addEventListener("change", update));
-      update();
+          const params = new URLSearchParams();
+          if (include.length) params.set("include", include.map((box) => box.value).join(","));
+          if (exclude.length) params.set("exclude", exclude.map((box) => box.value).join(","));
+          if (feedToken) params.set("token", feedToken);
+          const query = params.toString().replaceAll("%2C", ",");
 
-      copyButton?.addEventListener("click", () => {
-        navigator.clipboard.writeText(urlInput.value).then(() => {
-          copyButton.textContent = "Copied";
-          setTimeout(() => (copyButton.textContent = "Copy"), 2000);
+          urlInput.value = needsToken ? "" : query ? `${feedUrl}?${query}` : feedUrl;
+          result.hidden = needsToken || chosen.length === 0;
+          if (privateBlock) privateBlock.hidden = !needsToken;
+          if (privateHint) privateHint.hidden = !(membersOnly && token);
+        };
+
+        boxes.forEach((box) => box.addEventListener("change", update));
+        update();
+
+        copyButton?.addEventListener("click", () => {
+          navigator.clipboard.writeText(urlInput.value).then(() => {
+            copyButton.textContent = "Copied";
+            setTimeout(() => (copyButton.textContent = "Copy"), 2000);
+          });
         });
-      });
-    }
+      }
+    });
   </script>
 
   <style>
