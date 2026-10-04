@@ -145,6 +145,7 @@ if (Astro.request.method === "POST") {
   if (form?.has("built")) {
     next.set("built", "1");
     for (const id of form.getAll("columns")) next.append("columns", String(id));
+    if (form.has("includeOnly")) next.set("includeOnly", "1");
   }
   const query = next.toString();
   return Astro.redirect(query ? `/rss/?${query}` : "/rss/", 303);
@@ -164,6 +165,7 @@ if (Astro.cookies.has(FLASH_COOKIE)) Astro.cookies.delete(FLASH_COOKIE, cookieOp
 // redirect after an action).
 const params = Astro.url.searchParams;
 const submitted = params.has("built") ? params.getAll("columns") : undefined;
+const includeOnly = params.has("built") && params.has("includeOnly");
 const selected = new Set(
   submitted
     ? submitted
@@ -176,24 +178,27 @@ const chosen = allOptions.filter(
 const wantsMembersOnly = chosen.some((option) => option.membersOnly);
 
 // Links name only departures from the feed's defaults (see /feed.xml), so
-// a later change to the defaults reaches existing subscribers. Members-only
-// columns count only when the link carries a token.
-function buildFeedUrl(ids: string[], feedToken?: string) {
+// a later change to the defaults reaches existing subscribers, unless the
+// reader pins their exact selection with includeOnly. Members-only columns
+// count only when the link carries a token. Values keep literal commas.
+function buildFeedUrl(ids: string[], feedToken?: string, pinned = false) {
   const relevant = allOptions.filter(
     (option) => feedToken || !option.membersOnly,
   );
-  const exclude = relevant
-    .filter((option) => option.default && !ids.includes(option.id))
-    .map((option) => option.id);
   const include = relevant
-    .filter((option) => !option.default && ids.includes(option.id))
+    .filter((option) => ids.includes(option.id) && (pinned || !option.default))
     .map((option) => option.id);
-  const params = new URLSearchParams();
-  if (include.length) params.set("include", include.join(","));
-  if (exclude.length) params.set("exclude", exclude.join(","));
-  if (feedToken) params.set("token", feedToken);
-  const query = params.toString().replaceAll("%2C", ",");
-  return query ? `${feedUrl}?${query}` : feedUrl;
+  const exclude = pinned
+    ? []
+    : relevant
+        .filter((option) => option.default && !ids.includes(option.id))
+        .map((option) => option.id);
+  const parts: string[] = [];
+  if (pinned) parts.push("includeOnly");
+  if (include.length) parts.push(`include=${include.join(",")}`);
+  if (exclude.length) parts.push(`exclude=${exclude.join(",")}`);
+  if (feedToken) parts.push(`token=${encodeURIComponent(feedToken)}`);
+  return parts.length ? `${feedUrl}?${parts.join("&")}` : feedUrl;
 }
 
 const builtUrl =
@@ -202,6 +207,7 @@ const builtUrl =
     : buildFeedUrl(
         chosen.map((option) => option.id),
         wantsMembersOnly ? token : undefined,
+        includeOnly,
       );
 
 const loginUrl = `/auth/login?returnTo=${encodeURIComponent("/rss/")}`;
@@ -270,6 +276,14 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
             </p>
           )}
         </fieldset>
+
+        <label class="rss-option rss-pin">
+          <input type="checkbox" name="includeOnly" value="1" checked={includeOnly} />
+          <span>
+            Only these columns
+            <span class="rss-detail"> · columns added to the default feed later won't appear</span>
+          </span>
+        </label>
 
         <noscript>
           <button class="rss-button rss-button--outline" type="submit">Update link</button>
@@ -347,6 +361,9 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
         const boxes = Array.from(
           form.querySelectorAll<HTMLInputElement>('input[name="columns"]'),
         );
+        const includeOnlyBox = form.querySelector<HTMLInputElement>(
+          'input[name="includeOnly"]',
+        );
 
         // Keep in step with buildFeedUrl in the frontmatter.
         const update = () => {
@@ -355,18 +372,24 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
           const needsToken = membersOnly && !token;
           const feedToken = membersOnly ? token : undefined;
 
+          const pinned = Boolean(includeOnlyBox?.checked);
           const relevant = boxes.filter(
             (box) => !box.disabled && (feedToken || !("membersOnly" in box.dataset)),
           );
           const isDefault = (box: HTMLInputElement) => "default" in box.dataset;
-          const exclude = relevant.filter((box) => isDefault(box) && !box.checked);
-          const include = relevant.filter((box) => !isDefault(box) && box.checked);
+          const include = relevant.filter(
+            (box) => box.checked && (pinned || !isDefault(box)),
+          );
+          const exclude = pinned
+            ? []
+            : relevant.filter((box) => isDefault(box) && !box.checked);
 
-          const params = new URLSearchParams();
-          if (include.length) params.set("include", include.map((box) => box.value).join(","));
-          if (exclude.length) params.set("exclude", exclude.map((box) => box.value).join(","));
-          if (feedToken) params.set("token", feedToken);
-          const query = params.toString().replaceAll("%2C", ",");
+          const parts: string[] = [];
+          if (pinned) parts.push("includeOnly");
+          if (include.length) parts.push(`include=${include.map((box) => box.value).join(",")}`);
+          if (exclude.length) parts.push(`exclude=${exclude.map((box) => box.value).join(",")}`);
+          if (feedToken) parts.push(`token=${encodeURIComponent(feedToken)}`);
+          const query = parts.join("&");
 
           urlInput.value = needsToken ? "" : query ? `${feedUrl}?${query}` : feedUrl;
           result.hidden = needsToken || chosen.length === 0;
@@ -374,7 +397,9 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
           if (privateHint) privateHint.hidden = !(membersOnly && token);
         };
 
-        boxes.forEach((box) => box.addEventListener("change", update));
+        [...boxes, includeOnlyBox].forEach((box) =>
+          box?.addEventListener("change", update),
+        );
         update();
 
         copyButton?.addEventListener("click", () => {
@@ -425,6 +450,10 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
 
     .rss-option input {
       accent-color: #000;
+    }
+
+    .rss-pin {
+      margin-bottom: 20px;
     }
 
     .rss-option--locked {
