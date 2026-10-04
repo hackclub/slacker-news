@@ -14,6 +14,7 @@ export type SlackColumnConfig = {
   limit?: number;
   subtitle?: string;
   rss?: boolean;
+  noun?: string;
 };
 
 export type IndigestMessage = {
