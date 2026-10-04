@@ -43,6 +43,10 @@ export type SlackColumn = SlackColumnConfig & {
 
 const configuredColumns = columnConfig as SlackColumnConfig[];
 
+// A hanging Indigest should fail like a down one, not hold the request open
+// until the platform times it out.
+export const INDIGEST_TIMEOUT_MS = 4000;
+
 type CacheEntry<T> = {
   value: T;
   expiresAt: number;
@@ -141,6 +145,7 @@ export async function getIndigestMessages(
           Authorization: `Bearer ${apiKey}`,
           Accept: "application/json",
         },
+        signal: AbortSignal.timeout(INDIGEST_TIMEOUT_MS),
       });
 
       if (!response.ok) {
@@ -174,6 +179,7 @@ export async function getIndigestMessage(
           Authorization: `Bearer ${apiKey}`,
           Accept: "application/json",
         },
+        signal: AbortSignal.timeout(INDIGEST_TIMEOUT_MS),
       });
       if (response.status === 404) {
         // Keep permalinks working if the single-message endpoint misses a message
@@ -209,7 +215,9 @@ export async function getIndigestMetadataSchema(
 
     const apiURL =
       import.meta.env.INDIGEST_API_URL ?? "https://indigest.matmanna.dev";
-    return getCached(`schema:${apiURL}:${channel}`, async () => {
+    // Await here so a failed request lands in the catch below instead of
+    // escaping as a rejected promise and failing the whole page.
+    return await getCached(`schema:${apiURL}:${channel}`, async () => {
       const response = await fetch(
         `${apiURL}/api/channels/${encodeURIComponent(channel)}`,
         {
@@ -217,6 +225,7 @@ export async function getIndigestMetadataSchema(
             Authorization: `Bearer ${apiKey}`,
             Accept: "application/json",
           },
+          signal: AbortSignal.timeout(INDIGEST_TIMEOUT_MS),
         },
       );
       if (!response.ok) return undefined;
