@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { INDIGEST_TIMEOUT_MS } from "./indigest";
 
 // Private feed links carry an Indigest child key. Slacker News has no
 // database, so Indigest stores, scopes and revokes the keys: our own
@@ -47,6 +48,7 @@ async function callIndigest(path: string, body: unknown): Promise<Response> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(INDIGEST_TIMEOUT_MS),
   });
 }
 
@@ -132,6 +134,7 @@ export async function revokeFeedTokens(subject: string): Promise<void> {
         Authorization: `Bearer ${apiKey}`,
         Accept: "application/json",
       },
+      signal: AbortSignal.timeout(INDIGEST_TIMEOUT_MS),
     },
   );
   if (!response.ok)
