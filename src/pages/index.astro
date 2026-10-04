@@ -45,7 +45,7 @@ const headlineExcerpts = (() => {
     if (/^#{1,6}\s+/.test(s)) return false;
     if (/^[=-]{3,}\s*$/.test(s)) return false;
     if (/^>\s/.test(s)) return false;
-    if (/^\u201C/.test(s)) return false;
+    if (s.startsWith("\u201C")) return false;
     const words = s.split(/\s+/).length;
     if (words < 6) return false;
     if (s.length < 40) return false;

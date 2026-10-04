@@ -111,7 +111,9 @@ async function getSlackItems(columns) {
       column.messages
         .map((message) => ({
           title:
-            firstMetadataValue(message.metadata) ?? column.title ?? "Slack message",
+            firstMetadataValue(message.metadata) ??
+            column.title ??
+            "Slack message",
           description: column.title,
           pubDate: new Date(message.timestamp),
           link: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
@@ -182,43 +184,40 @@ export async function GET(context) {
   const postItems = posts
     .filter((post) => wants(post.category, true))
     .map((post) => {
-    const baseSlug = post.slug.split("/").pop();
-    const legacyKey = baseSlug ? `/${baseSlug}` : null;
-    const legacyLink =
-      legacyKey && legacyPaths.has(legacyKey) ? `${legacyKey}/` : post.url;
-    const leadingImageSrc =
-      post.leadingImage?.src ??
-      "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png";
-    const leadingImageAlt =
-      post.leadingImage?.alt ?? `Slacker News social preview`;
+      const baseSlug = post.slug.split("/").pop();
+      const legacyKey = baseSlug ? `/${baseSlug}` : null;
+      const legacyLink =
+        legacyKey && legacyPaths.has(legacyKey) ? `${legacyKey}/` : post.url;
+      const leadingImageSrc =
+        post.leadingImage?.src ??
+        "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png";
+      const leadingImageAlt =
+        post.leadingImage?.alt ?? `Slacker News social preview`;
 
-    const paragraphContent = post.paragraphs.length
-      ? post.paragraphs
-          .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-          .join("")
-      : `<p>${escapeHtml(post.excerpt)}</p>`;
+      const paragraphContent = post.paragraphs.length
+        ? post.paragraphs
+            .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+            .join("")
+        : `<p>${escapeHtml(post.excerpt)}</p>`;
 
-    return {
-      title: post.title,
-      description: post.excerpt,
-      pubDate: post.date,
-      link: legacyLink,
-      content: paragraphContent,
+      return {
+        title: post.title,
+        description: post.excerpt,
+        pubDate: post.date,
+        link: legacyLink,
+        content: paragraphContent,
 
-      // @astrojs/rss doesn't support Media RSS
-      customData: `
+        // @astrojs/rss doesn't support Media RSS
+        customData: `
                 <media:content url="${leadingImageSrc}" medium="image" />
                 <media:thumbnail url="${leadingImageSrc}" />
                 <media:title type="plain">${leadingImageAlt}</media:title>
             `,
-    };
-  });
+      };
+    });
 
   const longChangelogItems = changelogs
-    .filter(
-      (entry) =>
-        entry.kind === "long" && wants("changelogs", true),
-    )
+    .filter((entry) => entry.kind === "long" && wants("changelogs", true))
     .map((entry) => {
       const paragraphContent = entry.paragraphs.length
         ? entry.paragraphs

@@ -16,13 +16,19 @@ type OtterStats = {
     total_projects?: number;
     total_hours?: number;
   };
-  projects_by_month?: Array<{ period?: string; total_projects?: number; total_hours?: number }>;
+  projects_by_month?: Array<{
+    period?: string;
+    total_projects?: number;
+    total_hours?: number;
+  }>;
 };
 
 let cache: { value: TickerFigure[]; expiresAt: number } | undefined;
 let inFlight: Promise<TickerFigure[]> | undefined;
 
-const wholeNumber = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const wholeNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
 
 function monthlyTotals(
   rows: OtterStats["projects_by_month"],
@@ -55,14 +61,20 @@ function changeFromLastMonth(
 
 function monthLabel(period: string): string {
   const parsed = new Date(`${period}T00:00:00Z`);
-  return parsed.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }).toUpperCase();
+  return parsed
+    .toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })
+    .toUpperCase();
 }
 
 function toFigures(stats: OtterStats): TickerFigure[] {
   const overview = stats.overview ?? {};
   const figures: TickerFigure[] = [];
 
-  const pushOverviewFigure = (label: string, value: number | undefined, change?: TickerFigure["change"]) => {
+  const pushOverviewFigure = (
+    label: string,
+    value: number | undefined,
+    change?: TickerFigure["change"],
+  ) => {
     if (!value) return;
     figures.push({ label, value: wholeNumber.format(value), change });
   };
@@ -70,12 +82,20 @@ function toFigures(stats: OtterStats): TickerFigure[] {
   pushOverviewFigure(
     "Projects shipped",
     overview.total_projects,
-    changeFromLastMonth(stats.projects_by_month, "total_projects", overview.total_projects),
+    changeFromLastMonth(
+      stats.projects_by_month,
+      "total_projects",
+      overview.total_projects,
+    ),
   );
   pushOverviewFigure(
     "Hours logged",
     overview.total_hours,
-    changeFromLastMonth(stats.projects_by_month, "total_hours", overview.total_hours),
+    changeFromLastMonth(
+      stats.projects_by_month,
+      "total_hours",
+      overview.total_hours,
+    ),
   );
 
   // The newest bucket is the current, partial month, so compare the two months
@@ -91,7 +111,9 @@ function toFigures(stats: OtterStats): TickerFigure[] {
     };
 
     if (previous && previous[1] > 0) {
-      const percent = Math.round(((latest[1] - previous[1]) / previous[1]) * 100);
+      const percent = Math.round(
+        ((latest[1] - previous[1]) / previous[1]) * 100,
+      );
       if (percent !== 0) {
         figure.change = {
           direction: percent > 0 ? "up" : "down",
