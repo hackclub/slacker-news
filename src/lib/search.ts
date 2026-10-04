@@ -68,6 +68,7 @@ export type SearchDocument = {
   title: string;
   excerpt: string;
   category: string;
+  accent?: string;
   readingTime: number;
   text: string;
   author: string;
@@ -75,6 +76,13 @@ export type SearchDocument = {
   titleTerms: TermFrequency;
   bodyTerms: TermFrequency;
   authorTerms: TermFrequency;
+};
+
+const POST_CATEGORY_ACCENTS: Record<string, string> = {
+  news: "#338eda",
+  opinion: "#a633d6",
+  essays: "#5bc0de",
+  changelogs: "#8492a6",
 };
 
 export type SearchIndex = {
@@ -139,6 +147,7 @@ export function slackMessageToDocument(
     title: String(title),
     excerpt: cleanText,
     category: column.title,
+    accent: column.accent,
     readingTime,
     text: cleanText,
     author: "",
@@ -172,6 +181,7 @@ export function buildSearchIndex(
     title: post.title,
     excerpt: post.excerpt,
     category: post.category ?? "",
+    accent: post.category ? POST_CATEGORY_ACCENTS[post.category] : undefined,
     readingTime: post.readingTime,
     text: post.paragraphs.join(" "),
     author: Array.isArray(post.author) ? post.author.join(", ") : (post.author ?? ""),
