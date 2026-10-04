@@ -9,7 +9,9 @@ type ClubsResponse = { totalClubs?: number };
 let cache: { value: TickerFigure[]; expiresAt: number } | undefined;
 let inFlight: Promise<TickerFigure[]> | undefined;
 
-const wholeNumber = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const wholeNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
 
 async function loadFigures(): Promise<TickerFigure[]> {
   const response = await fetch(CLUBS_URL, {
@@ -19,7 +21,9 @@ async function loadFigures(): Promise<TickerFigure[]> {
 
   const { totalClubs } = (await response.json()) as ClubsResponse;
   // The API only reports the current total, so there is no change to show.
-  return totalClubs ? [{ label: "Clubs", value: wholeNumber.format(totalClubs) }] : [];
+  return totalClubs
+    ? [{ label: "Clubs", value: wholeNumber.format(totalClubs) }]
+    : [];
 }
 
 export async function getClubsFigures(): Promise<TickerFigure[]> {

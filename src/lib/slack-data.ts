@@ -15,16 +15,25 @@ type SlackDataStats = {
 let cache: { value: TickerFigure[]; expiresAt: number } | undefined;
 let inFlight: Promise<TickerFigure[]> | undefined;
 
-const wholeNumber = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const wholeNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
 
-function changeFromPercentage(percentage: number | undefined): TickerFigure["change"] | undefined {
+function changeFromPercentage(
+  percentage: number | undefined,
+): TickerFigure["change"] | undefined {
   if (percentage === undefined) return undefined;
   const rounded = Math.round(percentage);
   if (rounded === 0) return undefined;
-  return { direction: rounded > 0 ? "up" : "down", text: `${Math.abs(rounded)}%` };
+  return {
+    direction: rounded > 0 ? "up" : "down",
+    text: `${Math.abs(rounded)}%`,
+  };
 }
 
-function channelsFigure(rows: SlackDataStats["stats"]): TickerFigure | undefined {
+function channelsFigure(
+  rows: SlackDataStats["stats"],
+): TickerFigure | undefined {
   const counts = (rows ?? [])
     .map((row) => row.channels_count)
     .filter((count): count is number => typeof count === "number");
@@ -32,12 +41,18 @@ function channelsFigure(rows: SlackDataStats["stats"]): TickerFigure | undefined
 
   const first = counts[0];
   const last = counts[counts.length - 1];
-  const figure: TickerFigure = { label: "Channels", value: wholeNumber.format(last) };
+  const figure: TickerFigure = {
+    label: "Channels",
+    value: wholeNumber.format(last),
+  };
 
   if (first > 0) {
     const percent = Math.round(((last - first) / first) * 100);
     if (percent !== 0) {
-      figure.change = { direction: percent > 0 ? "up" : "down", text: `${Math.abs(percent)}%` };
+      figure.change = {
+        direction: percent > 0 ? "up" : "down",
+        text: `${Math.abs(percent)}%`,
+      };
     }
   }
 
@@ -52,7 +67,9 @@ function toFigures(stats: SlackDataStats): TickerFigure[] {
     figures.push({
       label: "Members",
       value: wholeNumber.format(membership.total_members.number),
-      change: changeFromPercentage(membership.total_members.change_in_percentage),
+      change: changeFromPercentage(
+        membership.total_members.change_in_percentage,
+      ),
     });
   }
 
@@ -60,7 +77,9 @@ function toFigures(stats: SlackDataStats): TickerFigure[] {
     figures.push({
       label: "Monthly active",
       value: wholeNumber.format(membership.monthly_active_users.number),
-      change: changeFromPercentage(membership.monthly_active_users.change_in_percentage),
+      change: changeFromPercentage(
+        membership.monthly_active_users.change_in_percentage,
+      ),
     });
   }
 

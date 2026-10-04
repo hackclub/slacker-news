@@ -464,7 +464,11 @@ export async function getAcknowledgementGroups(): Promise<AcknowledgementGroups>
     for (const byline of bylines) {
       for (const author of splitAuthors(byline)) {
         const handle = normalizeHandle(author);
-        if (!handle || editorHandles.has(handle) || submitterHandles.has(handle)) {
+        if (
+          !handle ||
+          editorHandles.has(handle) ||
+          submitterHandles.has(handle)
+        ) {
           continue;
         }
 
