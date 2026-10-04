@@ -35,23 +35,27 @@ const regularHeadlines: Headline[] = (await getPosts()).map((post) => ({
 
 const slackHeadlines = (
   await Promise.all(
-    getSlackColumns().map(async (column) => {
-      try {
-        const messages = await getIndigestMessages(
-          column.channelId ?? column.column,
-          20,
-        );
+    getSlackColumns()
+      // Protected columns' titles stay hidden from signed-out readers, as on
+      // the homepage.
+      .filter((column) => !column.authRequired || Astro.locals.user)
+      .map(async (column) => {
+        try {
+          const messages = await getIndigestMessages(
+            column.channelId ?? column.column,
+            20,
+          );
 
-        return messages.map((message): Headline => ({
-          title: `${column.noun ?? column.title}: ${firstMetadataValue(message.metadata) ?? column.title}`,
-          href: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
-          date: timestampToNumber(message.timestamp || message.slackTs),
-          columnKey: column.column,
-        }));
-      } catch {
-        return [];
-      }
-    }),
+          return messages.map((message): Headline => ({
+            title: `${column.noun ?? column.title}: ${firstMetadataValue(message.metadata) ?? column.title}`,
+            href: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
+            date: timestampToNumber(message.timestamp || message.slackTs),
+            columnKey: column.column,
+          }));
+        } catch {
+          return [];
+        }
+      }),
   )
 ).flat();
 
@@ -130,7 +134,7 @@ for (const figure of figures.slice(Math.floor(headlines.length / HEADLINES_PER_F
 </div>
 
 <script>
-  const TICKER_CACHE_KEY = "news-ticker:headlines:v3";
+  const TICKER_CACHE_KEY = "news-ticker:headlines:v4";
   const PAUSE_STORAGE_KEY = "news-ticker:paused";
 
   function isPausedPreference() {
@@ -153,6 +157,10 @@ for (const figure of figures.slice(Math.floor(headlines.length / HEADLINES_PER_F
     btn.setAttribute("aria-label", label);
   }
 
+  function isAuthenticated() {
+    return document.getElementById("news-ticker")?.dataset.authenticated === "1";
+  }
+
   function restoreCachedTicker() {
     const loading = document.querySelector("#news-ticker .news-ticker--loading");
     if (!(loading instanceof HTMLElement)) return;
@@ -160,6 +168,9 @@ for (const figure of figures.slice(Math.floor(headlines.length / HEADLINES_PER_F
     try {
       const cached = JSON.parse(localStorage.getItem(TICKER_CACHE_KEY) || "null");
       if (!cached || typeof cached.markup !== "string") return;
+      // A signed-in reader's cached ticker can carry protected headlines,
+      // so only restore markup cached under the same sign-in state.
+      if (cached.authenticated !== isAuthenticated()) return;
 
       loading.classList.remove("news-ticker--loading");
       loading.innerHTML =
@@ -182,7 +193,11 @@ for (const figure of figures.slice(Math.floor(headlines.length / HEADLINES_PER_F
     try {
       localStorage.setItem(
         TICKER_CACHE_KEY,
-        JSON.stringify({ markup: set.innerHTML, cachedAt: Date.now() }),
+        JSON.stringify({
+          markup: set.innerHTML,
+          authenticated: isAuthenticated(),
+          cachedAt: Date.now(),
+        }),
       );
     } catch (_error) {
       // Ignore unavailable or full browser storage.

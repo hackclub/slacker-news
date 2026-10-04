@@ -190,7 +190,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           </div>
         </nav>
       </div>
-      <div id="news-ticker" transition:persist="news-ticker">
+      <div id="news-ticker" data-authenticated={isAuthenticated ? "1" : "0"} transition:persist="news-ticker">
         <NewsTicker server:defer>
           <div slot="fallback" class="news-ticker news-ticker--loading" aria-label="News ticker">
             <button class="news-ticker-label" type="button" aria-label="Hide newswire ticker"><span class="news-ticker-label-text">newswire</span></button>
