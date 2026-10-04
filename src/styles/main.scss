@@ -23,8 +23,6 @@ $link-hover-color: #000000;
   --hc-red: #ec3750;
   --hc-green: #33d6a6;
   --hc-muted: #8492a6;
-
-  --accent: var(--hc-red);
 }
 
 // ─── Base ────────────────────────────────────────────────────────────────────
@@ -56,16 +54,17 @@ a {
 // ─── Masthead ────────────────────────────────────────────────────────────────
 
 .site-header {
+  position: relative;
   border-top: 5px solid #000;
-  border-bottom: 3px double #000;
   background-color: #fff;
   text-align: center;
-  padding: 12px 0;
+  padding: 0;
 
   .wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 12px 0;
   }
 }
 
@@ -173,7 +172,7 @@ a {
   margin-right: 12px;
   box-sizing: border-box;
   border: 3px double transparent;
-  background: var(--accent);
+  background: #000;
   color: #fff;
   font-family: inherit;
   font-size: inherit;
@@ -182,11 +181,6 @@ a {
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.news-ticker-label:hover {
-  background: color-mix(in srgb, var(--accent) 85%, #000);
 }
 
 .news-ticker-skeleton-set {
