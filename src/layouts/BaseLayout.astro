@@ -1,5 +1,6 @@
 ---
 import AbacusCounter from "../components/AbacusCounter.astro";
+import NewsTicker from "../components/NewsTicker.astro";
 
 interface Props {
   title?: string;
@@ -34,6 +35,10 @@ const pageTitle = title && title !== siteTitle ? `${title} | ${siteTitle}` : sit
 const pageDescription = description ?? siteDescription;
 const authReturnTo = `${Astro.url.pathname}${Astro.url.search}`;
 const isAuthenticated = Boolean(Astro.locals.user);
+const tickerSkeletonWidths = [
+  8, 12, 10, 15, 9, 13, 11, 14, 8, 15,
+  10, 12, 14, 9, 13, 15, 8, 11, 14, 10,
+];
 
 function toAbsoluteURL(input: string): string {
   return new URL(input, Astro.site ?? Astro.url).toString();
@@ -185,7 +190,119 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           </div>
         </nav>
       </div>
+      <div id="news-ticker" data-authenticated={isAuthenticated ? "1" : "0"} transition:persist="news-ticker">
+        <NewsTicker server:defer>
+          <div slot="fallback" class="news-ticker news-ticker--loading" aria-label="News ticker">
+            <button class="news-ticker-label" type="button" aria-label="Hide newswire ticker"><span class="news-ticker-label-text">newswire</span></button>
+            <div class="news-ticker-skeleton-track" aria-hidden="true">
+              <div class="news-ticker-skeleton-scroll">
+                <div class="news-ticker-skeleton-set">
+                  {Array.from({ length: 20 }).map((_, index) => (
+                    <span class="news-ticker-skeleton-entry">
+                        <span
+                          class="news-ticker-skeleton-text"
+                          style={`--skeleton-width: ${tickerSkeletonWidths[index]}em`}
+                        ></span>
+                        <span class="news-ticker-skeleton-dot">◆</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </NewsTicker>
+      </div>
     </header>
+    <script is:inline>
+      (function () {
+        // This runs immediately (not deferred like NewsTicker's own script)
+        // because the skeleton fallback above renders synchronously, before
+        // the real server:defer'd ticker — and its data-loading — resolves.
+        function initializeSkeletonScroll() {
+          document
+            .querySelectorAll(".news-ticker-skeleton-scroll:not([data-skeleton-initialized])")
+            .forEach(function (scroll) {
+              var set = scroll.querySelector(".news-ticker-skeleton-set");
+              var parent = scroll.parentElement;
+              if (!set || !parent) return;
+
+              scroll.setAttribute("data-skeleton-initialized", "true");
+
+              var trackWidth = parent.offsetWidth;
+              var items = Array.from(set.children);
+              if (items.length === 0) return;
+
+              var i = 0;
+              while (set.offsetWidth < trackWidth) {
+                var clone = items[i % items.length].cloneNode(true);
+                set.appendChild(clone);
+                i++;
+              }
+
+              var dupe = set.cloneNode(true);
+              dupe.setAttribute("aria-hidden", "true");
+              scroll.appendChild(dupe);
+
+              var setWidth = set.offsetWidth;
+              var pxPerSecond = 30;
+              var duration = setWidth / pxPerSecond;
+
+              scroll.style.animationDuration = duration + "s";
+              scroll.style.setProperty("--set-width", "-" + setWidth + "px");
+              scroll.classList.add("news-ticker-animate");
+            });
+        }
+
+        initializeSkeletonScroll();
+        document.addEventListener("astro:page-load", initializeSkeletonScroll);
+        new MutationObserver(initializeSkeletonScroll).observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
+      })();
+    </script>
+    <script is:inline>
+      (function () {
+        var STORAGE_KEY = "news-ticker:collapsed";
+
+        function isCollapsedPreference() {
+          try {
+            return localStorage.getItem(STORAGE_KEY) === "true";
+          } catch (_error) {
+            return false;
+          }
+        }
+
+        // The red "newswire" box itself is the toggle: collapsing hides
+        // everything else in the ticker bar but leaves that box in place
+        // to expand it again.
+        function applyTickerCollapse() {
+          var collapsed = isCollapsedPreference();
+          document.querySelectorAll(".news-ticker").forEach(function (ticker) {
+            ticker.classList.toggle("news-ticker--collapsed", collapsed);
+          });
+          document.querySelectorAll(".news-ticker-label").forEach(function (label) {
+            label.setAttribute("aria-label", collapsed ? "Show newswire ticker" : "Hide newswire ticker");
+          });
+        }
+
+        applyTickerCollapse();
+        document.addEventListener("astro:after-swap", applyTickerCollapse);
+
+        document.addEventListener("click", function (event) {
+          var label = event.target.closest && event.target.closest(".news-ticker-label");
+          if (!label) return;
+
+          var next = !isCollapsedPreference();
+          try {
+            localStorage.setItem(STORAGE_KEY, String(next));
+          } catch (_error) {
+            // Ignore unavailable browser storage; state just won't persist.
+          }
+          applyTickerCollapse();
+        });
+      })();
+    </script>
 
     <main class="page-content" aria-label="Content">
       <div class="wrapper">
