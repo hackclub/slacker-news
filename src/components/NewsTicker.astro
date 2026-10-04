@@ -5,9 +5,6 @@ import {
   getIndigestMessages,
   getSlackColumns,
 } from "../lib/indigest";
-import { getTickerFigures, type TickerFigure } from "../lib/otter";
-import { getSlackDataFigures } from "../lib/slack-data";
-import { getClubsFigures } from "../lib/clubs";
 
 type Headline = {
   title: string;
@@ -74,58 +71,18 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
   headlines.push(candidate);
   columnCounts.set(candidate.columnKey, count + 1);
 }
-
-const [otterFigures, clubsFigures, slackDataFigures] = await Promise.all([
-  getTickerFigures(),
-  getClubsFigures(),
-  getSlackDataFigures(),
-]);
-const figures = [...otterFigures, ...clubsFigures, ...slackDataFigures];
-
-type TickerEntry =
-  | { kind: "headline"; headline: Headline }
-  | { kind: "figure"; figure: TickerFigure };
-
-const HEADLINES_PER_FIGURE = 3;
-const entries: TickerEntry[] = [];
-
-headlines.forEach((headline, index) => {
-  entries.push({ kind: "headline", headline });
-
-  const figure = figures[Math.floor(index / HEADLINES_PER_FIGURE)];
-  if (figure && (index + 1) % HEADLINES_PER_FIGURE === 0) {
-    entries.push({ kind: "figure", figure });
-  }
-});
-
-for (const figure of figures.slice(Math.floor(headlines.length / HEADLINES_PER_FIGURE))) {
-  entries.push({ kind: "figure", figure });
-}
 ---
 
-<div class="news-ticker" aria-label="News ticker">
+<div class="news-ticker" aria-label="News ticker" data-ticker-live>
   <button class="news-ticker-label" type="button" aria-label="Hide newswire ticker"><span class="news-ticker-label-text">newswire</span></button>
   <div class="news-ticker-track">
     <div class="news-ticker-scroll" data-ticker>
       <span class="news-ticker-set" data-ticker-set>
-        {entries.map((entry) => (
+        {headlines.map((headline) => (
           <>
-            {entry.kind === "headline" ? (
-              <a class="news-ticker-item" href={entry.headline.href}>
-                {entry.headline.title}
-              </a>
-            ) : (
-              <span class="news-ticker-item news-ticker-figure">
-                <span class="news-ticker-figure-label">{entry.figure.label}</span>
-                <span class="news-ticker-figure-value">{entry.figure.value}</span>
-                {entry.figure.change && (
-                  <span class={`news-ticker-figure-change news-ticker-figure-change--${entry.figure.change.direction}`}>
-                    {entry.figure.change.direction === "up" ? "▲" : "▼"}
-                    {entry.figure.change.text}
-                  </span>
-                )}
-              </span>
-            )}
+            <a class="news-ticker-item" href={headline.href} data-ticker-headline>
+              {headline.title}
+            </a>
             <span class="news-ticker-divider" aria-hidden="true">◆</span>
           </>
         ))}
@@ -315,6 +272,138 @@ for (const figure of figures.slice(Math.floor(headlines.length / HEADLINES_PER_F
     });
   }
 
+  type TickerFigure = {
+    label: string;
+    value: string;
+    change?: { direction: "up" | "down"; text: string };
+  };
+
+  const FIGURE_SOURCES = ["otter", "clubs", "slack-data"];
+  const HEADLINES_PER_FIGURE = 3;
+  const PX_PER_SECOND = 30;
+
+  // Scoped styles (padding, divider colour) key off Astro's data-astro-cid-*
+  // attribute, so figures built here copy it from a server-rendered item.
+  function copyScope(from: Element, to: Element) {
+    for (const attribute of Array.from(from.attributes)) {
+      if (attribute.name.startsWith("data-astro-cid-")) to.setAttribute(attribute.name, "");
+    }
+  }
+
+  function figureNodes(figure: TickerFigure, template: Element, divider: Element): Node[] {
+    const item = document.createElement("span");
+    item.className = "news-ticker-item news-ticker-figure";
+    copyScope(template, item);
+
+    const label = document.createElement("span");
+    label.className = "news-ticker-figure-label";
+    label.textContent = figure.label;
+    const value = document.createElement("span");
+    value.className = "news-ticker-figure-value";
+    value.textContent = figure.value;
+    item.append(label, value);
+
+    if (figure.change) {
+      const change = document.createElement("span");
+      change.className = `news-ticker-figure-change news-ticker-figure-change--${figure.change.direction}`;
+      change.textContent = `${figure.change.direction === "up" ? "▲" : "▼"}${figure.change.text}`;
+      item.append(change);
+    }
+
+    return [item, divider.cloneNode(true)];
+  }
+
+  // Slip newly arrived figures into the scrolling set without moving anything
+  // the reader can see: each goes after every third headline, in the first
+  // free slot that is off-screen, and the animation keeps its pixel offset.
+  const pendingFigures: TickerFigure[] = [];
+  let waitingForTrack = false;
+
+  function insertFigures(figures: TickerFigure[]) {
+    pendingFigures.push(...figures);
+    const scroll = document.querySelector("#news-ticker [data-ticker-live] [data-ticker]");
+    if (!(scroll instanceof HTMLElement) || pendingFigures.length === 0) return;
+    const set = scroll.querySelector("[data-ticker-set]");
+    const track = scroll.parentElement;
+    if (!(set instanceof HTMLElement) || !track) return;
+
+    // A collapsed ticker has no width or running animation to measure, so
+    // hold the figures until it is shown again.
+    const animation = scroll.getAnimations()[0];
+    if (!animation || set.offsetWidth === 0) {
+      if (!waitingForTrack) {
+        waitingForTrack = true;
+        const observer = new ResizeObserver(() => {
+          if (track.offsetWidth === 0) return;
+          observer.disconnect();
+          waitingForTrack = false;
+          requestAnimationFrame(() => insertFigures([]));
+        });
+        observer.observe(track);
+      }
+      return;
+    }
+    figures = pendingFigures.splice(0);
+
+    const headlines = Array.from(set.querySelectorAll("[data-ticker-headline]"));
+    const divider = set.querySelector(".news-ticker-divider");
+    if (headlines.length === 0 || !divider) return;
+
+    const setWidth = set.offsetWidth;
+    const offset = (((Number(animation.currentTime) || 0) / 1000) * PX_PER_SECOND) % setWidth;
+    const visibleEnd = offset + track.offsetWidth;
+    const isVisible = (x: number) =>
+      (x >= offset && x <= visibleEnd) || x <= visibleEnd - setWidth;
+
+    const setLeft = set.getBoundingClientRect().left;
+    const freeSlots = headlines
+      .filter((_, index) => (index + 1) % HEADLINES_PER_FIGURE === 0)
+      .map((headline) => headline.nextElementSibling)
+      .filter((slot): slot is Element => Boolean(slot) && !slot!.hasAttribute("data-figure-slot-filled"))
+      .filter((slot) => !isVisible(slot.getBoundingClientRect().right - setLeft));
+
+    for (const figure of figures) {
+      const nodes = figureNodes(figure, headlines[0], divider);
+      const slot = freeSlots.shift();
+      if (slot) {
+        slot.setAttribute("data-figure-slot-filled", "");
+        slot.after(...nodes);
+      } else {
+        set.append(...nodes);
+      }
+    }
+
+    // The duplicate set must match for the loop to stay seamless.
+    scroll.querySelectorAll("[data-ticker-set]").forEach((other) => {
+      if (other === set) return;
+      const copy = set.cloneNode(true) as HTMLElement;
+      copy.setAttribute("aria-hidden", "true");
+      other.replaceWith(copy);
+    });
+
+    const width = set.offsetWidth;
+    const currentTime = animation.currentTime;
+    scroll.style.animationDuration = width / PX_PER_SECOND + "s";
+    scroll.style.setProperty("--set-width", "-" + width + "px");
+    animation.currentTime = currentTime;
+    cacheTicker();
+  }
+
+  function loadFigures() {
+    const ticker = document.querySelector("#news-ticker [data-ticker-live]");
+    if (!(ticker instanceof HTMLElement) || ticker.hasAttribute("data-figures-requested")) return;
+    ticker.setAttribute("data-figures-requested", "");
+
+    for (const source of FIGURE_SOURCES) {
+      fetch(`/api/ticker-figures/${source}.json`)
+        .then((response) => (response.ok ? response.json() : []))
+        .then((figures: TickerFigure[]) => insertFigures(figures))
+        .catch(() => {
+          // A failed source just leaves its figures out.
+        });
+    }
+  }
+
   function initializeAllTickers() {
     // Run before collapsing: measuring a hidden (display:none) track
     // would bake in zero-width animation values that never get fixed
@@ -324,6 +413,7 @@ for (const figure of figures.slice(Math.floor(headlines.length / HEADLINES_PER_F
     initializeHoverPause();
     cacheTicker();
     applyCollapsedState();
+    loadFigures();
   }
 
   function saveTickerPositions() {
