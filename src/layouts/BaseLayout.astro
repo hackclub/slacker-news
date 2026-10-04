@@ -212,12 +212,24 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       (function () {
         var STORAGE_KEY = "news-ticker:collapsed";
 
+        // An explicit toggle wins; until the reader makes one, the ticker
+        // starts collapsed for anyone who asked their system to reduce
+        // motion. The in-memory copy keeps a toggle working when storage
+        // is unavailable, and survives client-side navigation.
         function isCollapsedPreference() {
-          try {
-            return localStorage.getItem(STORAGE_KEY) === "true";
-          } catch (_error) {
-            return false;
+          if (typeof window.__newsTickerCollapsed === "boolean") {
+            return window.__newsTickerCollapsed;
           }
+          try {
+            var stored = localStorage.getItem(STORAGE_KEY);
+            if (stored !== null) return stored === "true";
+          } catch (_error) {
+            // Fall through to the motion preference.
+          }
+          return (
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          );
         }
 
         // The red "newswire" box itself is the toggle: collapsing hides
@@ -241,6 +253,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           if (!label) return;
 
           var next = !isCollapsedPreference();
+          window.__newsTickerCollapsed = next;
           try {
             localStorage.setItem(STORAGE_KEY, String(next));
           } catch (_error) {

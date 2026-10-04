@@ -170,18 +170,6 @@ const slackColumns = getSlackColumns()
     });
   }
 
-  function applyCollapsedState() {
-    let collapsed = false;
-    try {
-      collapsed = localStorage.getItem("news-ticker:collapsed") === "true";
-    } catch (_error) {
-      // Ignore unavailable browser storage; default to expanded.
-    }
-    document.querySelectorAll(".news-ticker").forEach((ticker) => {
-      ticker.classList.toggle("news-ticker--collapsed", collapsed);
-    });
-  }
-
   function initializeHoverPause() {
     document.querySelectorAll(".news-ticker-track:not([data-hover-pause-initialized])").forEach((track) => {
       track.setAttribute("data-hover-pause-initialized", "true");
@@ -272,20 +260,21 @@ const slackColumns = getSlackColumns()
     const track = scroll.parentElement;
     if (!(set instanceof HTMLElement) || !track) return;
 
-    // A collapsed ticker has no width or running animation to measure, so
-    // hold arrivals until it is shown again.
-    const animation = scroll.getAnimations()[0];
-    if (!animation || set.offsetWidth === 0) {
+    // A collapsed ticker has no width to measure, so hold arrivals until it
+    // is shown again. A shown ticker without an animation is standing still
+    // for a reader who prefers reduced motion; it starts at offset zero.
+    if (set.offsetWidth === 0) {
       whenShown(track, () => insertArrivals());
       return;
     }
+    const animation = scroll.getAnimations()[0];
 
     const template = set.querySelector("[data-ticker-headline]");
     const divider = set.querySelector(".news-ticker-divider");
     if (!template || !divider) return;
 
     const setWidth = set.offsetWidth;
-    const offset = (((Number(animation.currentTime) || 0) / 1000) * PX_PER_SECOND) % setWidth;
+    const offset = (((Number(animation?.currentTime) || 0) / 1000) * PX_PER_SECOND) % setWidth;
     const visibleEnd = offset + track.offsetWidth;
     const setLeft = set.getBoundingClientRect().left;
     const isOffScreen = (element: Element) => {
@@ -331,10 +320,10 @@ const slackColumns = getSlackColumns()
     });
 
     const width = set.offsetWidth;
-    const currentTime = animation.currentTime;
+    const currentTime = animation?.currentTime;
     scroll.style.animationDuration = width / PX_PER_SECOND + "s";
     scroll.style.setProperty("--set-width", "-" + width + "px");
-    animation.currentTime = currentTime;
+    if (animation) animation.currentTime = currentTime ?? 0;
   }
 
   function fetchJson<T>(url: string): Promise<T[]> {
@@ -377,7 +366,6 @@ const slackColumns = getSlackColumns()
     initializeTickers();
     initializePauseButtons();
     initializeHoverPause();
-    applyCollapsedState();
     loadArrivals();
   }
 
