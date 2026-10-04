@@ -59,7 +59,7 @@ if (!column || !message) {
   canonicalPath={`/slack/${encodeURIComponent(channel)}/${encodeURIComponent(messageId)}/`}
 >
   {column && message ? (
-    <article class="story-page slack-story-page">
+    <article class="story-page slack-story-page" style={column.accent ? `--accent: ${column.accent}` : undefined}>
       <header class="story-header">
         <h1 class="story-title">{messageTitle}</h1>
         <div class="story-meta">

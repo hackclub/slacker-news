@@ -21,8 +21,77 @@ $link-hover-color: #000000;
 
 :root {
   --hc-red: #ec3750;
+  --hc-orange: #ff8c37;
+  --hc-yellow: #f1c40f;
   --hc-green: #33d6a6;
+  --hc-cyan: #5bc0de;
+  --hc-blue: #338eda;
+  --hc-purple: #a633d6;
   --hc-muted: #8492a6;
+
+  --paper: #f5f5f0;
+  --card: #fff;
+  --rule: #000;
+
+  --accent: var(--hc-red);
+}
+
+// Derived shades stay Sass variables, not custom properties: a custom property
+// that referenced --accent would be substituted once at :root and inherit that
+// frozen value, so section accents would never take effect.
+$accent-ink: color-mix(in srgb, var(--accent) 72%, #101018);
+$accent-wash: color-mix(in srgb, var(--accent) 8%, #fff);
+
+.accent-red { --accent: var(--hc-red); }
+.accent-orange { --accent: var(--hc-orange); }
+.accent-yellow { --accent: var(--hc-yellow); }
+.accent-green { --accent: var(--hc-green); }
+.accent-cyan { --accent: var(--hc-cyan); }
+.accent-blue { --accent: var(--hc-blue); }
+.accent-purple { --accent: var(--hc-purple); }
+.accent-muted { --accent: var(--hc-muted); }
+
+// ─── Editorial furniture ─────────────────────────────────────────────────────
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  font-family: Georgia, serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #{$accent-ink};
+  margin-bottom: 6px;
+
+  &::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 0.62em;
+    height: 0.62em;
+    background: var(--accent);
+    border: 1px solid rgba(0, 0, 0, 0.35);
+  }
+}
+
+.section-kicker {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+
+  .section-kicker-note {
+    font-family: Georgia, serif;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #6b6b63;
+  }
+
+  .section-label {
+    margin-bottom: 0;
+  }
 }
 
 // ─── Base ────────────────────────────────────────────────────────────────────
@@ -53,9 +122,54 @@ a {
 
 // ─── Masthead ────────────────────────────────────────────────────────────────
 
+// Collapsed ticker: the rest of the bar disappears entirely (page content
+// reflows up to fill the space) and only the red "newswire" box remains,
+// pinned in place so it keeps working as the toggle.
+.news-ticker.news-ticker--collapsed {
+  border: none;
+  border-bottom: 2px solid #000;
+  min-height: 0;
+
+  .news-ticker-track,
+  .news-ticker-skeleton-track,
+  .news-ticker-pause {
+    display: none;
+  }
+
+  .news-ticker-label {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 40;
+    margin-right: 0;
+    padding: 3px 1em;
+    border-color: #000;
+  }
+}
+
+@media (max-width: 600px) {
+  .news-ticker.news-ticker--collapsed .news-ticker-label {
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+
+    .news-ticker-label-text {
+      display: none;
+    }
+  }
+}
+
+.accent-bar {
+  height: 5px;
+  background: var(--accent);
+  transition: background-color 0.3s ease;
+}
+
 .site-header {
   position: relative;
-  border-top: 5px solid #000;
+  border-bottom: none;
   background-color: #fff;
   text-align: center;
   padding: 0;
@@ -98,58 +212,55 @@ a {
     text-transform: uppercase;
     color: #000;
     margin: 0 -0.1em 0 0;
+    transition: color 0.15s;
+
+    &:hover {
+      color: var(--hc-red);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      text-decoration-thickness: 2px;
+    }
   }
   .page-link:not(:last-child) {
     margin-right: -0.1em;
   }
+  .page-link[aria-current="page"] {
+    color: var(--hc-red);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 2px;
+  }
   .nav-pip {
-    color: #999;
+    color: var(--hc-muted);
     @media screen and (max-width: 600px) {
       display: none;
     }
   }
 }
 
-// ─── News ticker ─────────────────────────────────────────────────────────────
+.action-button {
+  font-family: Georgia, serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  margin-left: 6px;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  line-height: 1.5;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 
-// Collapsed ticker: the rest of the bar disappears entirely (page content
-// reflows up to fill the space) and only the red "newswire" box remains,
-// pinned in place so it keeps working as the toggle.
-.news-ticker.news-ticker--collapsed {
-  border: none;
-  border-bottom: 2px solid #000;
-  min-height: 0;
-
-  .news-ticker-track,
-  .news-ticker-skeleton-track,
-  .news-ticker-pause {
-    display: none;
+  &,
+  &:visited {
+    color: var(--accent);
   }
-
-  .news-ticker-label {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 40;
-    margin-right: 0;
-    padding: 3px 1em;
-    border-color: #000;
+  &:hover {
+    background: var(--accent);
+    color: #fff;
   }
 }
 
-@media (max-width: 600px) {
-  .news-ticker.news-ticker--collapsed .news-ticker-label {
-    box-sizing: border-box;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    justify-content: center;
-
-    .news-ticker-label-text {
-      display: none;
-    }
-  }
-}
+// ─── Deferred news ticker fallback ──────────────────────────────────────────
 
 .news-ticker--loading {
   display: flex;
@@ -172,7 +283,7 @@ a {
   margin-right: 12px;
   box-sizing: border-box;
   border: 3px double transparent;
-  background: #000;
+  background: var(--accent);
   color: #fff;
   font-family: inherit;
   font-size: inherit;
@@ -181,6 +292,11 @@ a {
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.news-ticker-label:hover {
+  background: color-mix(in srgb, var(--accent) 85%, #000);
 }
 
 .news-ticker-skeleton-set {
@@ -294,8 +410,9 @@ a {
 
 .section-rule {
   border: none;
-  border-top: 2px solid #000;
+  height: 2px;
   margin: 0;
+  background: var(--rule);
 }
 
 .front-top {
@@ -307,7 +424,7 @@ a {
 
 .front-bottom {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 
   &--1 {
@@ -324,13 +441,14 @@ a {
 // ─── Shared block style (the rounded-rectangle boxes) ────────────────────────
 
 .front-block {
-  background: #fff;
-  border: 2px solid #000;
+  position: relative;
+  background: var(--card);
+  border: 2px solid var(--rule);
   border-radius: 14px;
   padding: 24px 22px;
   display: block;
   color: #000;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s;
   overflow: hidden;
 
   &:hover {
@@ -338,7 +456,68 @@ a {
   }
 }
 
+// Only the clickable cards lift; static panels stay put.
+a.front-block,
+article.front-block {
+  &:hover {
+    background: #{$accent-wash};
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.front-block:hover,
+  article.front-block:hover {
+    transform: none;
+  }
+}
+
+// Arrow cue on hover for clickable article cards/rows.
+a.front-block::after,
+article.front-block::after,
+.opinion-item::after {
+  content: "\2192";
+  position: absolute;
+  right: 16px;
+  bottom: 4px;
+  z-index: 1;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.15s, transform 0.15s;
+  pointer-events: none;
+}
+
+a.front-block:hover::after,
+article.front-block:hover::after,
+.opinion-item:hover::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.opinion-item {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.front-block::after,
+  article.front-block::after,
+  .opinion-item::after {
+    transition: opacity 0.15s;
+    transform: none;
+  }
+}
+
 // ─── Headline block ───────────────────────────────────────────────────────────
+
+.block-rule {
+  border: none;
+  height: 2px;
+  margin: 0 0 14px;
+  background: var(--rule);
+}
 
 .headline-block {
   display: flex;
@@ -373,11 +552,6 @@ a {
     text-transform: uppercase;
     letter-spacing: 0.02em;
   }
-  .block-rule {
-    border: none;
-    border-top: 2px solid #000;
-    margin: 0 0 14px;
-  }
   .block-excerpts {
     flex: 1;
     min-height: 0;
@@ -398,19 +572,8 @@ a {
   display: flex;
   flex-direction: column;
 
-  .section-label {
-    font-size: 0.75rem;
-    font-family: Georgia, serif;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #555;
-    margin-bottom: 6px;
-  }
-
-  .block-rule {
-    border: none;
-    border-top: 2px solid #000;
-    margin: 0 0 14px;
+  &:hover {
+    background: #{$accent-wash};
   }
 }
 
@@ -440,6 +603,13 @@ a {
   border: none;
   border-top: 1px solid #000;
   margin: 12px 0;
+  transition: border-top-color 0.15s, border-top-width 0.15s;
+}
+
+// Echoes the hover cue other cards use (accent lift, arrow) so this list
+// doesn't feel inert by comparison.
+.opinion-item:hover + .opinion-divider {
+  border-top: 2px solid var(--accent);
 }
 
 // ─── Bottom story blocks ──────────────────────────────────────────────────────
@@ -462,11 +632,22 @@ a {
 .reading-time {
   display: block;
   font-size: 0.72rem;
-  color: #888;
-  margin-top: 6px;
-  letter-spacing: 0.04em;
+  color: #{$accent-ink};
+  margin-top: 8px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   font-family: Georgia, serif;
+}
+
+.story-kicker {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #{$accent-ink};
+  margin-bottom: 6px;
 }
 
 .story-card-date {
@@ -495,24 +676,17 @@ a {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 
+  &--full {
+    grid-template-columns: 1fr;
+
+    .changelog-block {
+      max-width: 100%;
+    }
+  }
+
   .changelog-block {
     &:hover {
       background: #fff;
-    }
-
-    .section-label {
-      font-size: 0.75rem;
-      font-family: Georgia, serif;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #555;
-      margin-bottom: 6px;
-    }
-
-    .block-rule {
-      border: none;
-      border-top: 2px solid #000;
-      margin: 0 0 14px;
     }
   }
 }
@@ -523,7 +697,41 @@ a {
   gap: 24px;
 }
 
+.front-section,
 .slack-column-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.slack-auth-prompt {
+  margin: 0;
+  border: 2px dashed #999;
+  border-radius: 14px;
+  padding: 16px 20px;
+  font-family: Georgia, serif;
+  font-size: 0.85rem;
+  color: #666;
+
+  .slack-auth-prompt-label {
+    display: block;
+    margin-bottom: 4px;
+    color: #000;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:visited {
+      color: inherit;
+    }
+  }
 }
 
 .slack-column-row-items {
@@ -599,7 +807,7 @@ a {
 
 .slack-column-placeholder {
   min-height: 160px;
-  background: linear-gradient(90deg, #fff 25%, #f0f0eb 50%, #fff 75%);
+  background: linear-gradient(90deg, #fff 25%, #{$accent-wash} 50%, #fff 75%);
   background-size: 200% 100%;
   animation: slack-column-loading 1.5s infinite;
 }
@@ -628,10 +836,22 @@ a {
     margin: 0 0 8px;
     font-size: 2.4rem;
     text-transform: uppercase;
+
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 0.28em;
+      height: 0.28em;
+      margin-right: 0.32em;
+      vertical-align: 0.18em;
+      background: var(--accent);
+      border: 1px solid rgba(0, 0, 0, 0.35);
+    }
   }
 
   p:last-child {
     color: #555;
+    font-style: italic;
   }
 }
 
@@ -747,11 +967,17 @@ a {
   font-style: italic;
 }
 
+.changelog-list {
+  column-count: 2;
+  column-gap: 28px;
+}
+
 .changelog-item {
   display: flex;
   flex-direction: column;
   gap: 3px;
   padding: 4px 0;
+  break-inside: avoid-column;
 
   .changelog-change {
     font-size: 1rem;
@@ -788,7 +1014,7 @@ a {
 
 .front-essays {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 
   &--1 {
@@ -823,20 +1049,6 @@ a {
 .acknowledgements-block {
   &:hover {
     background: #fff;
-  }
-  .section-label {
-    font-size: 0.75rem;
-    font-family: Georgia, serif;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #555;
-    margin-bottom: 6px;
-  }
-
-  .block-rule {
-    border: none;
-    border-top: 2px solid #000;
-    margin: 0 0 14px;
   }
 }
 
@@ -950,13 +1162,45 @@ a {
 
     .story-category {
       float: right;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: #{$accent-ink};
+
+      a {
+        color: inherit;
+
+        &:visited {
+          color: inherit;
+        }
+      }
     }
   }
 
   .story-rule {
     border: none;
-    border-top: 2px solid #000;
+    height: 2px;
     margin: 0;
+    background: var(--rule);
+  }
+
+  .story-leading-media {
+    margin: 0 0 24px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #e8e8e2;
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  &.has-leading-image .story-body {
+    > p:first-child:has(> img:only-child),
+    > img:first-child {
+      display: none;
+    }
   }
 
   .story-body {
@@ -969,11 +1213,27 @@ a {
       font-weight: bold;
     }
 
+    > p:first-of-type::first-letter {
+      float: left;
+      font-size: 3.2em;
+      line-height: 0.82;
+      margin: 0.04em 0.08em 0 0;
+      color: #{$accent-ink};
+      font-weight: 700;
+    }
+
     p {
       margin-bottom: 1.2em;
 
       a {
         text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 2px;
+        text-decoration-color: var(--accent);
+
+        &:hover {
+          color: var(--accent);
+        }
       }
     }
 
@@ -996,7 +1256,7 @@ a {
     blockquote {
       margin: 0 0 1.2em;
       padding: 0.2em 0 0.2em 1.2em;
-      border-left: 3px solid #000;
+      border-left: 4px solid var(--accent);
       color: #333;
       font-style: italic;
 
@@ -1060,54 +1320,27 @@ a {
         );
       }
     }
-
-    .footnotes {
-      margin-top: 2em;
-      padding-top: 1em;
-      border-top: 1px solid #ccc;
-      font-size: 0.88rem;
-      color: #444;
-
-      hr {
-        display: none;
-      }
-
-      ol {
-        margin: 0;
-        padding-left: 1.5em;
-      }
-
-      li {
-        margin-bottom: 0.6em;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
-
-      a {
-        text-decoration: none;
-
-        &:hover {
-          text-decoration: underline;
-        }
-      }
-    }
   }
 
   .story-footer {
     margin-top: 40px;
     padding-top: 16px;
-    border-top: 1px solid #000;
+    border-top: 2px solid var(--accent);
     font-size: 0.85rem;
+    font-weight: 700;
     letter-spacing: 0.05em;
     justify-content: space-between;
     display: flex;
     text-transform: uppercase;
 
     a {
-      color: #000;
+      color: #{$accent-ink};
       text-decoration: underline;
+      text-underline-offset: 3px;
+
+      &:visited {
+        color: #{$accent-ink};
+      }
     }
   }
 }
@@ -1150,6 +1383,15 @@ html.dark-mode {
   .site-title img {
     filter: none;
   }
+
+  .footer-logo-img {
+    filter: none;
+  }
+
+  .footer-commit,
+  .footer-commit a {
+    color: #ccc !important;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1167,6 +1409,15 @@ html.dark-mode {
       filter: none;
     }
 
+    .footer-logo-img {
+      filter: none;
+    }
+
+    .footer-commit,
+    .footer-commit a {
+      color: #ccc !important;
+    }
+
     mark {
       filter: invert(1) hue-rotate(180deg);
     }
@@ -1176,9 +1427,9 @@ html.dark-mode {
 // ─── Search highlight ─────────────────────────────────────────────────────────
 
 mark {
-  background: #ffe600;
+  background: var(--hc-yellow);
   color: #111;
-  padding: 0 1px;
+  padding: 0 2px;
   border-radius: 2px;
 }
 
@@ -1194,11 +1445,7 @@ html.dark-mode mark {
   padding: 0 16px;
 
   .section-label {
-    font-size: 0.75rem;
-    font-family: Georgia, serif;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #555;
+    font-size: 0.9rem;
     margin-bottom: 8px;
   }
 
@@ -1215,38 +1462,33 @@ html.dark-mode mark {
 
 // ─── Archive links ────────────────────────────────────────────────────────────
 
-.archive-link {
-  display: block;
-  font-size: 0.78rem;
-  font-family: Georgia, serif;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #555;
-  margin-top: 4px;
-
-  &:visited {
-    color: #555;
-  }
-  &:hover {
-    color: #000;
-  }
-}
-
+.archive-link,
 .news-archive-link {
   display: block;
   font-size: 0.78rem;
   font-family: Georgia, serif;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #555;
-  text-align: right;
 
+  &,
   &:visited {
-    color: #555;
+    color: #{$accent-ink};
   }
   &:hover {
-    color: #000;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 2px;
   }
+}
+
+.archive-link {
+  margin-top: 4px;
+}
+
+.news-archive-link {
+  margin-top: 4px;
+  text-align: right;
 }
 
 // ─── Responsive ───────────────────────────────────────────────────────────────
@@ -1261,6 +1503,9 @@ html.dark-mode mark {
   }
   .front-changelog {
     grid-template-columns: 1fr;
+  }
+  .changelog-list {
+    column-count: 1;
   }
   .front-slack-columns {
     gap: 20px;
@@ -1327,4 +1572,17 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 .front-block:hover .slack_channel,
 .front-block:hover .emoji {
   filter: grayscale(0%) !important;
+}
+
+::view-transition-group(*) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
