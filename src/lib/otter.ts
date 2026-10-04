@@ -15,7 +15,6 @@ type OtterStats = {
   overview?: {
     total_projects?: number;
     total_hours?: number;
-    total_countries?: number;
   };
   projects_by_month?: Array<{ period?: string; total_projects?: number; total_hours?: number }>;
 };
@@ -78,8 +77,6 @@ function toFigures(stats: OtterStats): TickerFigure[] {
     overview.total_hours,
     changeFromLastMonth(stats.projects_by_month, "total_hours", overview.total_hours),
   );
-  // No monthly breakdown exists for countries, so no real change to show.
-  pushOverviewFigure("Countries", overview.total_countries);
 
   // The newest bucket is the current, partial month, so compare the two months
   // before it — otherwise every reading looks like a collapse.

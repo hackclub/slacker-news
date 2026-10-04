@@ -7,6 +7,7 @@ import {
 } from "../lib/indigest";
 import { getTickerFigures, type TickerFigure } from "../lib/otter";
 import { getSlackDataFigures } from "../lib/slack-data";
+import { getClubsFigures } from "../lib/clubs";
 
 type Headline = {
   title: string;
@@ -74,11 +75,12 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
   columnCounts.set(candidate.columnKey, count + 1);
 }
 
-const [otterFigures, slackDataFigures] = await Promise.all([
+const [otterFigures, clubsFigures, slackDataFigures] = await Promise.all([
   getTickerFigures(),
+  getClubsFigures(),
   getSlackDataFigures(),
 ]);
-const figures = [...otterFigures, ...slackDataFigures];
+const figures = [...otterFigures, ...clubsFigures, ...slackDataFigures];
 
 type TickerEntry =
   | { kind: "headline"; headline: Headline }
