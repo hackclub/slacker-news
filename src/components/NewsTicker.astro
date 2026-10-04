@@ -1,86 +1,39 @@
 ---
 import { getPosts } from "../lib/content";
-import {
-  firstMetadataValue,
-  getIndigestMessages,
-  getSlackColumns,
-} from "../lib/indigest";
+import { getSlackColumns } from "../lib/indigest";
+import { MAX_HEADLINES_PER_SOURCE } from "../lib/ticker-headlines";
 
-type Headline = {
-  title: string;
-  href: string;
-  date: number;
-  columnKey: string;
-};
+// Article headlines come from local content, so they render with the page.
+// Slack columns and figures stream in from the browser as each API answers.
+const postCounts = new Map<string, number>();
+const headlines = (await getPosts()).filter((post) => {
+  const category = post.category ?? "post";
+  const count = postCounts.get(category) ?? 0;
+  if (count >= MAX_HEADLINES_PER_SOURCE) return false;
+  postCounts.set(category, count + 1);
+  return true;
+});
 
-const TICKER_LIMIT = 20;
-const MAX_PER_COLUMN = 4;
-
-function timestampToNumber(timestamp: string | Date): number {
-  const parsed = new Date(timestamp).getTime();
-  if (!Number.isNaN(parsed)) return parsed;
-
-  const slackTimestamp = Number(timestamp);
-  return Number.isFinite(slackTimestamp) ? slackTimestamp * 1000 : 0;
-}
-
-const regularHeadlines: Headline[] = (await getPosts()).map((post) => ({
-  title: post.title,
-  href: post.url,
-  date: post.date.getTime(),
-  columnKey: post.category ?? "post",
-}));
-
-const slackHeadlines = (
-  await Promise.all(
-    getSlackColumns()
-      // Protected columns' titles stay hidden from signed-out readers, as on
-      // the homepage.
-      .filter((column) => !column.authRequired || Astro.locals.user)
-      .map(async (column) => {
-        try {
-          const messages = await getIndigestMessages(
-            column.channelId ?? column.column,
-            20,
-          );
-
-          return messages.map((message): Headline => ({
-            title: `${column.noun ?? column.title}: ${firstMetadataValue(message.metadata) ?? column.title}`,
-            href: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
-            date: timestampToNumber(message.timestamp || message.slackTs),
-            columnKey: column.column,
-          }));
-        } catch {
-          return [];
-        }
-      }),
-  )
-).flat();
-
-// Cap headlines per column/category so a high-volume source (e.g. YSWS)
-// can't crowd out every other article type in the ticker.
-const columnCounts = new Map<string, number>();
-const headlines: Headline[] = [];
-
-for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => b.date - a.date)) {
-  if (headlines.length >= TICKER_LIMIT) break;
-
-  const count = columnCounts.get(candidate.columnKey) ?? 0;
-  if (count >= MAX_PER_COLUMN) continue;
-
-  headlines.push(candidate);
-  columnCounts.set(candidate.columnKey, count + 1);
-}
+// Protected columns' titles stay hidden from signed-out readers, as on the
+// homepage.
+const slackColumns = getSlackColumns()
+  .filter((column) => !column.authRequired || Astro.locals.user)
+  .map((column) => column.column);
 ---
 
-<div class="news-ticker" aria-label="News ticker" data-ticker-live>
+<div
+  class="news-ticker"
+  aria-label="News ticker"
+  data-ticker-live
+  data-slack-columns={JSON.stringify(slackColumns)}
+>
   <button class="news-ticker-label" type="button" aria-label="Hide newswire ticker"><span class="news-ticker-label-text">newswire</span></button>
   <div class="news-ticker-track">
     <div class="news-ticker-scroll" data-ticker>
       <span class="news-ticker-set" data-ticker-set>
         {headlines.map((headline) => (
           <>
-            <a class="news-ticker-item" href={headline.href} data-ticker-headline>
+            <a class="news-ticker-item" href={headline.url} data-ticker-headline>
               {headline.title}
             </a>
             <span class="news-ticker-divider" aria-hidden="true">◆</span>
@@ -93,7 +46,6 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
 </div>
 
 <script>
-  const TICKER_CACHE_KEY = "news-ticker:headlines:v4";
   const PAUSE_STORAGE_KEY = "news-ticker:paused";
 
   function isPausedPreference() {
@@ -116,51 +68,18 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
     btn.setAttribute("aria-label", label);
   }
 
-  function isAuthenticated() {
-    return document.getElementById("news-ticker")?.dataset.authenticated === "1";
-  }
+  const awaitingShow = new WeakSet<Element>();
 
-  function restoreCachedTicker() {
-    const loading = document.querySelector("#news-ticker .news-ticker--loading");
-    if (!(loading instanceof HTMLElement)) return;
-
-    try {
-      const cached = JSON.parse(localStorage.getItem(TICKER_CACHE_KEY) || "null");
-      if (!cached || typeof cached.markup !== "string") return;
-      // A signed-in reader's cached ticker can carry protected headlines,
-      // so only restore markup cached under the same sign-in state.
-      if (cached.authenticated !== isAuthenticated()) return;
-
-      loading.classList.remove("news-ticker--loading");
-      loading.innerHTML =
-        '<button class="news-ticker-label" type="button" aria-label="Hide newswire ticker">' +
-        '<span class="news-ticker-label-text">newswire</span></button>' +
-        '<div class="news-ticker-track"><div class="news-ticker-scroll" data-ticker>' +
-        '<span class="news-ticker-set" data-ticker-set>' + cached.markup + "</span></div></div>" +
-        '<button class="news-ticker-pause" aria-label="Pause ticker" type="button">❚❚</button>';
-      initializeAllTickers();
-    } catch (_error) {
-      // Ignore unavailable or malformed browser cache.
-    }
-  }
-
-  function cacheTicker() {
-    const set = document.querySelector("#news-ticker .news-ticker-set");
-    if (!(set instanceof HTMLElement)) return;
-    if (set.closest(".news-ticker--loading")) return;
-
-    try {
-      localStorage.setItem(
-        TICKER_CACHE_KEY,
-        JSON.stringify({
-          markup: set.innerHTML,
-          authenticated: isAuthenticated(),
-          cachedAt: Date.now(),
-        }),
-      );
-    } catch (_error) {
-      // Ignore unavailable or full browser storage.
-    }
+  function whenShown(element: Element, callback: () => void) {
+    if (awaitingShow.has(element)) return;
+    awaitingShow.add(element);
+    const observer = new ResizeObserver(() => {
+      if (!(element instanceof HTMLElement) || element.offsetWidth === 0) return;
+      observer.disconnect();
+      awaitingShow.delete(element);
+      requestAnimationFrame(callback);
+    });
+    observer.observe(element);
   }
 
   function initializeTickers() {
@@ -168,13 +87,22 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
       .querySelectorAll("[data-ticker]:not([data-ticker-initialized])")
       .forEach((scroll) => {
         if (!(scroll instanceof HTMLElement)) return;
-        scroll.setAttribute("data-ticker-initialized", "true");
         const set = scroll.querySelector("[data-ticker-set]");
         if (!(set instanceof HTMLElement)) return;
         const parent = scroll.parentElement;
         if (!parent) return;
 
+        // A ticker that loads collapsed has no width to measure; set it up
+        // once it is shown instead of baking in zero-width animation values.
         const trackWidth = parent.offsetWidth;
+        if (trackWidth === 0) {
+          whenShown(parent, () => {
+            initializeTickers();
+            insertArrivals();
+          });
+          return;
+        }
+        scroll.setAttribute("data-ticker-initialized", "true");
         const items = Array.from(set.children);
         if (items.length === 0) return;
 
@@ -278,12 +206,18 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
     change?: { direction: "up" | "down"; text: string };
   };
 
+  type TickerHeadline = { title: string; href: string };
+
+  type Arrival =
+    | { kind: "figures"; figures: TickerFigure[] }
+    | { kind: "headlines"; headlines: TickerHeadline[] };
+
   const FIGURE_SOURCES = ["otter", "clubs", "slack-data"];
   const HEADLINES_PER_FIGURE = 3;
   const PX_PER_SECOND = 30;
 
   // Scoped styles (padding, divider colour) key off Astro's data-astro-cid-*
-  // attribute, so figures built here copy it from a server-rendered item.
+  // attribute, so items built here copy it from a server-rendered item.
   function copyScope(from: Element, to: Element) {
     for (const attribute of Array.from(from.attributes)) {
       if (attribute.name.startsWith("data-astro-cid-")) to.setAttribute(attribute.name, "");
@@ -313,63 +247,78 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
     return [item, divider.cloneNode(true)];
   }
 
-  // Slip newly arrived figures into the scrolling set without moving anything
-  // the reader can see: each goes after every third headline, in the first
-  // free slot that is off-screen, and the animation keeps its pixel offset.
-  const pendingFigures: TickerFigure[] = [];
-  let waitingForTrack = false;
+  function headlineNodes(headline: TickerHeadline, template: Element, divider: Element): Node[] {
+    const item = document.createElement("a");
+    item.className = "news-ticker-item";
+    item.href = headline.href;
+    item.textContent = headline.title;
+    item.setAttribute("data-ticker-headline", "");
+    copyScope(template, item);
+    return [item, divider.cloneNode(true)];
+  }
 
-  function insertFigures(figures: TickerFigure[]) {
-    pendingFigures.push(...figures);
+  // Slip newly arrived items into the scrolling set without moving anything
+  // the reader can see, keeping the animation's pixel offset. Headlines go
+  // in as a block just past the visible stretch, so each Slack column shows
+  // up next; figures go after every third headline, in the first free slot
+  // that is off-screen.
+  const pending: Arrival[] = [];
+
+  function insertArrivals(arrival?: Arrival) {
+    if (arrival) pending.push(arrival);
     const scroll = document.querySelector("#news-ticker [data-ticker-live] [data-ticker]");
-    if (!(scroll instanceof HTMLElement) || pendingFigures.length === 0) return;
+    if (!(scroll instanceof HTMLElement) || pending.length === 0) return;
     const set = scroll.querySelector("[data-ticker-set]");
     const track = scroll.parentElement;
     if (!(set instanceof HTMLElement) || !track) return;
 
     // A collapsed ticker has no width or running animation to measure, so
-    // hold the figures until it is shown again.
+    // hold arrivals until it is shown again.
     const animation = scroll.getAnimations()[0];
     if (!animation || set.offsetWidth === 0) {
-      if (!waitingForTrack) {
-        waitingForTrack = true;
-        const observer = new ResizeObserver(() => {
-          if (track.offsetWidth === 0) return;
-          observer.disconnect();
-          waitingForTrack = false;
-          requestAnimationFrame(() => insertFigures([]));
-        });
-        observer.observe(track);
-      }
+      whenShown(track, () => insertArrivals());
       return;
     }
-    figures = pendingFigures.splice(0);
 
-    const headlines = Array.from(set.querySelectorAll("[data-ticker-headline]"));
+    const template = set.querySelector("[data-ticker-headline]");
     const divider = set.querySelector(".news-ticker-divider");
-    if (headlines.length === 0 || !divider) return;
+    if (!template || !divider) return;
 
     const setWidth = set.offsetWidth;
     const offset = (((Number(animation.currentTime) || 0) / 1000) * PX_PER_SECOND) % setWidth;
     const visibleEnd = offset + track.offsetWidth;
-    const isVisible = (x: number) =>
-      (x >= offset && x <= visibleEnd) || x <= visibleEnd - setWidth;
-
     const setLeft = set.getBoundingClientRect().left;
-    const freeSlots = headlines
-      .filter((_, index) => (index + 1) % HEADLINES_PER_FIGURE === 0)
-      .map((headline) => headline.nextElementSibling)
-      .filter((slot): slot is Element => Boolean(slot) && !slot!.hasAttribute("data-figure-slot-filled"))
-      .filter((slot) => !isVisible(slot.getBoundingClientRect().right - setLeft));
+    const isOffScreen = (element: Element) => {
+      const x = element.getBoundingClientRect().right - setLeft;
+      return !((x >= offset && x <= visibleEnd) || x <= visibleEnd - setWidth);
+    };
 
-    for (const figure of figures) {
-      const nodes = figureNodes(figure, headlines[0], divider);
-      const slot = freeSlots.shift();
-      if (slot) {
-        slot.setAttribute("data-figure-slot-filled", "");
-        slot.after(...nodes);
-      } else {
-        set.append(...nodes);
+    for (const next of pending.splice(0)) {
+      if (next.kind === "headlines") {
+        const nodes = next.headlines.flatMap((headline) => headlineNodes(headline, template, divider));
+        const after = Array.from(set.querySelectorAll(".news-ticker-divider")).find(
+          (candidate) => candidate.getBoundingClientRect().right - setLeft > visibleEnd,
+        );
+        if (after) after.after(...nodes);
+        else set.append(...nodes);
+        continue;
+      }
+
+      const freeSlots = Array.from(set.querySelectorAll("[data-ticker-headline]"))
+        .filter((_, index) => (index + 1) % HEADLINES_PER_FIGURE === 0)
+        .map((headline) => headline.nextElementSibling)
+        .filter((slot): slot is Element => Boolean(slot) && !slot!.hasAttribute("data-figure-slot-filled"))
+        .filter(isOffScreen);
+
+      for (const figure of next.figures) {
+        const nodes = figureNodes(figure, template, divider);
+        const slot = freeSlots.shift();
+        if (slot) {
+          slot.setAttribute("data-figure-slot-filled", "");
+          slot.after(...nodes);
+        } else {
+          set.append(...nodes);
+        }
       }
     }
 
@@ -386,21 +335,38 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
     scroll.style.animationDuration = width / PX_PER_SECOND + "s";
     scroll.style.setProperty("--set-width", "-" + width + "px");
     animation.currentTime = currentTime;
-    cacheTicker();
   }
 
-  function loadFigures() {
+  function fetchJson<T>(url: string): Promise<T[]> {
+    return fetch(url)
+      .then((response) => (response.ok ? response.json() : []))
+      .catch(() => []);
+  }
+
+  // Each source is fetched separately and slotted in as it answers, so a
+  // slow API only delays its own items. A failed source is just left out.
+  function loadArrivals() {
     const ticker = document.querySelector("#news-ticker [data-ticker-live]");
-    if (!(ticker instanceof HTMLElement) || ticker.hasAttribute("data-figures-requested")) return;
-    ticker.setAttribute("data-figures-requested", "");
+    if (!(ticker instanceof HTMLElement) || ticker.hasAttribute("data-arrivals-requested")) return;
+    ticker.setAttribute("data-arrivals-requested", "");
+
+    let columns: string[] = [];
+    try {
+      columns = JSON.parse(ticker.dataset.slackColumns ?? "[]");
+    } catch (_error) {
+      // Without a column list, the ticker keeps its article headlines.
+    }
+
+    for (const column of columns) {
+      fetchJson<TickerHeadline>(`/api/ticker-headlines/${encodeURIComponent(column)}.json`).then(
+        (headlines) => headlines.length > 0 && insertArrivals({ kind: "headlines", headlines }),
+      );
+    }
 
     for (const source of FIGURE_SOURCES) {
-      fetch(`/api/ticker-figures/${source}.json`)
-        .then((response) => (response.ok ? response.json() : []))
-        .then((figures: TickerFigure[]) => insertFigures(figures))
-        .catch(() => {
-          // A failed source just leaves its figures out.
-        });
+      fetchJson<TickerFigure>(`/api/ticker-figures/${source}.json`).then(
+        (figures) => figures.length > 0 && insertArrivals({ kind: "figures", figures }),
+      );
     }
   }
 
@@ -411,15 +377,14 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
     initializeTickers();
     initializePauseButtons();
     initializeHoverPause();
-    cacheTicker();
     applyCollapsedState();
-    loadFigures();
+    loadArrivals();
   }
 
   function saveTickerPositions() {
     document
       .querySelectorAll(
-        ".news-ticker-scroll, .news-ticker-skeleton-scroll",
+        ".news-ticker-scroll",
       )
       .forEach((scroll) => {
         if (!(scroll instanceof HTMLElement)) return;
@@ -435,7 +400,7 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
   function restoreTickerPositions() {
     document
       .querySelectorAll(
-        ".news-ticker-scroll[data-ticker-current-time], .news-ticker-skeleton-scroll[data-ticker-current-time]",
+        ".news-ticker-scroll[data-ticker-current-time]",
       )
       .forEach((scroll) => {
         if (!(scroll instanceof HTMLElement)) return;
@@ -463,7 +428,6 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
     restoreTickerPositions();
   }
 
-  restoreCachedTicker();
   initializeAllTickers();
   document.addEventListener("astro:before-swap", saveTickerPositions);
   document.addEventListener("astro:after-swap", initializeAllTickersAndRestorePosition);
@@ -489,23 +453,6 @@ for (const candidate of [...regularHeadlines, ...slackHeadlines].sort((a, b) => 
     border-bottom: 3px double #000;
   }
 
-  .news-ticker-skeleton {
-    display: block;
-    width: min(28rem, 55%);
-    height: 0.8em;
-    background: linear-gradient(90deg, #fff 25%, #f0f0eb 50%, #fff 75%);
-    background-size: 200% 100%;
-    animation: news-ticker-loading 1.5s infinite;
-  }
-
-  @keyframes news-ticker-loading {
-    from {
-      background-position: 200% 0;
-    }
-    to {
-      background-position: -200% 0;
-    }
-  }
 
   .news-ticker-track {
     flex: 1;

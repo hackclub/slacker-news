@@ -2,7 +2,9 @@ import type { TickerFigure } from "./otter";
 
 const CLUBS_URL = "https://clubapi.hackclub.com/clubs";
 const CACHE_TTL_MS = 10 * 60 * 1000;
-const REQUEST_TIMEOUT_MS = 4000;
+// The clubs API often takes several seconds. The newswire streams each source
+// in separately, so waiting longer only delays this one figure.
+const REQUEST_TIMEOUT_MS = 15000;
 
 type ClubsResponse = { totalClubs?: number };
 

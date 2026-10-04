@@ -121,7 +121,6 @@ a {
   min-height: 0;
 
   .news-ticker-track,
-  .news-ticker-skeleton-track,
   .news-ticker-pause {
     display: none;
   }
@@ -151,19 +150,6 @@ a {
   }
 }
 
-.news-ticker--loading {
-  display: flex;
-  align-items: center;
-  min-height: 31px;
-  overflow: hidden;
-  border-top: 3px solid #000;
-  border-bottom: 3px double #000;
-  background: #f5f5f0;
-}
-
-// Global (not scoped to NewsTicker.astro): this markup is also rendered by
-// BaseLayout's server:defer fallback and by NewsTicker's own cache-restore
-// script, neither of which carry NewsTicker's component scope attribute.
 .news-ticker-label {
   flex: 0 0 auto;
   display: flex;
@@ -181,60 +167,6 @@ a {
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-}
-
-.news-ticker-skeleton-set {
-  display: flex;
-  align-items: center;
-  flex: 0 0 max-content;
-  white-space: nowrap;
-}
-
-.news-ticker-skeleton-track {
-  width: 100%;
-  overflow: hidden;
-}
-
-.news-ticker-skeleton-scroll {
-  display: flex;
-  width: max-content;
-}
-
-// Global (not scoped): reuses NewsTicker.astro's keyframe/class names for
-// the skeleton fallback, which is rendered by BaseLayout and so can't reach
-// that component's scoped copy.
-@keyframes ticker-scroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(var(--set-width));
-  }
-}
-
-.news-ticker-animate {
-  animation: ticker-scroll linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .news-ticker-animate {
-    animation: none;
-  }
-}
-
-.news-ticker-skeleton-entry {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-}
-
-.news-ticker-skeleton-text {
-  display: inline-block;
-  flex: 0 0 var(--skeleton-width, 10em);
-  height: 0.8em;
-  background: linear-gradient(90deg, #fff 25%, #f0f0eb 50%, #fff 75%);
-  background-size: 200% 100%;
-  animation: news-ticker-loading 1.5s infinite;
 }
 
 .news-ticker-figure {
@@ -265,23 +197,6 @@ a {
 
   &--down {
     color: var(--hc-red);
-  }
-}
-
-// Matches .news-ticker-divider in NewsTicker.astro: the skeleton's separators
-// must not change color when the real ticker replaces the fallback.
-.news-ticker-skeleton-dot {
-  margin: 0 1.2em;
-  color: var(--hc-muted);
-  font-size: 0.45em;
-}
-
-@keyframes news-ticker-loading {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
   }
 }
 
