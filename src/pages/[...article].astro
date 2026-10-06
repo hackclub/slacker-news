@@ -1,0 +1,83 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getSiteConfig } from "../lib/content";
+import { getMarkdownColumnArticles } from "../lib/indigest";
+import SlackMention from "../components/SlackMention.astro";
+import SlackRichText from "../components/SlackRichText.astro";
+
+// Articles published from Slack into the markdown columns. Markdown posts are
+// prerendered by [...slug].astro, which Astro tries first, so only paths it
+// does not know reach this page.
+export const prerender = false;
+
+const path = `/${Astro.params.article ?? ""}/`;
+const found = (await getMarkdownColumnArticles(true)).find(
+  ({ article }) => article.url === path,
+);
+
+if (!found) {
+  Astro.response.headers.set("Cache-Control", "no-store");
+  return Astro.rewrite("/404");
+}
+
+const { integration, message, article } = found;
+if (integration.authRequired && !Astro.locals.user) {
+  return Astro.redirect(`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
+}
+
+// A protected article must never land in a shared cache.
+Astro.response.headers.set(
+  "Cache-Control",
+  integration.authRequired
+    ? "private, no-store"
+    : "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800",
+);
+
+const site = await getSiteConfig();
+
+// An author given as a Slack ID (bare or as <@ID>) renders as a mention, like
+// the poster does when no author is given.
+const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[1];
+---
+
+<BaseLayout
+  title={`${article.title} | Slacker News`}
+  siteTitle={site.title}
+  siteDescription={site.description}
+  canonicalPath={article.url}
+>
+  <article class="story-page slack-story-page">
+    <header class="story-header">
+      <h1 class="story-title">{article.title}</h1>
+      <div class="story-meta">
+        <span class="story-category">
+          <a class="page-link" href={`/${article.column}/`}>{article.column.toUpperCase()}</a>
+        </span>
+        <span class="story-author">
+          By {authorId
+            ? <SlackMention name="" id={authorId} />
+            : article.author ?? <SlackMention name={message.userName || message.userId} id={message.userId} />}
+        </span>
+        {!Number.isNaN(article.date.getTime()) && (
+          <>
+            {" — "}
+            <time datetime={article.date.toISOString()}>
+              {article.hasTime
+                ? article.date.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })
+                : article.date.toLocaleDateString("en-US", { dateStyle: "long" })}
+            </time>
+          </>
+        )}
+      </div>
+      <hr class="story-rule" />
+    </header>
+
+    <div class="story-body slack-story-body">
+      <SlackRichText text={message.text} />
+    </div>
+
+    <footer class="story-footer">
+      <a href="/">&larr; Back to front page</a>
+    </footer>
+  </article>
+</BaseLayout>

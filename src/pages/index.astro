@@ -92,8 +92,13 @@ const displayEssays = essayItems.slice(0, 4);
 
 const recentChangelog = allChangelogs.slice(0, 3);
 const acknowledgements = await getAcknowledgements();
+// Markdown-column integrations show inside the opinion, news and essays
+// sections instead of a row of their own.
 const homepageSlackColumns = getSlackColumns().filter(
-  (column) => column.homepage && (!column.authRequired || Astro.locals.user)
+  (column) =>
+    column.homepage &&
+    !column.markdownColumns &&
+    (!column.authRequired || Astro.locals.user)
 );
 
 function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {

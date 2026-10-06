@@ -3,7 +3,8 @@ import { timingSafeEqual } from "node:crypto";
 import { getChangelogEntries, getPosts, getSiteConfig } from "../lib/content";
 import { legacyRedirects } from "../data/legacy-redirects.mjs";
 import {
-  firstMetadataValue,
+  getMarkdownColumnArticles,
+  getSlackArticle,
   getSlackColumnData,
   getSlackColumns,
 } from "../lib/indigest";
@@ -50,7 +51,9 @@ async function getTokenAccess(context) {
 // ?exclude= and ?include=, as built on /rss/. Slack columns marked rss are
 // opt-in through ?include=.
 // Ids are article categories (news, opinion, essays, changelogs) and
-// slack-<column>. Links only name departures from the defaults, so changing
+// slack-<column>. Articles from integrations with markdown columns are filed
+// under their category, and protected ones also need the opt-in "protected"
+// id and a token that can read them. Links only name departures from the defaults, so changing
 // a default later reaches existing subscribers.
 function listParam(context, name) {
   return new Set(
@@ -71,6 +74,7 @@ function getFeedSlackColumns(wants, tokenAccess) {
   return getSlackColumns().filter(
     (column) =>
       column.rss &&
+      !column.markdownColumns &&
       wants(`slack-${column.column}`, false) &&
       (!column.authRequired || tokenAccess.canRead(column)),
   );
@@ -100,6 +104,47 @@ function revokedTokenNotice(context, revokedAt) {
   };
 }
 
+// Articles from integrations with markdown columns, in the categories the
+// feed wants.
+async function getMarkdownColumnItems(wants, tokenAccess) {
+  const articles = await getMarkdownColumnArticles(true);
+
+  return articles
+    .filter(
+      ({ integration, article }) =>
+        integration.rss &&
+        wants(article.column, true) &&
+        (!integration.authRequired ||
+          (wants("protected", false) && tokenAccess.canRead(integration))),
+    )
+    .map(({ message, article }) => {
+      const authorId = article.author?.match(
+        /^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/,
+      )?.[1];
+      // Readers like the Slack bot cannot open a protected page to find its
+      // byline, so the feed names the author: a Slack mention where there is
+      // an ID, the name otherwise.
+      const author = authorId
+        ? `<@${authorId}>`
+        : (article.author ?? `<@${message.userId}>`);
+
+      return {
+        title: article.title,
+        description: excerpt(message.text),
+        pubDate: article.date,
+        link: article.url,
+        content: `<p>${escapeHtml(message.text)}</p>`,
+        customData: `<dc:creator>${escapeHtml(author)}</dc:creator>`,
+      };
+    })
+    .filter((item) => !Number.isNaN(item.pubDate.getTime()));
+}
+
+function excerpt(text) {
+  const words = text.trim().split(/\s+/);
+  return words.length > 40 ? `${words.slice(0, 40).join(" ")}…` : text.trim();
+}
+
 async function getSlackItems(columns) {
   const columnData = await Promise.all(
     columns.map((column) => getSlackColumnData(column.column)),
@@ -109,16 +154,16 @@ async function getSlackItems(columns) {
     .filter((column) => column !== undefined)
     .flatMap((column) =>
       column.messages
-        .map((message) => ({
-          title:
-            firstMetadataValue(message.metadata) ??
-            column.title ??
-            "Slack message",
-          description: column.title,
-          pubDate: new Date(message.timestamp),
-          link: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
-          content: `<p>${escapeHtml(message.text)}</p>`,
-        }))
+        .map((message) => {
+          const article = getSlackArticle(message, column);
+          return {
+            title: article.title || "Slack message",
+            description: column.title,
+            pubDate: article.date,
+            link: article.url,
+            content: `<p>${escapeHtml(message.text)}</p>`,
+          };
+        })
         // Indigest occasionally returns a malformed timestamp; drop those
         // rather than let one bad record break the whole feed.
         .filter((item) => !Number.isNaN(item.pubDate.getTime())),
@@ -172,9 +217,10 @@ export async function GET(context) {
   const changelogs = await getChangelogEntries();
   const wants = getColumnSelection(context);
   const tokenAccess = await getTokenAccess(context);
-  const slackItems = await getSlackItems(
-    getFeedSlackColumns(wants, tokenAccess),
-  );
+  const [slackItems, markdownColumnItems] = await Promise.all([
+    getSlackItems(getFeedSlackColumns(wants, tokenAccess)),
+    getMarkdownColumnItems(wants, tokenAccess),
+  ]);
   if ("revokedAt" in tokenAccess) {
     slackItems.push(revokedTokenNotice(context, tokenAccess.revokedAt));
   }
@@ -234,9 +280,12 @@ export async function GET(context) {
       };
     });
 
-  const items = [...postItems, ...longChangelogItems, ...slackItems].sort(
-    (a, b) => b.pubDate.getTime() - a.pubDate.getTime(),
-  );
+  const items = [
+    ...postItems,
+    ...markdownColumnItems,
+    ...longChangelogItems,
+    ...slackItems,
+  ].sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
 
   return rss({
     title: site.title,
@@ -244,6 +293,7 @@ export async function GET(context) {
     site: context.site,
     xmlns: {
       media: "http://search.yahoo.com/mrss/",
+      dc: "http://purl.org/dc/elements/1.1/",
     },
     items,
   });

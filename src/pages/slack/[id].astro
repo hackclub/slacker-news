@@ -9,7 +9,9 @@ import { truncateSlackWords } from "../../lib/slack-rich-text";
 export const prerender = false;
 
 const channel = Astro.params.id ?? "";
-const column = getSlackColumn(channel);
+// Integrations with markdown columns publish under those columns instead.
+const configuredColumn = getSlackColumn(channel);
+const column = configuredColumn?.markdownColumns ? undefined : configuredColumn;
 if (column?.authRequired && !Astro.locals.user) {
   return Astro.redirect(`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
 }

@@ -1,5 +1,9 @@
 import type { Post } from "./content";
-import type { IndigestMessage, SlackColumnConfig } from "./indigest";
+import {
+  getSlackArticle,
+  type IndigestMessage,
+  type SlackColumnConfig,
+} from "./indigest";
 
 const STOPWORDS = new Set([
   "the",
@@ -112,44 +116,35 @@ function stripSlackMrkdwn(text: string): string {
 export function slackMessageToDocument(
   message: IndigestMessage,
   column: SlackColumnConfig,
-): SearchDocument {
-  const title =
-    (typeof message.metadata === "object" && message.metadata !== null
-      ? Object.values(message.metadata)[0]
-      : typeof message.metadata === "string"
-        ? (() => {
-            try {
-              const parsed = JSON.parse(message.metadata);
-              return parsed && typeof parsed === "object"
-                ? Object.values(parsed)[0]
-                : undefined;
-            } catch {
-              return undefined;
-            }
-          })()
-        : undefined) ?? column.title;
+): SearchDocument | undefined {
+  const article = getSlackArticle(message, column);
+  if (!article) return undefined;
+  const title = article.title;
+  // A Slack ID is no use as a search term.
+  const author =
+    article.author && !/^[UW][A-Z0-9]+$/.test(article.author)
+      ? article.author
+      : "";
 
   const cleanText = stripSlackMrkdwn(message.text);
   const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
-  const url = `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`;
+  const url = article.url;
 
   return {
     url,
     title: String(title),
     excerpt: cleanText,
-    category: column.title,
+    category: column.markdownColumns ? article.column : column.title,
     readingTime,
     text: cleanText,
-    author: "",
-    date: message.timestamp
-      ? new Date(parseFloat(message.timestamp) * 1000)
-          .toISOString()
-          .slice(0, 10)
-      : "",
-    titleTerms: termFrequency(String(title)),
+    author,
+    date: Number.isNaN(article.date.getTime())
+      ? ""
+      : article.date.toISOString().slice(0, 10),
+    titleTerms: termFrequency(title),
     bodyTerms: termFrequency(cleanText),
-    authorTerms: {},
+    authorTerms: termFrequency(author),
   };
 }
 

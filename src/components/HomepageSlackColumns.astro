@@ -13,6 +13,7 @@ const homepageColumns = await Promise.all(
   getSlackColumns()
     .filter((column) =>
       column.homepage
+      && !column.markdownColumns
       && !traditionalColumns.has(column.column)
       && (!column.authRequired || Astro.locals.user)
     )
