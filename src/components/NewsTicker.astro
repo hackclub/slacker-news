@@ -33,7 +33,12 @@ const slackColumns = getSlackColumns()
       <span class="news-ticker-set" data-ticker-set>
         {headlines.map((headline) => (
           <>
-            <a class="news-ticker-item" href={headline.url} data-ticker-headline>
+            <a
+              class="news-ticker-item"
+              href={headline.url}
+              data-ticker-headline
+              data-ticker-date={headline.date.getTime()}
+            >
               {headline.title}
             </a>
             <span class="news-ticker-divider" aria-hidden="true">◆</span>
@@ -108,7 +113,8 @@ const slackColumns = getSlackColumns()
 
         let i = 0;
         while (set.offsetWidth < trackWidth) {
-          const clone = items[i % items.length].cloneNode(true);
+          const clone = items[i % items.length].cloneNode(true) as Element;
+          clone.setAttribute("data-ticker-fill", "");
           set.appendChild(clone);
           i++;
         }
@@ -194,15 +200,41 @@ const slackColumns = getSlackColumns()
     change?: { direction: "up" | "down"; text: string };
   };
 
-  type TickerHeadline = { title: string; href: string };
+  type TickerHeadline = { title: string; href: string; date: number };
 
   type Arrival =
-    | { kind: "figures"; figures: TickerFigure[] }
+    | { kind: "figures"; source: number; figures: TickerFigure[] }
     | { kind: "headlines"; headlines: TickerHeadline[] };
 
   const FIGURE_SOURCES = ["otter", "clubs", "slack-data"];
-  const HEADLINES_PER_FIGURE = 3;
   const PX_PER_SECOND = 30;
+
+  // How long the figures usually take to arrive, learned per browser. The
+  // ticker opens with enough article headlines to cover that wait, so the
+  // first figure slot only scrolls into view once its data is likely there.
+  const FIGURES_LATENCY_KEY = "news-ticker:figures-ms";
+  const DEFAULT_FIGURES_LATENCY_MS = 2000;
+
+  function estimatedFiguresLatency(): number {
+    try {
+      const stored = Number(localStorage.getItem(FIGURES_LATENCY_KEY));
+      if (Number.isFinite(stored) && stored > 0) return stored;
+    } catch (_error) {
+      // Fall back to the default estimate.
+    }
+    return DEFAULT_FIGURES_LATENCY_MS;
+  }
+
+  function recordFiguresLatency(elapsed: number) {
+    const clamped = Math.min(Math.max(elapsed, 250), 15000);
+    // Weighted towards history so one slow load doesn't swing the layout.
+    const next = Math.round(estimatedFiguresLatency() * 0.7 + clamped * 0.3);
+    try {
+      localStorage.setItem(FIGURES_LATENCY_KEY, String(next));
+    } catch (_error) {
+      // The estimate just won't be remembered.
+    }
+  }
 
   // Scoped styles (padding, divider colour) key off Astro's data-astro-cid-*
   // attribute, so items built here copy it from a server-rendered item.
@@ -212,9 +244,15 @@ const slackColumns = getSlackColumns()
     }
   }
 
-  function figureNodes(figure: TickerFigure, template: Element, divider: Element): Node[] {
+  function figureNodes(
+    figure: TickerFigure,
+    order: number,
+    template: Element,
+    divider: Element,
+  ): Node[] {
     const item = document.createElement("span");
     item.className = "news-ticker-item news-ticker-figure";
+    item.setAttribute("data-ticker-figure", String(order));
     copyScope(template, item);
 
     const label = document.createElement("span");
@@ -241,16 +279,99 @@ const slackColumns = getSlackColumns()
     item.href = headline.href;
     item.textContent = headline.title;
     item.setAttribute("data-ticker-headline", "");
+    item.setAttribute("data-ticker-date", String(headline.date));
+    item.setAttribute("data-ticker-streamed", "");
     copyScope(template, item);
     return [item, divider.cloneNode(true)];
   }
 
-  // Slip newly arrived items into the scrolling set without moving anything
-  // the reader can see, keeping the animation's pixel offset. Headlines go
-  // in as a block just past the visible stretch, so each Slack column shows
-  // up next; figures go after every third headline, in the first free slot
-  // that is off-screen.
+  type Unit = {
+    nodes: Element[];
+    kind: "lead" | "headline" | "figure";
+    date: number;
+    order: number;
+    left: number;
+    width: number;
+  };
+
+  // The set is a run of item + divider pairs; measure each pair where it
+  // currently sits.
+  function readUnits(set: HTMLElement): { units: Unit[]; fill: Element[] } {
+    const children = Array.from(set.children);
+    const setLeft = set.getBoundingClientRect().left;
+    const setRight = set.getBoundingClientRect().right;
+    const units: Unit[] = [];
+    const fill: Element[] = [];
+
+    for (let index = 0; index < children.length; index += 2) {
+      const item = children[index];
+      const nodes = [item, children[index + 1]].filter(Boolean);
+      if (item.hasAttribute("data-ticker-fill")) {
+        fill.push(...nodes);
+        continue;
+      }
+      const next = children[index + 2];
+      const left = item.getBoundingClientRect().left - setLeft;
+      const right = (next ? next.getBoundingClientRect().left : setRight) - setLeft;
+      const figure = item.getAttribute("data-ticker-figure");
+      units.push({
+        nodes,
+        kind: figure !== null ? "figure" : "headline",
+        date: Number(item.getAttribute("data-ticker-date")) || 0,
+        order: Number(figure) || 0,
+        left,
+        width: right - left,
+      });
+    }
+
+    return { units, fill };
+  }
+
+  // Article headlines render with the page, so they open the ticker for as
+  // long as the figures usually take to arrive (plus the first screen).
+  function leadCount(units: Unit[], trackWidth: number): number {
+    const needed = trackWidth + (estimatedFiguresLatency() / 1000) * PX_PER_SECOND;
+    let covered = 0;
+    let count = 0;
+    for (const unit of units) {
+      if (unit.kind !== "headline" || unit.nodes[0].hasAttribute("data-ticker-streamed")) break;
+      if (covered >= needed) break;
+      covered += unit.width;
+      count++;
+    }
+    return count;
+  }
+
+  // Lead articles first, then every other headline newest-first with the
+  // figures spaced evenly between them.
+  function idealOrder(units: Unit[], lead: number): Unit[] {
+    const leadUnits = units.slice(0, lead);
+    const rest = units
+      .slice(lead)
+      .filter((unit) => unit.kind === "headline")
+      .sort((a, b) => b.date - a.date);
+    const figures = units.filter((unit) => unit.kind === "figure").sort((a, b) => a.order - b.order);
+
+    const ordered: Unit[] = [...leadUnits];
+    let placed = 0;
+    rest.forEach((unit, index) => {
+      ordered.push(unit);
+      while (
+        placed < figures.length &&
+        index + 1 >= Math.round(((placed + 1) * rest.length) / (figures.length + 1))
+      ) {
+        ordered.push(figures[placed++]);
+      }
+    });
+    ordered.push(...figures.slice(placed));
+    return ordered;
+  }
+
+  // Lay arrivals out without moving anything the reader can see: whatever is
+  // on screen stays one contiguous run, and the animation offset shifts by
+  // however much content lands before it.
   const pending: Arrival[] = [];
+  let retryTimer: number | undefined;
 
   function insertArrivals(arrival?: Arrival) {
     if (arrival) pending.push(arrival);
@@ -268,48 +389,57 @@ const slackColumns = getSlackColumns()
       return;
     }
     const animation = scroll.getAnimations()[0];
+    const trackWidth = track.offsetWidth;
+    const setWidth = set.offsetWidth;
+    const offset = (((Number(animation?.currentTime) || 0) / 1000) * PX_PER_SECOND) % setWidth;
+
+    // While the loop seam is on screen the duplicate set is visible too;
+    // wait for it to pass rather than reshuffle what the reader sees.
+    if (offset + trackWidth > setWidth) {
+      window.clearTimeout(retryTimer);
+      retryTimer = window.setTimeout(() => insertArrivals(), 1000);
+      return;
+    }
 
     const template = set.querySelector("[data-ticker-headline]");
     const divider = set.querySelector(".news-ticker-divider");
     if (!template || !divider) return;
 
-    const setWidth = set.offsetWidth;
-    const offset = (((Number(animation?.currentTime) || 0) / 1000) * PX_PER_SECOND) % setWidth;
-    const visibleEnd = offset + track.offsetWidth;
-    const setLeft = set.getBoundingClientRect().left;
-    const isOffScreen = (element: Element) => {
-      const x = element.getBoundingClientRect().right - setLeft;
-      return !((x >= offset && x <= visibleEnd) || x <= visibleEnd - setWidth);
-    };
-
-    for (const next of pending.splice(0)) {
-      if (next.kind === "headlines") {
-        const nodes = next.headlines.flatMap((headline) => headlineNodes(headline, template, divider));
-        const after = Array.from(set.querySelectorAll(".news-ticker-divider")).find(
-          (candidate) => candidate.getBoundingClientRect().right - setLeft > visibleEnd,
-        );
-        if (after) after.after(...nodes);
-        else set.append(...nodes);
-        continue;
-      }
-
-      const freeSlots = Array.from(set.querySelectorAll("[data-ticker-headline]"))
-        .filter((_, index) => (index + 1) % HEADLINES_PER_FIGURE === 0)
-        .map((headline) => headline.nextElementSibling)
-        .filter((slot): slot is Element => Boolean(slot) && !slot!.hasAttribute("data-figure-slot-filled"))
-        .filter(isOffScreen);
-
-      for (const figure of next.figures) {
-        const nodes = figureNodes(figure, template, divider);
-        const slot = freeSlots.shift();
-        if (slot) {
-          slot.setAttribute("data-figure-slot-filled", "");
-          slot.after(...nodes);
-        } else {
-          set.append(...nodes);
-        }
-      }
+    if (!scroll.dataset.leadCount) {
+      scroll.dataset.leadCount = String(leadCount(readUnits(set).units, trackWidth));
     }
+    const lead = Number(scroll.dataset.leadCount);
+
+    // Append first so the new items can be measured, then lay out.
+    const firstFill = set.querySelector("[data-ticker-fill]");
+    for (const next of pending.splice(0)) {
+      const nodes =
+        next.kind === "headlines"
+          ? next.headlines.flatMap((headline) => headlineNodes(headline, template, divider))
+          : next.figures.flatMap((figure, index) =>
+              figureNodes(figure, next.source * 100 + index, template, divider),
+            );
+      if (firstFill) firstFill.before(...nodes);
+      else set.append(...nodes);
+    }
+
+    const { units, fill } = readUnits(set);
+    const visible = units.filter(
+      (unit) => unit.left + unit.width > offset && unit.left < offset + trackWidth,
+    );
+    const ideal = idealOrder(units, lead);
+    const others = ideal.filter((unit) => !visible.includes(unit));
+    const anchor = visible[0];
+    // Still tickers can't absorb a shift, so their visible run stays first.
+    const at = !anchor || !animation ? 0 : others.filter((unit) => ideal.indexOf(unit) < ideal.indexOf(anchor)).length;
+    const final = [...others.slice(0, at), ...visible, ...others.slice(at)];
+
+    set.replaceChildren(...final.flatMap((unit) => unit.nodes), ...fill);
+
+    const anchorLeft = anchor
+      ? anchor.nodes[0].getBoundingClientRect().left - set.getBoundingClientRect().left
+      : 0;
+    const shift = anchor ? anchorLeft - anchor.left : 0;
 
     // The duplicate set must match for the loop to stay seamless.
     scroll.querySelectorAll("[data-ticker-set]").forEach((other) => {
@@ -320,10 +450,9 @@ const slackColumns = getSlackColumns()
     });
 
     const width = set.offsetWidth;
-    const currentTime = animation?.currentTime;
     scroll.style.animationDuration = width / PX_PER_SECOND + "s";
     scroll.style.setProperty("--set-width", "-" + width + "px");
-    if (animation) animation.currentTime = currentTime ?? 0;
+    if (animation) animation.currentTime = ((offset + shift) / PX_PER_SECOND) * 1000;
   }
 
   function fetchJson<T>(url: string): Promise<T[]> {
@@ -352,11 +481,14 @@ const slackColumns = getSlackColumns()
       );
     }
 
-    for (const source of FIGURE_SOURCES) {
-      fetchJson<TickerFigure>(`/api/ticker-figures/${source}.json`).then(
-        (figures) => figures.length > 0 && insertArrivals({ kind: "figures", figures }),
-      );
-    }
+    const startedAt = performance.now();
+    Promise.all(
+      FIGURE_SOURCES.map((source, index) =>
+        fetchJson<TickerFigure>(`/api/ticker-figures/${source}.json`).then((figures) => {
+          if (figures.length > 0) insertArrivals({ kind: "figures", source: index, figures });
+        }),
+      ),
+    ).then(() => recordFiguresLatency(performance.now() - startedAt));
   }
 
   function initializeAllTickers() {
