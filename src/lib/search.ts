@@ -93,7 +93,7 @@ export type SearchIndex = {
   documents: SearchDocument[];
 };
 
-function stripSlackMrkdwn(text: string): string {
+export function stripSlackMrkdwn(text: string): string {
   return text
     .replace(/<@[UW][A-Z0-9]+>/g, "") // user mentions
     .replace(/<#[A-Z0-9]+\|([^>]+)>/g, "$1") // channel mentions with label

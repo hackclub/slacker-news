@@ -27,6 +27,8 @@ export type IndigestMessage = {
   userId: string;
   userName: string;
   text: string;
+  // text as Slack mrkdwn, formatting kept. Missing on older messages.
+  formattedText?: string | null;
   timestamp: string;
   metadata?: Record<string, unknown> | string;
 };

@@ -3,7 +3,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { getSiteConfig } from "../lib/content";
 import { getMarkdownColumnArticles } from "../lib/indigest";
 import SlackMention from "../components/SlackMention.astro";
-import SlackRichText from "../components/SlackRichText.astro";
+import SlackMrkdwnBody from "../components/SlackMrkdwnBody.astro";
+import SubmitFollowUp from "../components/SubmitFollowUp.astro";
 
 // Articles published from Slack into the markdown columns. Markdown posts are
 // prerendered by [...slug].astro, which Astro tries first, so only paths it
@@ -41,7 +42,7 @@ const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[
 ---
 
 <BaseLayout
-  title={`${article.title} | Slacker News`}
+  title={article.title}
   siteTitle={site.title}
   siteDescription={site.description}
   canonicalPath={article.url}
@@ -72,9 +73,11 @@ const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[
       <hr class="story-rule" />
     </header>
 
-    <div class="story-body slack-story-body">
-      <SlackRichText text={message.text} />
+    <div class="story-body">
+      <SlackMrkdwnBody text={message.formattedText || message.text} />
     </div>
+
+    <SubmitFollowUp />
 
     <footer class="story-footer">
       <a href="/">&larr; Back to front page</a>
