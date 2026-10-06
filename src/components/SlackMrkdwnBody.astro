@@ -1,0 +1,37 @@
+---
+import SlackRichText from "./SlackRichText.astro";
+import { decodeSlackEntities, parseSlackBlocks, type SlackBlock } from "../lib/slack-rich-text";
+
+// Renders a whole Slack message as an article body: paragraphs, lists,
+// quotes and code blocks, with SlackRichText for the text inside them.
+interface Props {
+  text?: string;
+  blocks?: SlackBlock[];
+}
+
+const { text = "", blocks = parseSlackBlocks(text) } = Astro.props;
+---
+
+{blocks.map((block) => (
+  block.type === "paragraph" ? (
+    <p><SlackRichText text={block.text} /></p>
+  ) : block.type === "quote" ? (
+    <blockquote>
+      {block.lines.map((line) => <p><SlackRichText text={line} /></p>)}
+    </blockquote>
+  ) : block.type === "code" ? (
+    <pre><code>{decodeSlackEntities(block.text)}</code></pre>
+  ) : block.ordered ? (
+    <ol start={block.start}>
+      {block.items.map((item) => (
+        <li><SlackRichText text={item.text} />{item.children.length > 0 && <Astro.self blocks={item.children} />}</li>
+      ))}
+    </ol>
+  ) : (
+    <ul>
+      {block.items.map((item) => (
+        <li><SlackRichText text={item.text} />{item.children.length > 0 && <Astro.self blocks={item.children} />}</li>
+      ))}
+    </ul>
+  )
+))}

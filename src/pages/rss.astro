@@ -41,8 +41,14 @@ const articleOptions: FeedOption[] = [
   { id: "essays", label: "Essays", membersOnly: false, default: true },
   { id: "changelogs", label: "Changelogs", membersOnly: false, default: true },
 ];
+// Protected articles from Slack land in the article categories above.
+const protectedArticleOptions: FeedOption[] = slackColumns.some(
+  (column) => column.rss && column.markdownColumns && column.authRequired,
+)
+  ? [{ id: "protected", label: "Protected articles", membersOnly: true, default: false }]
+  : [];
 const slackOptions: FeedOption[] = slackColumns
-  .filter((column) => column.rss)
+  .filter((column) => column.rss && !column.markdownColumns)
   .map((column) => ({
     id: `slack-${column.column}`,
     label: column.title,
@@ -50,7 +56,7 @@ const slackOptions: FeedOption[] = slackColumns
     membersOnly: Boolean(column.authRequired),
     default: false,
   }));
-const allOptions = [...articleOptions, ...slackOptions];
+const allOptions = [...articleOptions, ...protectedArticleOptions, ...slackOptions];
 
 // Slack ID when the session has one, else the account email; either names
 // the reader to Indigest so their link can be rotated or revoked later.
@@ -236,16 +242,21 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
 
         <fieldset class="rss-group">
           <legend class="section-label">Articles</legend>
-          {articleOptions.map((option) => (
-            <label class="rss-option">
+          {[...articleOptions, ...protectedArticleOptions].map((option) => (
+            <label class:list={["rss-option", !usable(option) && "rss-option--locked"]}>
               <input
                 type="checkbox"
                 name="columns"
                 value={option.id}
-                checked={selected.has(option.id)}
+                checked={usable(option) && selected.has(option.id)}
+                disabled={!usable(option)}
+                data-members-only={option.membersOnly ? "" : undefined}
                 data-default={option.default ? "" : undefined}
               />
-              <span>{option.label}</span>
+              <span>
+                {option.label}
+                {option.membersOnly && <span class="rss-detail"> · members only</span>}
+              </span>
             </label>
           ))}
         </fieldset>

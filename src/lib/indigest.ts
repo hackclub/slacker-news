@@ -15,6 +15,10 @@ export type SlackColumnConfig = {
   subtitle?: string;
   rss?: boolean;
   noun?: string;
+  // Messages are articles for the site's markdown columns (opinion, news,
+  // essays). Each message names its column, and may name an author and a
+  // publish date, in its metadata.
+  markdownColumns?: boolean;
 };
 
 export type IndigestMessage = {
@@ -23,6 +27,8 @@ export type IndigestMessage = {
   userId: string;
   userName: string;
   text: string;
+  // text as Slack mrkdwn, formatting kept. Missing on older messages.
+  formattedText?: string | null;
   timestamp: string;
   metadata?: Record<string, unknown> | string;
 };
@@ -291,25 +297,183 @@ export async function getSlackColumnData(
   }
 }
 
+function parseMetadata(
+  metadata: IndigestMessage["metadata"],
+): Record<string, unknown> | undefined {
+  if (metadata && typeof metadata === "object") return metadata;
+  if (typeof metadata !== "string") return undefined;
+
+  try {
+    const value = JSON.parse(metadata);
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function metadataText(value: unknown): string | undefined {
+  if (typeof value === "string") return value.trim() || undefined;
+  if (value !== undefined && value !== null) return String(value);
+  return undefined;
+}
+
 export function firstMetadataValue(
   metadata: IndigestMessage["metadata"],
 ): string | undefined {
-  let parsed: Record<string, unknown> | undefined;
+  const parsed = parseMetadata(metadata);
+  return metadataText(parsed ? Object.values(parsed)[0] : undefined);
+}
 
-  if (typeof metadata === "string") {
-    try {
-      const value = JSON.parse(metadata);
-      if (value && typeof value === "object" && !Array.isArray(value))
-        parsed = value;
-    } catch {
-      return undefined;
-    }
-  } else if (metadata && typeof metadata === "object") {
-    parsed = metadata;
+// Matches "publishdate", "publish_date", "Publish Date" and so on.
+const normalizeFieldName = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+function metadataField(
+  metadata: IndigestMessage["metadata"],
+  name: string,
+): string | undefined {
+  const parsed = parseMetadata(metadata);
+  if (!parsed) return undefined;
+
+  const wanted = normalizeFieldName(name);
+  const entry = Object.entries(parsed).find(
+    ([key]) => normalizeFieldName(key) === wanted,
+  );
+  return metadataText(entry?.[1]);
+}
+
+function messageDate(message: IndigestMessage): Date {
+  const parsed = new Date(message.timestamp);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+
+  // Epoch seconds in the timestamp, else the Slack ts, which is always one.
+  for (const value of [message.timestamp, message.slackTs]) {
+    const seconds = Number(value);
+    if (value && Number.isFinite(seconds)) return new Date(seconds * 1000);
+  }
+  return new Date(NaN);
+}
+
+// The site's markdown columns, which integrations with markdownColumns can
+// publish into.
+export const MARKDOWN_COLUMNS = ["news", "opinion", "essays"];
+
+export type SlackArticle = {
+  title: string;
+  // The site column the message belongs in.
+  column: string;
+  url: string;
+  // Set only when the metadata names an author; otherwise the poster is the
+  // author.
+  author?: string;
+  date: Date;
+  // False when the publish date names a day but no time.
+  hasTime: boolean;
+};
+
+// Accepts what Slack's date pickers produce: a day ("2026-10-06") or epoch
+// seconds, as well as any string Date understands. A bare day is read at noon
+// UTC so it shows as the same day in every US timezone.
+function parsePublishDate(
+  value: string | undefined,
+): { date: Date; hasTime: boolean } | undefined {
+  if (!value) return undefined;
+
+  let parsed: { date: Date; hasTime: boolean };
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    parsed = { date: new Date(`${value}T12:00:00Z`), hasTime: false };
+  } else if (/^\d+$/.test(value)) {
+    parsed = { date: new Date(Number(value) * 1000), hasTime: true };
+  } else {
+    parsed = { date: new Date(value), hasTime: true };
+  }
+  return Number.isNaN(parsed.date.getTime()) ? undefined : parsed;
+}
+
+function slugify(title: string): string {
+  return title
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// Reads a message as an article. Integrations with markdown columns take the
+// title and column from the message metadata, and skip messages without
+// them. They also take the slug, author and publish date from it when given,
+// and otherwise use the title, who posted the message and when.
+export function getSlackArticle(
+  message: IndigestMessage,
+  column: SlackColumnConfig,
+): SlackArticle | undefined {
+  if (!column.markdownColumns) {
+    return {
+      title: firstMetadataValue(message.metadata) ?? column.title,
+      column: column.column,
+      url: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`,
+      date: messageDate(message),
+      hasTime: true,
+    };
   }
 
-  const value = parsed ? Object.values(parsed)[0] : undefined;
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (value !== undefined && value !== null) return String(value);
-  return undefined;
+  const title = metadataField(message.metadata, "title");
+  const articleColumn = metadataField(
+    message.metadata,
+    "column",
+  )?.toLowerCase();
+  if (!title || !articleColumn || !MARKDOWN_COLUMNS.includes(articleColumn)) {
+    return undefined;
+  }
+
+  // A given slug is cleaned up the same way as one made from the title.
+  const slug =
+    slugify(metadataField(message.metadata, "slug") ?? "") ||
+    slugify(title) ||
+    message.slackTs.replace(".", "-");
+  return {
+    title,
+    column: articleColumn,
+    url: `/${articleColumn}/${slug}/`,
+    author: metadataField(message.metadata, "author"),
+    ...(parsePublishDate(metadataField(message.metadata, "publishdate")) ?? {
+      date: messageDate(message),
+      hasTime: true,
+    }),
+  };
+}
+
+export type MarkdownColumnArticle = {
+  integration: SlackColumnConfig;
+  message: IndigestMessage;
+  article: SlackArticle;
+};
+
+// Every article from integrations with markdown columns. Protected ones are
+// left out unless includeProtected is set.
+export async function getMarkdownColumnArticles(
+  includeProtected: boolean,
+): Promise<MarkdownColumnArticle[]> {
+  const integrations = configuredColumns.filter(
+    (column) =>
+      column.markdownColumns && (!column.authRequired || includeProtected),
+  );
+  const loaded = await Promise.all(
+    integrations.map(async (integration) => ({
+      integration,
+      messages: await getIndigestMessages(
+        integration.channelId ?? integration.column,
+        integration.limit,
+      ),
+    })),
+  );
+
+  return loaded.flatMap(({ integration, messages }) =>
+    messages.flatMap((message) => {
+      const article = getSlackArticle(message, integration);
+      return article ? [{ integration, message, article }] : [];
+    }),
+  );
 }

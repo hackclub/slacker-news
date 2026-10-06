@@ -24,14 +24,15 @@
     "limit": 1000
   },
   {
-    "column": "opinion",
+    "column": "protected",
     "channelId": "C0BQ3M5QRQQ",
-    "title": "Protected Opinions",
+    "title": "Protected",
     "homepage": true,
     "homepageMessagesPerRow": 4,
     "homepageLimit": 12,
     "showMetadata": false,
     "authRequired": true,
+    "markdownColumns": true,
     "rss": true,
     "limit": 1000
   },

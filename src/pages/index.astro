@@ -15,6 +15,8 @@ import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
 
 import ColumnFeedCard from "../components/ColumnFeedCard.astro";
 import { getColumnFeedItems } from "../lib/column-feed";
+import { stripSlackMrkdwn } from "../lib/search";
+import { parseSlackBlocks } from "../lib/slack-rich-text";
 
 export const prerender = false;
 
@@ -28,7 +30,34 @@ const longChangelogs = allChangelogs.filter((e) => e.kind === "long");
 
 const allNews = posts.filter((post) => post.category === "news");
 
+const [opinionItems, newsItems, essayItems] = await Promise.all([
+  getColumnFeedItems("opinion", Boolean(Astro.locals.user)),
+  getColumnFeedItems("news", Boolean(Astro.locals.user)),
+  getColumnFeedItems("essays", Boolean(Astro.locals.user)),
+]);
+
+// News articles published from Slack can lead too. Their slug matches the
+// markdown posts' form ("news/<slug>"), so headlineOverride can name them.
+const slackNewsCandidates = newsItems.flatMap((item) =>
+  item.kind === "slack"
+    ? [{
+        slug: item.article.url.replace(/^\/|\/$/g, ""),
+        url: item.article.url,
+        title: item.article.title,
+        excerpt: "",
+        // Same blocks as the article page, so quotes (including a leading
+        // italic note) stay out of the excerpt, as they do for posts.
+        paragraphs: parseSlackBlocks(item.message.formattedText || item.message.text)
+          .flatMap((block) => (block.type === "paragraph" ? [stripSlackMrkdwn(block.text)] : []))
+          .filter(Boolean),
+        date: item.date,
+        leadingImage: undefined,
+      }]
+    : [],
+);
+
 const allCandidates = [
+  ...slackNewsCandidates,
   ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
   ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -56,12 +85,6 @@ const headlineExcerpts = (() => {
 })();
 const headlineExcerptText = headlineExcerpts.join("\n\n");
 
-const [opinionItems, newsItems, essayItems] = await Promise.all([
-  getColumnFeedItems("opinion", Boolean(Astro.locals.user)),
-  getColumnFeedItems("news", Boolean(Astro.locals.user)),
-  getColumnFeedItems("essays", Boolean(Astro.locals.user)),
-]);
-
 const displayOpinion = opinionItems.slice(0, 3);
 
 function changelogToPostLike(changelog: LongChangelogEntry) {
@@ -82,7 +105,11 @@ function changelogToPostLike(changelog: LongChangelogEntry) {
 const longChangelogItems = longChangelogs.map((c) => changelogToPostLike(c as LongChangelogEntry));
 
 const combinedNewsAndChangelogs = [...newsItems, ...longChangelogItems]
-  .filter((item) => item.kind !== "post" || item.post.slug !== headline?.slug)
+  .filter((item) =>
+    item.kind === "post"
+      ? item.post.slug !== headline?.slug
+      : item.article.url !== headline?.url
+  )
   .sort((a, b) => b.date.getTime() - a.date.getTime())
   .slice(0, 8);
 
@@ -92,8 +119,13 @@ const displayEssays = essayItems.slice(0, 4);
 
 const recentChangelog = allChangelogs.slice(0, 3);
 const acknowledgements = await getAcknowledgements();
+// Markdown-column integrations show inside the opinion, news and essays
+// sections instead of a row of their own.
 const homepageSlackColumns = getSlackColumns().filter(
-  (column) => column.homepage && (!column.authRequired || Astro.locals.user)
+  (column) =>
+    column.homepage &&
+    !column.markdownColumns &&
+    (!column.authRequired || Astro.locals.user)
 );
 
 function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
