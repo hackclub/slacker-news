@@ -24,7 +24,9 @@ export type SlackBlock =
 
 export type SlackListItem = { text: string; children: SlackBlock[] };
 
-const listLine = /^( *)(•|◦|▪︎?|-|\d+\.) (.*)$/;
+// Numbered items take one or two digits, so a line opening with a year
+// ("2026. What a year") stays a paragraph.
+const listLine = /^( *)(•|◦|▪︎?|-|\d{1,2}\.) (.*)$/;
 
 // Splits a list's lines into items, nesting deeper-indented lines (four
 // spaces a level, as Indigest writes them) under the item above.

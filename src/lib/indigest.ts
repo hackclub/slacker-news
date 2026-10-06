@@ -348,10 +348,12 @@ function messageDate(message: IndigestMessage): Date {
   const parsed = new Date(message.timestamp);
   if (!Number.isNaN(parsed.getTime())) return parsed;
 
-  const timestamp = Number(message.timestamp || message.slackTs);
-  return Number.isFinite(timestamp)
-    ? new Date(timestamp * 1000)
-    : new Date(NaN);
+  // Epoch seconds in the timestamp, else the Slack ts, which is always one.
+  for (const value of [message.timestamp, message.slackTs]) {
+    const seconds = Number(value);
+    if (value && Number.isFinite(seconds)) return new Date(seconds * 1000);
+  }
+  return new Date(NaN);
 }
 
 // The site's markdown columns, which integrations with markdownColumns can

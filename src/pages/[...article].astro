@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getSiteConfig } from "../lib/content";
-import { getMarkdownColumnArticles } from "../lib/indigest";
+import { getMarkdownColumnArticles, MARKDOWN_COLUMNS } from "../lib/indigest";
 import SlackMention from "../components/SlackMention.astro";
 import SlackMrkdwnBody from "../components/SlackMrkdwnBody.astro";
 import SubmitFollowUp from "../components/SubmitFollowUp.astro";
@@ -12,9 +12,15 @@ import SubmitFollowUp from "../components/SubmitFollowUp.astro";
 export const prerender = false;
 
 const path = `/${Astro.params.article ?? ""}/`;
-const found = (await getMarkdownColumnArticles(true)).find(
-  ({ article }) => article.url === path,
-);
+// Every unmatched path lands here, so only ones shaped like an article
+// (/<markdown column>/<slug>/) are worth asking Indigest about.
+const segments = (Astro.params.article ?? "").split("/").filter(Boolean);
+const found =
+  segments.length === 2 && MARKDOWN_COLUMNS.includes(segments[0]!)
+    ? (await getMarkdownColumnArticles(true)).find(
+        ({ article }) => article.url === path,
+      )
+    : undefined;
 
 if (!found) {
   Astro.response.headers.set("Cache-Control", "no-store");

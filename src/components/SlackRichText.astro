@@ -7,9 +7,10 @@ interface Props {
 }
 
 const { text } = Astro.props;
-// Styled spans treat <...> as one unit, so a link inside them can carry
+// Triple-backtick blocks come first so their fences never pair up as inline
+// code. Styled spans treat <...> as one unit, so a link inside them can carry
 // markers (like the _ in a Wikipedia URL) without ending the span.
-const tokenPattern = /(`[^`\n]+`|\*(?:<[^>\n]*>|[^*\n])+?\*|(?<!\w)_(?:<[^>\n]*>|[^_\n])+?_(?!\w)|(?<!\w)~(?:<[^>\n]*>|[^~\n])+?~(?!\w)|<https?:\/\/[^>|\s]+(?:\|[^>]*)?>|<@[^>]+>|<![^>]+>|<#.+?>|#[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z0-9_+-]+:|\b(?<![@\w.<&!#])(?:https?:\/\/)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d{1,5})?(?:[/?#][^\s<>'"]*)?(?![a-z0-9-]))/gi;
+const tokenPattern = /(```[\s\S]*?```|`[^`\n]+`|\*(?:<[^>\n]*>|[^*\n])+?\*|(?<!\w)_(?:<[^>\n]*>|[^_\n])+?_(?!\w)|(?<!\w)~(?:<[^>\n]*>|[^~\n])+?~(?!\w)|<https?:\/\/[^>|\s]+(?:\|[^>]*)?>|<@[^>]+>|<![^>]+>|<#.+?>|#[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z0-9_+-]+:|\b(?<![@\w.<&!#])(?:https?:\/\/)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d{1,5})?(?:[/?#][^\s<>'"]*)?(?![a-z0-9-]))/gi;
 
 function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
@@ -20,7 +21,11 @@ function tokenize(input: string): Token[] {
     const index = match.index ?? 0;
     if (index > lastIndex) tokens.push({ type: "text", value: input.slice(lastIndex, index) });
 
-    if (raw.startsWith("`") && raw.endsWith("`")) {
+    if (raw.startsWith("```") && raw.endsWith("```") && raw.length >= 6) {
+      // Code blocks are not rendered here (cards, excerpts); their text
+      // reads as plain text, without fences.
+      tokens.push({ type: "text", value: raw.slice(3, -3) });
+    } else if (raw.startsWith("`") && raw.endsWith("`")) {
       tokens.push({ type: "code", value: decodeSlackEntities(raw.slice(1, -1)) });
     } else if (raw.startsWith("~") && raw.endsWith("~")) {
       tokens.push({ type: "strike", children: tokenize(raw.slice(1, -1)) });

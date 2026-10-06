@@ -116,7 +116,17 @@ function revokedTokenNotice(context, revokedAt) {
 // Articles from integrations with markdown columns, in the categories the
 // feed wants.
 async function getMarkdownColumnItems(wants, tokenAccess) {
-  const articles = await getMarkdownColumnArticles(true);
+  // Protected messages are loaded only when the feed opted in and its token
+  // can read at least one protected integration.
+  const includeProtected =
+    wants("protected", false) &&
+    getSlackColumns().some(
+      (column) =>
+        column.markdownColumns &&
+        column.authRequired &&
+        tokenAccess.canRead(column),
+    );
+  const articles = await getMarkdownColumnArticles(includeProtected);
 
   return articles
     .filter(
