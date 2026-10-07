@@ -101,6 +101,7 @@ export function stripSlackMrkdwn(text: string): string {
     .replace(/<(https?:\/\/[^|>]+)\|([^>]+)>/g, "$2") // links with label
     .replace(/<(https?:\/\/[^>]+)>/g, "$1") // plain links
     .replace(/:([a-z0-9_+-]+):/g, "") // emoji
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // markdown bold
     .replace(/\*([^*]+)\*/g, "$1") // bold
     .replace(/_([^_]+)_/g, "$1") // italic
     .replace(/~([^~]+)~/g, "$1") // strikethrough

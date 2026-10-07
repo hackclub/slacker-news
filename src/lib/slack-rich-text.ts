@@ -20,7 +20,16 @@ export type SlackBlock =
   | { type: "paragraph"; text: string }
   | { type: "quote"; lines: string[] }
   | { type: "code"; text: string }
+  | { type: "heading"; level: 2 | 3 | 4; text: string }
+  | {
+      type: "table";
+      align: SlackTableAlign[];
+      header: string[];
+      rows: string[][];
+    }
   | { type: "list"; ordered: boolean; start: number; items: SlackListItem[] };
+
+export type SlackTableAlign = "left" | "center" | "right" | undefined;
 
 export type SlackListItem = { text: string; children: SlackBlock[] };
 
@@ -82,6 +91,41 @@ function quoteLeadingItalics(blocks: SlackBlock[]): SlackBlock[] {
 
 // Reads Slack mrkdwn into blocks. Every line outside a list, quote or code
 // block is its own paragraph, as each line shows on its own in Slack.
+// Splits a markdown table row into cells. Pipes inside <...> (Slack links
+// write <url|label>) belong to the link, not the table.
+function tableCells(line: string): string[] {
+  const cells: string[] = [];
+  let cell = "";
+  let inLink = false;
+  for (const char of line.trim().replace(/^\|/, "").replace(/\|$/, "")) {
+    if (char === "<") inLink = true;
+    else if (char === ">") inLink = false;
+    if (char === "|" && !inLink) {
+      cells.push(cell.trim());
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  cells.push(cell.trim());
+  return cells;
+}
+
+const tableRow = /^\s*\|.*\|\s*$/;
+const tableDivider = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
+
+function columnAlign(divider: string): SlackTableAlign {
+  const left = divider.startsWith(":");
+  const right = divider.endsWith(":");
+  if (left && right) return "center";
+  if (right) return "right";
+  if (left) return "left";
+  return undefined;
+}
+
+// Markdown headings: "#" is the largest, below the article's own title.
+const headingLine = /^(#{1,3})\s+(.+)$/;
+
 export function parseSlackBlocks(input: string): SlackBlock[] {
   const blocks: SlackBlock[] = [];
   const segments = input.split(/```([\s\S]*?)```/);
@@ -102,6 +146,27 @@ export function parseSlackBlocks(input: string): SlackBlock[] {
           i += 1;
         }
         blocks.push({ type: "quote", lines: quoted });
+      } else if (tableRow.test(line) && tableDivider.test(lines[i + 1] ?? "")) {
+        // A markdown table: a header row, a |---|:--:| divider, then rows.
+        const header = tableCells(line);
+        const align = tableCells(lines[i + 1]!).map(columnAlign);
+        const rows: string[][] = [];
+        i += 2;
+        while (i < lines.length && tableRow.test(lines[i]!)) {
+          const cells = tableCells(lines[i]!);
+          // Short rows are padded and long ones trimmed to the header.
+          rows.push(header.map((_, column) => cells[column] ?? ""));
+          i += 1;
+        }
+        blocks.push({ type: "table", align, header, rows });
+      } else if (headingLine.test(line.trim())) {
+        const [, hashes, text] = line.trim().match(headingLine)!;
+        blocks.push({
+          type: "heading",
+          level: (hashes!.length + 1) as 2 | 3 | 4,
+          text: text!.replace(/\s+#+\s*$/, ""),
+        });
+        i += 1;
       } else if (listLine.test(line)) {
         // A list ends where a line at its own indent switches between
         // bullets and numbers.

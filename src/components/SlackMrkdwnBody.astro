@@ -21,6 +21,29 @@ const { text = "", blocks = parseSlackBlocks(text) } = Astro.props;
     </blockquote>
   ) : block.type === "code" ? (
     <pre><code>{decodeSlackEntities(block.text)}</code></pre>
+  ) : block.type === "heading" ? (
+    block.level === 2 ? <h2><SlackRichText text={block.text} /></h2>
+      : block.level === 3 ? <h3><SlackRichText text={block.text} /></h3>
+      : <h4><SlackRichText text={block.text} /></h4>
+  ) : block.type === "table" ? (
+    <table>
+      <thead>
+        <tr>
+          {block.header.map((cell, column) => (
+            <th style={block.align[column] ? `text-align: ${block.align[column]}` : undefined}><SlackRichText text={cell} /></th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {block.rows.map((row) => (
+          <tr>
+            {row.map((cell, column) => (
+              <td style={block.align[column] ? `text-align: ${block.align[column]}` : undefined}><SlackRichText text={cell} /></td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   ) : block.ordered ? (
     <ol start={block.start}>
       {block.items.map((item) => (
