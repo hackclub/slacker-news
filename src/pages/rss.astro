@@ -59,12 +59,12 @@ const slackOptions: FeedOption[] = slackColumns
 const allOptions = [...articleOptions, ...protectedArticleOptions, ...slackOptions];
 
 // Slack ID when the session has one, else the account email; either names
-// the reader to Indigest so their link can be rotated or revoked later.
+// the reader to Indigest so all their links can be revoked later.
 const subject = user ? (user.slackId ?? user.email) : undefined;
 
 // Actions POST, then redirect to a plain GET (post/redirect/get), so a
-// refresh never resubmits: a resubmitted "create" would mint a new link and
-// revoke the one just shown. The new token rides along in a short-lived
+// refresh never resubmits: a resubmitted "create" would mint another link
+// instead of showing the one just made. The new token rides along in a short-lived
 // HttpOnly cookie, so refreshing shows the same link; messages are one-shot.
 const TOKEN_COOKIE = "sn_rss_token";
 const FLASH_COOKIE = "sn_rss_flash";
@@ -133,7 +133,7 @@ if (Astro.request.method === "POST") {
     try {
       await revokeFeedTokens(subject);
       Astro.cookies.delete(TOKEN_COOKIE, cookieOptions);
-      flash.notice = "Your private link is revoked. Readers using it will stop getting members-only posts within a few minutes.";
+      flash.notice = "All your private links are revoked. Readers using them will stop getting members-only posts within a few minutes.";
     } catch (cause) {
       console.error("Unable to revoke feed tokens", cause);
       flash.error = "Could not revoke your private link right now. Try again in a minute.";
@@ -333,8 +333,8 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
           </div>
           <p class="rss-hint" id="rss-private-hint" hidden={!(wantsMembersOnly && token)}>
             This link is tied to your Hack Club account, so do not share it. Copy
-            it now: it disappears from this page in ten minutes, and creating a
-            new one revokes it.
+            it now: it disappears from this page in ten minutes. Making another
+            link leaves this one working.
           </p>
         </div>
 
@@ -353,7 +353,7 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
           <div class="section-label">Private links</div>
           <form method="post" class="rss-actions">
             <button class="rss-button rss-button--outline" type="submit" name="action" value="revoke">
-              Revoke my link
+              Revoke all my links
             </button>
           </form>
 

@@ -104,8 +104,8 @@ export async function revokeFeedToken(token: string): Promise<boolean> {
 }
 
 /**
- * Mint a private feed token for one reader. Minting again revokes the
- * reader's previous token, so this doubles as rotation.
+ * Mint a private feed token for one reader. A reader may hold any number;
+ * minting another leaves the earlier ones working.
  */
 export async function mintFeedToken(
   subject: string,
