@@ -56,7 +56,8 @@ async function getTokenAccess(context) {
 // id and a token that can read them. Links only name departures from the
 // defaults, so changing a default later reaches existing subscribers.
 // ?includeOnly opts out of that: the feed is exactly ?include=, and defaults
-// and ?exclude= are ignored.
+// and ?exclude= are ignored. ?noKeyRevocationAlerts leaves out the weekly
+// "Your key is revoked" item a revoked token otherwise gets.
 function listParam(context, name) {
   return new Set(
     (context.url.searchParams.get(name) ?? "")
@@ -240,7 +241,10 @@ export async function GET(context) {
     getSlackItems(getFeedSlackColumns(wants, tokenAccess)),
     getMarkdownColumnItems(wants, tokenAccess),
   ]);
-  if ("revokedAt" in tokenAccess) {
+  if (
+    "revokedAt" in tokenAccess &&
+    !isFlagSet(context, "noKeyRevocationAlerts")
+  ) {
     slackItems.push(revokedTokenNotice(context, tokenAccess.revokedAt));
   }
 
