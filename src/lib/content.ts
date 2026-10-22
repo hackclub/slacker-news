@@ -273,7 +273,11 @@ function toExcerpt(entry: {
 }): string {
   const explicitExcerpt = entry.data.excerpt;
   if (explicitExcerpt) {
-    return stripMarkdown(explicitExcerpt);
+    return explicitExcerpt
+      .split(/\n{2,}/)
+      .map((p) => stripMarkdown(p))
+      .filter(Boolean)
+      .join("\n\n");
   }
 
   const blocks = extractTextBlocks(entry.body);
