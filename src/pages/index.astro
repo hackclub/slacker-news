@@ -58,7 +58,7 @@ const slackNewsCandidates = newsItems.flatMap((item) =>
 
 const allCandidates = [
   ...slackNewsCandidates,
-  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
+  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, frontPagePreview: p.frontPagePreview, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
   ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -67,7 +67,7 @@ const headline = site.headlineOverride
   : allCandidates[0];
 const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
-  if (headline?.excerpt) return headline.excerpt.split(/\n{2,}/).map((s: string) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
+  if (headline?.frontPagePreview) return headline.frontPagePreview;
   const paras = headline?.paragraphs ?? [];
   const filtered = paras.filter((p) => {
     const s = p.replace(/\s+/g, " ").trim();

@@ -25,6 +25,7 @@ export type Post = {
   category?: string;
   date: Date;
   excerpt: string;
+  frontPagePreview?: string[];
   paragraphs: string[];
   readingTime: number;
   leadingImage?: {
@@ -273,11 +274,7 @@ function toExcerpt(entry: {
 }): string {
   const explicitExcerpt = entry.data.excerpt;
   if (explicitExcerpt) {
-    return explicitExcerpt
-      .split(/\n{2,}/)
-      .map((p) => stripMarkdown(p))
-      .filter(Boolean)
-      .join("\n\n");
+    return stripMarkdown(explicitExcerpt);
   }
 
   const blocks = extractTextBlocks(entry.body);
@@ -337,6 +334,9 @@ export async function getPosts(): Promise<Post[]> {
         category,
         date: entry.data.date,
         excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
+        frontPagePreview: entry.data.frontPagePreview
+          ? entry.data.frontPagePreview.split(/\n{2,}/).map((p: string) => stripMarkdown(p)).filter(Boolean)
+          : undefined,
         paragraphs,
         readingTime: Math.max(1, Math.ceil(wordCount / 200)),
         leadingImage,
