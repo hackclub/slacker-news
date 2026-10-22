@@ -1,0 +1,378 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import {
+  getPosts,
+  getChangelogEntries,
+  getSiteConfig,
+  type LongChangelogEntry,
+} from "../lib/content";
+import {
+  getSlackColumns,
+  getIndigestMessages,
+  firstMetadataValue,
+  type IndigestMessage,
+  type SlackColumnConfig,
+} from "../lib/indigest";
+
+export const prerender = true;
+
+const site = await getSiteConfig();
+const posts = await getPosts();
+const allChangelogs = await getChangelogEntries();
+const longChangelogs = allChangelogs.filter((e) => e.kind === "long");
+
+const slackColumns = getSlackColumns();
+const slackMessagesAll = await Promise.all(
+  slackColumns.map(async (col) => ({
+    column: col,
+    messages: await getIndigestMessages(col.channelId ?? col.column, col.limit),
+  })),
+);
+
+function slackDate(message: IndigestMessage): Date {
+  const parsed = new Date(message.timestamp);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+  const ts = Number(message.slackTs);
+  return Number.isFinite(ts) ? new Date(ts * 1000) : new Date(0);
+}
+
+function slackTitle(message: IndigestMessage): string {
+  const meta = firstMetadataValue(message.metadata);
+  if (meta) return meta;
+  const plain = message.text.replace(/<[^>]+>/g, "").trim();
+  return plain.length > 0 ? plain.slice(0, 60) : "Message";
+}
+
+const slackArticles = slackMessagesAll.flatMap(({ column, messages }) =>
+  messages.map((m) => ({
+    title: slackTitle(m),
+    url: `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(m.slackTs)}/`,
+    date: slackDate(m),
+    category: `slack-${column.column}`,
+  })),
+);
+
+const articles = [
+  ...posts.map((p) => ({
+    title: p.title,
+    url: p.url,
+    date: p.date,
+    category: p.category ?? "",
+  })),
+  ...longChangelogs.map((c) => ({
+    title: c.title,
+    url: c.url,
+    date: new Date(`${c.date}T00:00:00Z`),
+    category: "changelog",
+  })),
+  ...slackArticles,
+].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+const byMonth = new Map<string, typeof articles>();
+for (const article of articles) {
+  const key = `${article.date.getUTCFullYear()}-${String(article.date.getUTCMonth() + 1).padStart(2, "0")}`;
+  if (!byMonth.has(key)) byMonth.set(key, []);
+  byMonth.get(key)!.push(article);
+}
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+const DAY_NAMES = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+}
+
+function getFirstDayOfWeek(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 1)).getUTCDay();
+}
+
+function truncate(text: string, max: number): string {
+  return text.length > max ? text.slice(0, max - 1) + "\u2026" : text;
+}
+
+const months = [...byMonth.keys()].sort().reverse().map((key) => {
+  const [yearStr, monthStr] = key.split("-");
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10) - 1;
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfWeek(year, month);
+  const totalCells = firstDay + daysInMonth;
+  const rows = Math.ceil(totalCells / 7);
+  const dayMap = new Map<number, typeof articles>();
+  for (const article of byMonth.get(key)!) {
+    const day = article.date.getUTCDate();
+    if (!dayMap.has(day)) dayMap.set(day, []);
+    dayMap.get(day)!.push(article);
+  }
+  return { key, year, month, daysInMonth, firstDay, rows, dayMap };
+});
+---
+
+<BaseLayout title="Calendar" siteTitle={site.title} siteDescription={site.description}>
+  <div class="calendar-page">
+    <div class="calendar-inner">
+      <div class="section-label">CALENDAR</div>
+      <hr class="section-rule" />
+      <p class="calendar-subtitle">Every day Slacker News published an article.</p>
+
+      <div class="calendar-controls">
+        <label class="calendar-toggle">
+          <input type="checkbox" id="slack-toggle" checked />
+          <span class="calendar-toggle-label">Show Slack columns</span>
+        </label>
+      </div>
+
+      <div class="calendar-months">
+        {months.map(({ key, year, month, daysInMonth, firstDay, rows, dayMap }) => (
+          <div class="calendar-month" id={key}>
+            <h2 class="calendar-month-title">
+              <a href={`#${key}`}>{MONTH_NAMES[month].slice(0, 3)} {year}</a>
+              <span class="calendar-month-count">{dayMap.size}</span>
+            </h2>
+            <div class="calendar-grid" style={`grid-template-rows: repeat(${rows + 1}, 1fr);`}>
+              {DAY_NAMES.map((d) => (
+                <div class="calendar-day-header">{d}</div>
+              ))}
+              {Array.from({ length: firstDay }).map(() => (
+                <div class="calendar-day calendar-day--empty"></div>
+              ))}
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+                const dayArticles = dayMap.get(day);
+                return (
+                  <div class:list={["calendar-day", { "calendar-day--active": dayArticles }]}>
+                    <span class="calendar-day-number">{day}</span>
+                    {dayArticles && (
+                      <div class="calendar-day-articles">
+                        {dayArticles.map((a) => (
+                          <a
+                            href={a.url}
+                            class:list={["calendar-article-link", `cat-${a.category}`]}
+                            title={a.title}
+                            {...a.category.startsWith("slack-") ? { "data-slack": "" } : {}}
+                          >
+                            {truncate(a.title, 28)}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .page-content > .wrapper:has(.calendar-page) {
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .page-content:has(.calendar-page) {
+    padding: 0;
+  }
+</style>
+
+<style>
+  .calendar-page :global(.wrapper) {
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .calendar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+
+  .calendar-subtitle {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+
+  .calendar-months {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .calendar-month-title {
+    font-size: 0.95rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .calendar-month-title a {
+    color: #000;
+    text-decoration: none;
+  }
+
+  .calendar-month-title a:hover {
+    text-decoration: underline;
+  }
+
+  .calendar-month-count {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: #888;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border: 1.5px solid #000;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .calendar-day-header {
+    background: #000;
+    color: #fff;
+    text-align: center;
+    font-size: 0.6rem;
+    font-family: Georgia, serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 0;
+  }
+
+  .calendar-day {
+    aspect-ratio: 1;
+    padding: 3px;
+    border-top: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .calendar-day:nth-child(7n + 1) {
+    border-right: none;
+  }
+
+  .calendar-day--empty {
+    background: #f8f8f5;
+  }
+
+  .calendar-day-number {
+    font-size: 0.6rem;
+    font-family: Georgia, serif;
+    color: #aaa;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .calendar-day--active .calendar-day-number {
+    font-weight: bold;
+    color: #000;
+  }
+
+  .calendar-day-articles {
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .calendar-article-link {
+    display: block;
+    font-size: 0.52rem;
+    line-height: 1.25;
+    color: #1a1a1a;
+    text-decoration: none;
+    padding: 1px 3px;
+    border-radius: 2px;
+    background: #f0f0eb;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .calendar-article-link:hover {
+    background: #ddd;
+    text-decoration: underline;
+  }
+
+  .calendar-article-link.cat-news { border-left: 2px solid #2a7ae2; }
+  .calendar-article-link.cat-opinion { border-left: 2px solid #e2762a; }
+  .calendar-article-link.cat-essays { border-left: 2px solid #2ae27a; }
+  .calendar-article-link.cat-changelog { border-left: 2px solid #999; }
+  .calendar-article-link.cat-slack-classifieds { border-left: 2px solid #7c3aed; }
+  .calendar-article-link.cat-slack-ysws { border-left: 2px solid #06b6d4; }
+  .calendar-article-link.cat-slack-opinion { border-left: 2px solid #e2762a; }
+  .calendar-article-link.cat-slack-ship-of-the-week { border-left: 2px solid #eab308; }
+
+  .calendar-controls {
+    margin-bottom: 20px;
+  }
+
+  .calendar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: Georgia, serif;
+    color: #555;
+    user-select: none;
+  }
+
+  .calendar-toggle input[type="checkbox"] {
+    accent-color: #000;
+    width: 14px;
+    height: 14px;
+  }
+
+  .calendar-article-link[data-slack] {
+    opacity: 1;
+    transition: opacity 0.15s;
+  }
+
+  .calendar-page:not(.show-slack) .calendar-article-link[data-slack] {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .calendar-months {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .calendar-months {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById("slack-toggle") as HTMLInputElement | null;
+  const page = document.querySelector(".calendar-page");
+
+  if (toggle && page) {
+    toggle.addEventListener("change", () => {
+      page.classList.toggle("show-slack", toggle.checked);
+    });
+    page.classList.add("show-slack");
+  }
+</script>
