@@ -67,6 +67,7 @@ const headline = site.headlineOverride
   : allCandidates[0];
 const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
+  if (headline?.excerpt) return [headline.excerpt];
   const paras = headline?.paragraphs ?? [];
   const filtered = paras.filter((p) => {
     const s = p.replace(/\s+/g, " ").trim();
