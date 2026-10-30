@@ -10,7 +10,7 @@ Status: planning. The site side is behind `COMMENTS_CHANNEL_ID` and does nothing
 - **Indigest** ingests thread replies in the comments channel. It stores the card as the parent, extracts the article key (`/news/slug/`, path only) at ingest, and exposes `GET /api/threads?channel=&key=`.
 - **Limits** are a pure function of a user's history: replies on article cards ordered by Slack ts, valid if within the first 3 ever and 2 per Eastern day. Deleted comments still count. The site hides anything over a limit whether or not Slack deletion succeeds.
 - **Enforcement** deletes over-limit replies through the Prometheus API, using a key owned by a #news channel manager. Visibility never depends on that call succeeding.
-- **Site** adds an SSR route `/<column>/<slug>/comments/` (no JS, `Cache-Control: private, no-store`, redirect to login when signed out). Prerendered article pages link to it.
+- **Site** shows the comments on the article page itself, under the "Have something to add to the conversation?" box. Markdown articles stay prerendered: the comments are a deferred server island (`<Comments server:defer />`, one small script fetches it), rendered per request with `Cache-Control: private, no-store`. Logged-out readers see a login link. Slack-sourced articles are already server rendered and include the same component directly.
 
 ## Deletes and edits
 
@@ -25,9 +25,9 @@ All moderation happens in Slack: channel managers delete through Prometheus or t
 ## Failure modes
 
 - Comments are read through one `getComments(key)` that returns `ok` or `unavailable`, so "no comments" is never confused with "could not check".
-- When Indigest is unreachable, times out, rejects the key, or the channel is not in the key's scope, the comments route says comments are unavailable. It responds normally, never with a 500, and the article itself is unaffected.
-- No stale answers: unlike the Slack columns, the comments route does not serve a cached result past its TTL while revalidating, because a stale list could show a comment that has since been deleted.
-- With `COMMENTS_CHANNEL_ID` unset the route returns 404 and the article footer shows no link.
+- When Indigest is unreachable, times out, rejects the key, or the channel is not in the key's scope, the comments section says comments are unavailable. It responds normally, never with a 500, and the article itself is unaffected.
+- No stale answers: unlike the Slack columns, the comments section does not serve a cached result past its TTL while revalidating, because a stale list could show a comment that has since been deleted.
+- With `COMMENTS_CHANNEL_ID` unset the section is not rendered at all.
 - Indigest never marks a comment deleted from a failed or incomplete Slack lookup (`reconcileThreadDeletions`).
 - Existing history is not backfilled: only replies posted after the channel is set up are stored.
 

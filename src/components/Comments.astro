@@ -1,0 +1,138 @@
+---
+import SlackMention from "./SlackMention.astro";
+import SlackMrkdwnBody from "./SlackMrkdwnBody.astro";
+import { getComments } from "../lib/comments";
+import { slackLinkFromMessageId } from "../lib/indigest";
+
+// The comments under an article: replies to its card in the comments channel,
+// shown only to logged-in readers. Always rendered per request, because it
+// depends on who is reading.
+interface Props {
+  // The article's path, such as /news/some-slug/.
+  articleKey: string;
+}
+
+const { articleKey } = Astro.props;
+const user = Astro.locals.user;
+
+// Never let one reader's view be cached for another.
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const result = user ? await getComments(articleKey, user.slackId) : undefined;
+const enabled = Boolean(import.meta.env.COMMENTS_CHANNEL_ID?.trim());
+const replyUrl =
+  result?.status === "ok" && result.card
+    ? slackLinkFromMessageId(result.card.channelId, result.card.slackTs)
+    : undefined;
+
+const formatDate = (timestamp: string) =>
+  new Date(timestamp).toLocaleDateString("en-US", {
+    dateStyle: "medium",
+    timeZone: "America/New_York",
+  });
+---
+
+{
+  enabled && (
+    <section class="comments" id="comments">
+      <h2 class="comments-title">Comments</h2>
+      {!user ? (
+        <p class="comments-note">
+          <a href={`/auth/login?returnTo=${encodeURIComponent(`${articleKey}#comments`)}`}>Log in</a> to read and
+          join the discussion.
+        </p>
+      ) : result?.status === "unavailable" ? (
+        <p class="comments-note">Comments are unavailable right now.</p>
+      ) : result?.status === "ok" && !result.card ? (
+        <p class="comments-note">Comments are not open on this article.</p>
+      ) : result?.status === "ok" ? (
+        <>
+          {result.comments.length === 0 ? (
+            <p class="comments-note">No comments yet.</p>
+          ) : (
+            <ol class="comment-list">
+              {result.comments.map((comment) => (
+                <li class="comment">
+                  <p class="comment-meta">
+                    <SlackMention name={comment.userName} id={comment.userId} />
+                    {" — "}
+                    <time datetime={comment.timestamp}>{formatDate(comment.timestamp)}</time>
+                  </p>
+                  <div class="comment-body">
+                    <SlackMrkdwnBody text={comment.formattedText || comment.text} />
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+          <p class="comments-note">
+            Comments are replies in Slack, on this article's post in the comments channel
+            {replyUrl && (
+              <>
+                {" — "}
+                <a href={replyUrl} target="_blank" rel="noreferrer noopener">
+                  reply in Slack
+                </a>
+              </>
+            )}
+            . Each account gets {result.viewer?.perDay ?? 2} a day and {result.viewer?.total ?? 3} in all.
+            {result.viewer && ` You have used ${result.viewer.used} of ${result.viewer.total}.`}
+          </p>
+        </>
+      ) : null}
+    </section>
+  )
+}
+
+<style>
+  .comments {
+    margin: 2rem 0 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #000;
+  }
+
+  .comments-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .comment-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+
+  .comment {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .comment-meta {
+    margin: 0 0 0.25rem;
+    font-size: 0.85rem;
+  }
+
+  .comment-body :global(p) {
+    margin: 0.25rem 0;
+  }
+
+  .comments-note {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+  }
+
+  .comments a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  html.dark .comments {
+    border-top-color: #fff;
+  }
+
+  html.dark .comment {
+    border-bottom-color: #444;
+  }
+</style>

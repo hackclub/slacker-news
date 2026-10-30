@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import AuthorList from "../components/AuthorList.astro";
 import SubmitFollowUp from "../components/SubmitFollowUp.astro";
+import Comments from "../components/Comments.astro";
 import { formatStoryDate, getPosts, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../lib/content";
 import { render } from "astro:content";
 
@@ -158,6 +159,8 @@ const followUpLinks =
     </div>
 
     <SubmitFollowUp />
+
+    <Comments articleKey={post.url} server:defer />
 
     <footer class="story-footer">
       <a href="/">&larr; Back to front page</a>
