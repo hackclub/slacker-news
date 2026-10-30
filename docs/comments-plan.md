@@ -18,6 +18,19 @@ Status: planning. The site side is behind `COMMENTS_CHANNEL_ID` and does nothing
 - `message_changed` updates the text and sets `editedAt`; the site shows "edited".
 - A `reconcileThread` primitive (also behind `/in rescan`, an API call, and a tiered cron) pages `conversations.replies` to add missed replies, apply edits and tombstone anything Slack no longer returns. It only tombstones after a complete fetch.
 
+## Moderation
+
+All moderation happens in Slack: channel managers delete through Prometheus or the Slack UI, and the resulting `message_deleted` event hides the comment on the site. The site has no reporting or moderation controls of its own.
+
+## Failure modes
+
+- Comments are read through one `getComments(key)` that returns `ok` or `unavailable`, so "no comments" is never confused with "could not check".
+- When Indigest is unreachable, times out, rejects the key, or the channel is not in the key's scope, the comments route says comments are unavailable. It responds normally, never with a 500, and the article itself is unaffected.
+- No stale answers: unlike the Slack columns, the comments route does not serve a cached result past its TTL while revalidating, because a stale list could show a comment that has since been deleted.
+- With `COMMENTS_CHANNEL_ID` unset the route returns 404 and the article footer shows no link.
+- Indigest never marks a comment deleted from a failed or incomplete Slack lookup (`reconcileThreadDeletions`).
+- Existing history is not backfilled: only replies posted after the channel is set up are stored.
+
 ## Reply modes and the queue channel
 
 `replyMode` per channel and per user: `off`, `auto`, `review` (publish, and post a Remove card to the queue channel), `manual` (hold until approved in the queue channel). In manual mode an edit sends a published comment back to pending. Limits are checked first, so over-limit replies never enter the queue.
