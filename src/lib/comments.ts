@@ -11,6 +11,13 @@ export const COMMENT_LIMITS = {
   timeZone: "America/New_York",
 } as const;
 
+// Limits are off unless COMMENT_LIMITS_ENABLED is 1 or true. Without them every
+// reply in a card's thread shows, and nothing is said about allowances.
+export function commentLimitsEnabled(): boolean {
+  const value = import.meta.env.COMMENT_LIMITS_ENABLED?.trim().toLowerCase();
+  return value === "1" || value === "true";
+}
+
 // The channel whose threads hold comments. Unset turns the feature off, so a
 // deployment without it behaves exactly as before.
 export function getCommentsChannelId(): string | undefined {
@@ -69,10 +76,13 @@ export async function getComments(
   );
   url.searchParams.set("channel", channel);
   url.searchParams.set("key", articleKey);
-  url.searchParams.set("perDay", String(COMMENT_LIMITS.perDay));
-  url.searchParams.set("total", String(COMMENT_LIMITS.total));
-  url.searchParams.set("timeZone", COMMENT_LIMITS.timeZone);
-  if (viewerSlackId) url.searchParams.set("viewer", viewerSlackId);
+  // Indigest holds back replies over the limits only when it is given them.
+  if (commentLimitsEnabled()) {
+    url.searchParams.set("perDay", String(COMMENT_LIMITS.perDay));
+    url.searchParams.set("total", String(COMMENT_LIMITS.total));
+    url.searchParams.set("timeZone", COMMENT_LIMITS.timeZone);
+    if (viewerSlackId) url.searchParams.set("viewer", viewerSlackId);
+  }
 
   try {
     const response = await fetch(url, {

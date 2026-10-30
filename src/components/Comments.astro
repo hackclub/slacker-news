@@ -1,7 +1,7 @@
 ---
 import SlackMention from "./SlackMention.astro";
 import SlackMrkdwnBody from "./SlackMrkdwnBody.astro";
-import { getComments } from "../lib/comments";
+import { commentLimitsEnabled, COMMENT_LIMITS, getComments } from "../lib/comments";
 import { slackLinkFromMessageId } from "../lib/indigest";
 
 // The comments under an article: replies to its card in the comments channel,
@@ -81,8 +81,14 @@ const formatDate = (timestamp: string) =>
                 </a>
               </>
             )}
-            . Each account gets {result.viewer?.perDay ?? 2} a day and {result.viewer?.total ?? 3} in all.
-            {result.viewer && ` You have used ${result.viewer.used} of ${result.viewer.total}.`}
+            .
+            {commentLimitsEnabled() && (
+              <>
+                {" "}
+                Each account gets {COMMENT_LIMITS.perDay} a day and {COMMENT_LIMITS.total} in all.
+                {result.viewer && ` You have used ${result.viewer.used} of ${result.viewer.total}.`}
+              </>
+            )}
           </p>
         </>
       ) : null}
