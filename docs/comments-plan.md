@@ -14,7 +14,7 @@ Status: planning. The site side is behind `COMMENTS_CHANNEL_ID` and does nothing
 
 ## Deletes and edits
 
-- `message_deleted` events tombstone a row: the text is purged, the ts and user stay so the limit count is stable.
+- `message_deleted` events set `deleted_at` on the row. The content stays in the database but no query, API or feed returns it; a tombstone query exposes only the ts and user so the limit count is stable.
 - `message_changed` updates the text and sets `editedAt`; the site shows "edited".
 - A `reconcileThread` primitive (also behind `/in rescan`, an API call, and a tiered cron) pages `conversations.replies` to add missed replies, apply edits and tombstone anything Slack no longer returns. It only tombstones after a complete fetch.
 
