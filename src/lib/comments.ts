@@ -25,6 +25,8 @@ export type Comment = {
   text: string;
   formattedText: string | null;
   timestamp: string;
+  // Set when the comment was edited in Slack after it was posted.
+  editedAt?: string;
 };
 
 export type CommentUsage = {

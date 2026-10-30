@@ -57,6 +57,12 @@ const formatDate = (timestamp: string) =>
                     <SlackMention name={comment.userName} id={comment.userId} />
                     {" — "}
                     <time datetime={comment.timestamp}>{formatDate(comment.timestamp)}</time>
+                    {comment.editedAt && (
+                      <span class="comment-edited" title={`Edited ${formatDate(comment.editedAt)}`}>
+                        {" "}
+                        (edited)
+                      </span>
+                    )}
                   </p>
                   <div class="comment-body">
                     <SlackMrkdwnBody text={comment.formattedText || comment.text} />
@@ -112,6 +118,10 @@ const formatDate = (timestamp: string) =>
   .comment-meta {
     margin: 0 0 0.25rem;
     font-size: 0.85rem;
+  }
+
+  .comment-edited {
+    font-style: italic;
   }
 
   .comment-body :global(p) {
