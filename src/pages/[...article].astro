@@ -6,6 +6,7 @@ import SlackMention from "../components/SlackMention.astro";
 import SlackMrkdwnBody from "../components/SlackMrkdwnBody.astro";
 import SubmitFollowUp from "../components/SubmitFollowUp.astro";
 import Comments from "../components/Comments.astro";
+import CommentsHash from "../components/CommentsHash.astro";
 
 // Articles published from Slack into the markdown columns. Markdown posts are
 // prerendered by [...slug].astro, which Astro tries first, so only paths it
@@ -87,6 +88,7 @@ const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[
     <SubmitFollowUp />
 
     <Comments articleKey={article.url} />
+    <CommentsHash />
 
     <footer class="story-footer">
       <a href="/">&larr; Back to front page</a>

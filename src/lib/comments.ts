@@ -118,3 +118,40 @@ export async function getComments(
     return { status: "unavailable" };
   }
 }
+
+// A link that opens a reply in its thread in Slack, where it can be answered.
+export function slackReplyLink(
+  channelId: string,
+  slackTs: string,
+  threadTs: string,
+): string {
+  const link = new URL(
+    `https://hackclub.slack.com/archives/${channelId}/p${slackTs.replace(".", "")}`,
+  );
+  link.searchParams.set("thread_ts", threadTs);
+  link.searchParams.set("cid", channelId);
+  return link.toString();
+}
+
+// The id a comment's element carries, which the page links to.
+export function commentAnchor(slackTs: string): string {
+  return `comment-${slackTs.replace(".", "-")}`;
+}
+
+// A time of day as well as a date, since comments are made close together.
+export function formatCommentTime(timestamp: string): string {
+  return new Date(timestamp).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: COMMENT_LIMITS.timeZone,
+    timeZoneName: "short",
+  });
+}
+
+// Marks that a reader is logged in, so the page can show a skeleton for the
+// comments while they load. The session itself stays in an HttpOnly cookie;
+// this one says nothing a reader's own browser did not already know.
+export const LOGGED_IN_COOKIE = "sn_in";

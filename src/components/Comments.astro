@@ -1,8 +1,17 @@
 ---
 import SlackMention from "./SlackMention.astro";
 import SlackMrkdwnBody from "./SlackMrkdwnBody.astro";
-import { commentLimitsEnabled, COMMENT_LIMITS, getComments } from "../lib/comments";
+import {
+  COMMENT_LIMITS,
+  LOGGED_IN_COOKIE,
+  commentAnchor,
+  commentLimitsEnabled,
+  formatCommentTime,
+  getComments,
+  slackReplyLink,
+} from "../lib/comments";
 import { slackLinkFromMessageId } from "../lib/indigest";
+import { getSlackUserDisplayName } from "../lib/slack-users";
 
 // The comments under an article: replies to its card in the comments channel,
 // shown only to logged-in readers. Always rendered per request, because it
@@ -18,7 +27,26 @@ const user = Astro.locals.user;
 // Never let one reader's view be cached for another.
 Astro.response.headers.set("Cache-Control", "private, no-store");
 
+// Lets the page show a skeleton for logged-in readers while this loads.
+if (user) {
+  Astro.cookies.set(LOGGED_IN_COOKIE, "1", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+    sameSite: "lax",
+    secure: import.meta.env.PROD,
+    httpOnly: false,
+  });
+} else {
+  Astro.cookies.delete(LOGGED_IN_COOKIE, { path: "/" });
+}
+
 const result = user ? await getComments(articleKey, user.slackId) : undefined;
+
+// Each name is a lookup of its own. Starting them together makes the wait the
+// slowest one, not the sum, before the list below asks for them one by one.
+if (result?.status === "ok") {
+  await Promise.all(result.comments.map((comment) => getSlackUserDisplayName(comment.userId)));
+}
 const enabled = Boolean(import.meta.env.COMMENTS_CHANNEL_ID?.trim());
 const replyUrl =
   result?.status === "ok" && result.card
@@ -28,7 +56,7 @@ const replyUrl =
 const formatDate = (timestamp: string) =>
   new Date(timestamp).toLocaleDateString("en-US", {
     dateStyle: "medium",
-    timeZone: "America/New_York",
+    timeZone: COMMENT_LIMITS.timeZone,
   });
 ---
 
@@ -52,11 +80,13 @@ const formatDate = (timestamp: string) =>
           ) : (
             <ol class="comment-list">
               {result.comments.map((comment) => (
-                <li class="comment">
+                <li class="comment" id={commentAnchor(comment.slackTs)}>
                   <p class="comment-meta">
                     <SlackMention name={comment.userName} id={comment.userId} />
                     {" — "}
-                    <time datetime={comment.timestamp}>{formatDate(comment.timestamp)}</time>
+                    <a class="comment-permalink" href={`#${commentAnchor(comment.slackTs)}`} title="Link to this comment">
+                      <time datetime={comment.timestamp}>{formatCommentTime(comment.timestamp)}</time>
+                    </a>
                     {comment.editedAt && (
                       <span class="comment-edited" title={`Edited ${formatDate(comment.editedAt)}`}>
                         {" "}
@@ -67,21 +97,24 @@ const formatDate = (timestamp: string) =>
                   <div class="comment-body">
                     <SlackMrkdwnBody text={comment.formattedText || comment.text} />
                   </div>
+                  <p class="comment-actions">
+                    <a href={slackReplyLink(result.card!.channelId, comment.slackTs, result.card!.slackTs)} target="_blank" rel="noreferrer noopener">
+                      Reply in Slack
+                    </a>
+                  </p>
                 </li>
               ))}
             </ol>
           )}
           <p class="comments-note">
-            Comments are replies in Slack, on this article's post in the comments channel
-            {replyUrl && (
+            Comments are replies in Slack, on this article's post in the comments channel{replyUrl ? (
               <>
                 {" — "}
-                <a href={replyUrl} target="_blank" rel="noreferrer noopener">
-                  reply in Slack
-                </a>
+                <a href={replyUrl} target="_blank" rel="noreferrer noopener">reply in Slack</a>.
               </>
+            ) : (
+              "."
             )}
-            .
             {commentLimitsEnabled() && (
               <>
                 {" "}
@@ -124,6 +157,24 @@ const formatDate = (timestamp: string) =>
   .comment-meta {
     margin: 0 0 0.25rem;
     font-size: 0.85rem;
+  }
+
+  .comment-permalink {
+    text-decoration: none;
+  }
+
+  .comment-permalink:hover {
+    text-decoration: underline;
+  }
+
+  .comment-actions {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+  }
+
+  /* The comment a link points at. */
+  .comment-target {
+    background: rgba(255, 230, 0, 0.25);
   }
 
   .comment-edited {
