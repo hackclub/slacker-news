@@ -155,3 +155,104 @@ export function formatCommentTime(timestamp: string): string {
 // comments while they load. The session itself stays in an HttpOnly cookie;
 // this one says nothing a reader's own browser did not already know.
 export const LOGGED_IN_COOKIE = "sn_in";
+
+// --- Replies to replies ---
+//
+// A Slack thread is flat: every reply belongs to the card. People answer a
+// particular reply by pasting a link to it, and that link is all there is to
+// go on, so a comment that links to an earlier comment in the same thread is
+// shown nested under it.
+
+const PERMALINK =
+  /https?:\/\/[^\s<>|]*\/archives\/([A-Z0-9]+)\/p(\d{10})(\d{6})/g;
+
+/** The Slack timestamps of the messages in the comments channel a comment links to. */
+export function linkedTimestamps(
+  comment: Comment,
+  channelId: string,
+): string[] {
+  const found: string[] = [];
+  for (const text of [comment.formattedText, comment.text]) {
+    for (const match of text?.matchAll(PERMALINK) ?? []) {
+      if (match[1] === channelId) found.push(`${match[2]}.${match[3]}`);
+    }
+  }
+  return [...new Set(found)];
+}
+
+export type CommentNode = {
+  comment: Comment;
+  depth: number;
+  // The comment this one answers, when nested.
+  parent?: CommentNode;
+  replies: CommentNode[];
+};
+
+// Replies nest this many levels; deeper ones sit beside the last level, so a
+// long exchange does not squeeze into a sliver.
+export const MAX_COMMENT_DEPTH = 3;
+
+/**
+ * Arranges comments, oldest first, into threads. A comment goes under the first
+ * earlier comment it links to. A link to the card, to a comment that is not
+ * shown (deleted, over a limit), to itself, or to a later comment is ignored.
+ */
+export function nestComments(
+  comments: Comment[],
+  channelId: string,
+): CommentNode[] {
+  const sorted = [...comments].sort(
+    (a, b) => Number(a.slackTs) - Number(b.slackTs),
+  );
+  const nodes = new Map<string, CommentNode>();
+  const roots: CommentNode[] = [];
+
+  for (const comment of sorted) {
+    const node: CommentNode = { comment, depth: 0, replies: [] };
+    const target = linkedTimestamps(comment, channelId)
+      .map((ts) => nodes.get(ts))
+      .find((candidate): candidate is CommentNode => Boolean(candidate));
+
+    if (target) {
+      let parent = target;
+      while (parent.depth >= MAX_COMMENT_DEPTH - 1 && parent.parent)
+        parent = parent.parent;
+      node.parent = target;
+      node.depth = Math.min(target.depth + 1, MAX_COMMENT_DEPTH - 1);
+      parent.replies.push(node);
+    } else {
+      roots.push(node);
+    }
+    nodes.set(comment.slackTs, node);
+  }
+  return roots;
+}
+
+/**
+ * A comment's text without the link that nested it. Once the comment sits
+ * under the one it answers, and says so, a pasted link to it is only noise: a
+ * bare link goes, and a labelled one keeps its label.
+ */
+export function withoutReplyLink(
+  text: string,
+  parentTs: string,
+  channelId: string,
+): string {
+  const points = (url: string) => {
+    const match = /\/archives\/([A-Z0-9]+)\/p(\d{10})(\d{6})/.exec(url);
+    return match?.[1] === channelId && `${match[2]}.${match[3]}` === parentTs;
+  };
+  return text
+    .replace(/<(https?:\/\/[^|>\s]+)\|([^>]*)>/g, (whole, url, label) =>
+      points(url) ? label : whole,
+    )
+    .replace(/<(https?:\/\/[^|>\s]+)>/g, (whole, url) =>
+      points(url) ? "" : whole,
+    )
+    .replace(/(?<![<|])https?:\/\/[^\s<>|]+/g, (whole) =>
+      points(whole) ? "" : whole,
+    )
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}

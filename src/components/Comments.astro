@@ -1,14 +1,11 @@
 ---
-import SlackMention from "./SlackMention.astro";
-import SlackMrkdwnBody from "./SlackMrkdwnBody.astro";
+import CommentItem from "./CommentItem.astro";
 import {
   COMMENT_LIMITS,
   LOGGED_IN_COOKIE,
-  commentAnchor,
   commentLimitsEnabled,
-  formatCommentTime,
   getComments,
-  slackReplyLink,
+  nestComments,
 } from "../lib/comments";
 import { slackLinkFromMessageId } from "../lib/indigest";
 import { getSlackUserDisplayName } from "../lib/slack-users";
@@ -53,11 +50,11 @@ const replyUrl =
     ? slackLinkFromMessageId(result.card.channelId, result.card.slackTs)
     : undefined;
 
-const formatDate = (timestamp: string) =>
-  new Date(timestamp).toLocaleDateString("en-US", {
-    dateStyle: "medium",
-    timeZone: COMMENT_LIMITS.timeZone,
-  });
+// Comments that link to an earlier one are shown nested under it.
+const threads =
+  result?.status === "ok" && result.card
+    ? nestComments(result.comments, result.card.channelId)
+    : [];
 ---
 
 {
@@ -79,30 +76,8 @@ const formatDate = (timestamp: string) =>
             <p class="comments-note">No comments yet.</p>
           ) : (
             <ol class="comment-list">
-              {result.comments.map((comment) => (
-                <li class="comment" id={commentAnchor(comment.slackTs)}>
-                  <p class="comment-meta">
-                    <SlackMention name={comment.userName} id={comment.userId} />
-                    {" — "}
-                    <a class="comment-permalink" href={`#${commentAnchor(comment.slackTs)}`} title="Link to this comment">
-                      <time datetime={comment.timestamp}>{formatCommentTime(comment.timestamp)}</time>
-                    </a>
-                    {comment.editedAt && (
-                      <span class="comment-edited" title={`Edited ${formatDate(comment.editedAt)}`}>
-                        {" "}
-                        (edited)
-                      </span>
-                    )}
-                  </p>
-                  <div class="comment-body">
-                    <SlackMrkdwnBody text={comment.formattedText || comment.text} />
-                  </div>
-                  <p class="comment-actions">
-                    <a href={slackReplyLink(result.card!.channelId, comment.slackTs, result.card!.slackTs)} target="_blank" rel="noreferrer noopener">
-                      Reply in Slack
-                    </a>
-                  </p>
-                </li>
+              {threads.map((node) => (
+                <CommentItem node={node} card={result.card!} />
               ))}
             </ol>
           )}
@@ -147,42 +122,6 @@ const formatDate = (timestamp: string) =>
     list-style: none;
     margin: 0 0 1rem;
     padding: 0;
-  }
-
-  .comment {
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #ccc;
-  }
-
-  .comment-meta {
-    margin: 0 0 0.25rem;
-    font-size: 0.85rem;
-  }
-
-  .comment-permalink {
-    text-decoration: none;
-  }
-
-  .comment-permalink:hover {
-    text-decoration: underline;
-  }
-
-  .comment-actions {
-    margin: 0.25rem 0 0;
-    font-size: 0.8rem;
-  }
-
-  /* The comment a link points at. */
-  .comment-target {
-    background: rgba(255, 230, 0, 0.25);
-  }
-
-  .comment-edited {
-    font-style: italic;
-  }
-
-  .comment-body :global(p) {
-    margin: 0.25rem 0;
   }
 
   .comments-note {
