@@ -3,9 +3,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { getSiteConfig } from "../lib/content";
 import { getSlackColumns } from "../lib/indigest";
 import {
+  listFeedTokens,
   mintFeedToken,
   revokeFeedToken,
+  revokeFeedTokenById,
   revokeFeedTokens,
+  type FeedTokenSummary,
 } from "../lib/feed-tokens";
 
 // Accept a pasted feed link or a bare token.
@@ -59,12 +62,12 @@ const slackOptions: FeedOption[] = slackColumns
 const allOptions = [...articleOptions, ...protectedArticleOptions, ...slackOptions];
 
 // Slack ID when the session has one, else the account email; either names
-// the reader to Indigest so their link can be rotated or revoked later.
+// the reader to Indigest so all their links can be revoked later.
 const subject = user ? (user.slackId ?? user.email) : undefined;
 
 // Actions POST, then redirect to a plain GET (post/redirect/get), so a
-// refresh never resubmits: a resubmitted "create" would mint a new link and
-// revoke the one just shown. The new token rides along in a short-lived
+// refresh never resubmits: a resubmitted "create" would mint another link
+// instead of showing the one just made. The new token rides along in a short-lived
 // HttpOnly cookie, so refreshing shows the same link; messages are one-shot.
 const TOKEN_COOKIE = "sn_rss_token";
 const FLASH_COOKIE = "sn_rss_flash";
@@ -101,9 +104,11 @@ if (Astro.request.method === "POST") {
     flash.error = "That request did not come from this site.";
   } else if (action === "create") {
     try {
+      const label = String(form?.get("label") ?? "").trim().slice(0, 60);
       const minted = await mintFeedToken(
         subject,
         protectedColumns.map((column) => column.channelId ?? column.column),
+        label || undefined,
       );
       Astro.cookies.set(TOKEN_COOKIE, JSON.stringify({ subject, token: minted }), {
         ...cookieOptions,
@@ -129,11 +134,23 @@ if (Astro.request.method === "POST") {
       console.error("Unable to revoke feed token", cause);
       flash.error = "Could not revoke that link right now. Try again in a minute.";
     }
+  } else if (action === "revoke-key") {
+    const id = Number(form?.get("key"));
+    try {
+      if (Number.isInteger(id) && (await revokeFeedTokenById(subject, id))) {
+        flash.notice = "That link is revoked. Readers using it will stop getting members-only posts within a few minutes.";
+      } else {
+        flash.error = "That link is already revoked or isn't yours.";
+      }
+    } catch (cause) {
+      console.error("Unable to revoke feed token", cause);
+      flash.error = "Could not revoke that link right now. Try again in a minute.";
+    }
   } else if (action === "revoke") {
     try {
       await revokeFeedTokens(subject);
       Astro.cookies.delete(TOKEN_COOKIE, cookieOptions);
-      flash.notice = "Your private link is revoked. Readers using it will stop getting members-only posts within a few minutes.";
+      flash.notice = "All your private links are revoked. Readers using them will stop getting members-only posts within a few minutes.";
     } catch (cause) {
       console.error("Unable to revoke feed tokens", cause);
       flash.error = "Could not revoke your private link right now. Try again in a minute.";
@@ -159,6 +176,19 @@ if (Astro.request.method === "POST") {
 }
 
 const token = readTokenCookie();
+
+// The reader's live private links, for the list with a revoke button each.
+// An Indigest outage leaves the list out rather than failing the page.
+let feedTokens: FeedTokenSummary[] | undefined;
+if (subject) {
+  feedTokens = await listFeedTokens(subject).catch((cause) => {
+    console.error("Unable to list feed tokens", cause);
+    return undefined;
+  });
+}
+const formatDay = (date: Date) =>
+  date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+
 let notice: string | undefined;
 let error: string | undefined;
 try {
@@ -333,17 +363,29 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
           </div>
           <p class="rss-hint" id="rss-private-hint" hidden={!(wantsMembersOnly && token)}>
             This link is tied to your Hack Club account, so do not share it. Copy
-            it now: it disappears from this page in ten minutes, and creating a
-            new one revokes it.
+            it now: it disappears from this page in ten minutes. Making another
+            link leaves this one working.
           </p>
         </div>
 
         {user && (
           <div class="rss-private" id="rss-private" hidden={Boolean(builtUrl)}>
             <p class="rss-hint">Members-only columns need a private link.</p>
-            <button class="rss-button" type="submit" formmethod="post" name="action" value="create">
-              Create private link
-            </button>
+            <label class="rss-hint rss-label" for="rss-link-name">Name it, so you can find it in your list later</label>
+            <div class="rss-url-row">
+              <input
+                class="rss-url"
+                id="rss-link-name"
+                type="text"
+                name="label"
+                maxlength="60"
+                placeholder="e.g. Feedly, RSS bot"
+                autocomplete="off"
+              />
+              <button class="rss-button" type="submit" formmethod="post" name="action" value="create">
+                Create private link
+              </button>
+            </div>
           </div>
         )}
       </form>
@@ -351,9 +393,34 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
       {user && (
         <section class="rss-manage">
           <div class="section-label">Private links</div>
+          {feedTokens === undefined ? (
+            <p class="rss-hint">Your links can't be listed right now. Try again in a minute.</p>
+          ) : feedTokens.length === 0 ? (
+            <p class="rss-hint">You have no private links.</p>
+          ) : (
+            <ul class="rss-keys">
+              {feedTokens.map((key) => (
+                <li class="rss-key">
+                  <div>
+                    <strong>{key.label ?? "Unnamed link"}</strong>
+                    <span class="rss-detail">
+                      {" "}· <code>ind_{key.keyPrefix}…</code> · made {formatDay(key.createdAt)}
+                      {key.lastUsedAt ? ` · last used ${formatDay(key.lastUsedAt)}` : " · never used"}
+                    </span>
+                  </div>
+                  <form method="post">
+                    <input type="hidden" name="key" value={key.id} />
+                    <button class="rss-button rss-button--outline" type="submit" name="action" value="revoke-key">
+                      Revoke
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
           <form method="post" class="rss-actions">
             <button class="rss-button rss-button--outline" type="submit" name="action" value="revoke">
-              Revoke my link
+              Revoke all my links
             </button>
           </form>
 
@@ -577,8 +644,28 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
       margin: 8px 0 24px;
     }
 
-    .rss-revoke-link .rss-hint {
+    .rss-revoke-link .rss-hint,
+    .rss-label {
       display: block;
+    }
+
+    .rss-keys {
+      list-style: none;
+      margin: 8px 0 16px;
+      padding: 0;
+    }
+
+    .rss-key {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .rss-key code {
+      font-size: 0.8rem;
     }
 
     [hidden] {

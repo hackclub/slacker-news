@@ -104,22 +104,94 @@ export async function revokeFeedToken(token: string): Promise<boolean> {
 }
 
 /**
- * Mint a private feed token for one reader. Minting again revokes the
- * reader's previous token, so this doubles as rotation.
+ * Mint a private feed token for one reader. A reader may hold any number;
+ * minting another leaves the earlier ones working. The label names the link
+ * in the reader's list ("RSS bot", "Feedly").
  */
 export async function mintFeedToken(
   subject: string,
   channelIds: string[],
+  label?: string,
 ): Promise<string> {
   const response = await callIndigest("/api/api-keys/delegate", {
     subject,
     channelIds,
+    ...(label ? { label } : {}),
   });
   if (!response.ok)
     throw new Error(`Indigest returned ${response.status} minting a key`);
 
   const payload = (await response.json()) as { fullKey: string };
   return payload.fullKey;
+}
+
+export type FeedTokenSummary = {
+  id: number;
+  label: string | null;
+  // The start of the key, enough to match it against a link.
+  keyPrefix: string;
+  createdAt: Date;
+  lastUsedAt: Date | null;
+};
+
+async function callIndigestAt(
+  method: "GET" | "DELETE",
+  path: string,
+): Promise<Response> {
+  const apiKey = import.meta.env.INDIGEST_API_KEY;
+  if (!apiKey) throw new Error("INDIGEST_API_KEY is not configured");
+
+  return fetch(indigestURL(path), {
+    method,
+    headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+    signal: AbortSignal.timeout(INDIGEST_TIMEOUT_MS),
+  });
+}
+
+/** One reader's live private links, newest first. */
+export async function listFeedTokens(
+  subject: string,
+): Promise<FeedTokenSummary[]> {
+  const response = await callIndigestAt(
+    "GET",
+    `/api/api-keys/delegate/${encodeURIComponent(subject)}`,
+  );
+  if (!response.ok)
+    throw new Error(`Indigest returned ${response.status} listing keys`);
+
+  const payload = (await response.json()) as {
+    keys: Array<{
+      id: number;
+      label: string | null;
+      keyPrefix: string;
+      createdAt: string;
+      lastUsedAt: string | null;
+    }>;
+  };
+  return payload.keys.map((key) => ({
+    ...key,
+    createdAt: new Date(key.createdAt),
+    lastUsedAt: key.lastUsedAt ? new Date(key.lastUsedAt) : null,
+  }));
+}
+
+/**
+ * Revoke one of a reader's private links by its id. Indigest only revokes it
+ * if it belongs to that reader. Readers using it stop getting members-only
+ * posts once the cached validation expires (within five minutes).
+ */
+export async function revokeFeedTokenById(
+  subject: string,
+  id: number,
+): Promise<boolean> {
+  const response = await callIndigestAt(
+    "DELETE",
+    `/api/api-keys/delegate/${encodeURIComponent(subject)}/${id}`,
+  );
+  if (!response.ok)
+    throw new Error(`Indigest returned ${response.status} revoking a key`);
+  const payload = (await response.json()) as { revoked: number };
+  return payload.revoked > 0;
 }
 
 export async function revokeFeedTokens(subject: string): Promise<void> {
