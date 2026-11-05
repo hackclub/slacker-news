@@ -335,7 +335,10 @@ export async function getPosts(): Promise<Post[]> {
         date: entry.data.date,
         excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
         frontPagePreview: entry.data.frontPagePreview
-          ? entry.data.frontPagePreview.split(/\n{2,}/).map((p: string) => stripMarkdown(p)).filter(Boolean)
+          ? entry.data.frontPagePreview
+              .split(/\n{2,}/)
+              .map((p: string) => stripMarkdown(p))
+              .filter(Boolean)
           : undefined,
         paragraphs,
         readingTime: Math.max(1, Math.ceil(wordCount / 200)),
