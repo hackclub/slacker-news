@@ -3,7 +3,7 @@ import SlackMention from "./SlackMention.astro";
 
 interface Props {
   authors: string | string[];
-  slackIds?: string[];
+  slackIds?: (string | undefined)[];
 }
 
 const { authors, slackIds } = Astro.props;
