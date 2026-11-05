@@ -119,5 +119,9 @@
     "name": "@Jason Cameron",
     "slackId": "U06L6GPJYUR",
     "roles": ["technical"]
+  },
+  {
+    "name": "@ren",
+    "slackId": "U081SNW7JUA"
   }
 ]
