@@ -117,6 +117,18 @@ Having said that, the good news is that most analyzed projects showed no detecte
 * A limited subset of Python software projects was analyzed, which is not fully representative of all software projects.  
 * Only repositories which were public at the time of the study were analyzed.
 
+# Appendix
+
+An extension study was carried out, investigating whether plagiarism could be detected at scale.
+
+Here is a brief summary of the results:
+
+* The percentage of projects compatible with the pipeline (coverage; excludes unavailable repos completely) was 81.1%. 200 projects were sampled randomly from the last year, of which 154 were actually analyzed.  
+* The median analysis cost per project was \$0.0263 and 5m 19s, for a total of \$4.02 and 14h 20m 11s.  
+* 6 projects appeared to contain extensive plagiarism after human review, associated with 13h and \$110. Interestingly, this was substantially lower than study 1, which found 11 projects with plagiarism, associated with 54h and \$459.  
+* There were various flaws and areas of improvement with this pipeline, which seem to have significantly weakened recall and caused a higher consumption of resources than necessary. Potential progressions include selective/on-demand scanning or general pipeline tuning (e.g. blacklisting Godot Super Wakatime).   
+* It was very interesting to see *where* people were "copying" from, whether that be magic 8 ball messages from Wikipedia, following the same [Chris Courses](https://www.youtube.com/@ChrisCourses) tutorial, using the [Maacks Godot game template](https://github.com/Maaack/Godot-Game-Template) or using the same background effect.
+
 # Disclosure
 
 The study was designed almost entirely by the author. AI analyzed the data per the author’s design. This writeup is human-made.  
