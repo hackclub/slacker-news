@@ -21,7 +21,7 @@ export type Post = {
   url: string;
   title: string;
   author?: string | string[];
-  authorSlackIds?: string[];
+  authorSlackIds?: (string | undefined)[];
   category?: string;
   date: Date;
   excerpt: string;
@@ -42,7 +42,7 @@ export type Post = {
 type ChangelogBase = {
   date: string;
   author: string | string[];
-  slackIds?: string[];
+  slackIds?: (string | undefined)[];
 };
 
 export type ShortChangelogEntry = ChangelogBase & {
@@ -145,16 +145,18 @@ function getAuthorSlackId(author: string | undefined): string | undefined {
   return matchingAcknowledgement?.slackId;
 }
 
-function getAuthorSlackIds(authors: string | string[] | undefined): string[] {
+// One entry per author, in order, undefined for an author with no known Slack
+// ID: AuthorList pairs authors with IDs by position, so none may be dropped.
+function getAuthorSlackIds(
+  authors: string | string[] | undefined,
+): (string | undefined)[] {
   if (!authors) {
     return [];
   }
 
   const authorArray = Array.isArray(authors) ? authors : [authors];
 
-  return authorArray
-    .map((author) => getAuthorSlackId(author))
-    .filter((id): id is string => Boolean(id));
+  return authorArray.map((author) => getAuthorSlackId(author));
 }
 
 function replaceSlackMentionComponents(input: string): string {
@@ -335,7 +337,10 @@ export async function getPosts(): Promise<Post[]> {
         date: entry.data.date,
         excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
         frontPagePreview: entry.data.frontPagePreview
-          ? entry.data.frontPagePreview.split(/\n{2,}/).map((p: string) => stripMarkdown(p)).filter(Boolean)
+          ? entry.data.frontPagePreview
+              .split(/\n{2,}/)
+              .map((p: string) => stripMarkdown(p))
+              .filter(Boolean)
           : undefined,
         paragraphs,
         readingTime: Math.max(1, Math.ceil(wordCount / 200)),
