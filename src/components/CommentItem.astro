@@ -1,0 +1,146 @@
+---
+import SlackMention from "./SlackMention.astro";
+import SlackMrkdwnBody from "./SlackMrkdwnBody.astro";
+import {
+  COMMENT_LIMITS,
+  commentAnchor,
+  formatCommentTime,
+  slackReplyLink,
+  withoutReplyLink,
+  type CommentNode,
+} from "../lib/comments";
+
+// One comment, and the comments that answer it nested beneath.
+interface Props {
+  node: CommentNode;
+  // The card whose thread the comments are in.
+  card: { channelId: string; slackTs: string };
+}
+
+const { node, card } = Astro.props;
+const { comment } = node;
+const Self = Astro.self;
+
+// Under the comment it answers, the link to that comment is only noise.
+const raw = comment.formattedText || comment.text;
+const body = node.parent
+  ? withoutReplyLink(raw, node.parent.comment.slackTs, card.channelId)
+  : raw;
+
+const formatDate = (timestamp: string) =>
+  new Date(timestamp).toLocaleDateString("en-US", {
+    dateStyle: "medium",
+    timeZone: COMMENT_LIMITS.timeZone,
+  });
+---
+
+<li class="comment" id={commentAnchor(comment.slackTs)}>
+  <p class="comment-meta">
+    <SlackMention name={comment.userName} id={comment.userId} />
+    {" — "}
+    <a class="comment-permalink" href={`#${commentAnchor(comment.slackTs)}`} title="Link to this comment">
+      <time datetime={comment.timestamp}>{formatCommentTime(comment.timestamp)}</time>
+    </a>
+    {
+      comment.editedAt && (
+        <span class="comment-edited" title={`Edited ${formatDate(comment.editedAt)}`}>
+          {" "}
+          (edited)
+        </span>
+      )
+    }
+    {
+      node.parent && (
+        <span class="comment-reply-to">
+          {" · replying to "}
+          <SlackMention name={node.parent.comment.userName} id={node.parent.comment.userId} />
+          {" "}
+          <a
+            class="comment-parent-link"
+            href={`#${commentAnchor(node.parent.comment.slackTs)}`}
+            title="Go to the comment this answers"
+          >
+            ↑
+          </a>
+        </span>
+      )
+    }
+  </p>
+  <div class="comment-body">
+    <SlackMrkdwnBody text={body} />
+  </div>
+  <p class="comment-actions">
+    <a href={slackReplyLink(card.channelId, comment.slackTs, card.slackTs)} target="_blank" rel="noreferrer noopener">
+      Reply in Slack
+    </a>
+  </p>
+  {
+    node.replies.length > 0 && (
+      <ol class="comment-replies">
+        {node.replies.map((reply) => (
+          <Self node={reply} card={card} />
+        ))}
+      </ol>
+    )
+  }
+</li>
+
+<style>
+  .comment {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .comment-meta {
+    margin: 0 0 0.25rem;
+    font-size: 0.85rem;
+  }
+
+  .comment-permalink {
+    text-decoration: none;
+  }
+
+  .comment-permalink:hover {
+    text-decoration: underline;
+  }
+
+  .comment-actions {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+  }
+
+  /* The comment a link points at. */
+  .comment-target {
+    background: rgba(255, 230, 0, 0.25);
+  }
+
+  .comment-edited {
+    font-style: italic;
+  }
+
+  .comment-body :global(p) {
+    margin: 0.25rem 0;
+  }
+
+  .comment a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  .comment .comment-permalink {
+    text-decoration: none;
+  }
+
+  /* Answers hang off the comment they answer, along a line. */
+  .comment-replies {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0 0 0 0.9rem;
+    border-left: 2px solid #ccc;
+  }
+
+  .comment-replies > .comment {
+    padding: 0.5rem 0 0;
+    border-bottom: none;
+  }
+</style>

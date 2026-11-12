@@ -25,4 +25,22 @@ const imgSrc = src ?? `https://cachet.hackclub.com/emojis/${name}/r`;
     .emoji:hover {
       filter: grayscale(0%);
     }
+
+    /* In dark mode the page is inverted and every image inverted back
+       (main.scss). A filter set here replaces that one, so these carry it,
+       or the emoji come out inverted. */
+    :global(html.dark-mode) .emoji {
+      filter: invert(1) hue-rotate(180deg) grayscale(100%);
+    }
+    :global(html.dark-mode) .emoji:hover {
+      filter: invert(1) hue-rotate(180deg) grayscale(0%);
+    }
+    @media (prefers-color-scheme: dark) {
+      :global(html:not(.light-mode):not(.dark-mode)) .emoji {
+        filter: invert(1) hue-rotate(180deg) grayscale(100%);
+      }
+      :global(html:not(.light-mode):not(.dark-mode)) .emoji:hover {
+        filter: invert(1) hue-rotate(180deg) grayscale(0%);
+      }
+    }
 </style>

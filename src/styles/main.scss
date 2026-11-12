@@ -1247,3 +1247,15 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 .front-block:hover .emoji {
   filter: grayscale(0%) !important;
 }
+
+// Emoji are images, which dark mode inverts back (see the html.dark-mode rules
+// above). Their filter has to keep that inversion, or the color is wrong.
+html.dark-mode .front-block:hover .emoji {
+  filter: invert(1) hue-rotate(180deg) grayscale(0%) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-mode):not(.dark-mode) .front-block:hover .emoji {
+    filter: invert(1) hue-rotate(180deg) grayscale(0%) !important;
+  }
+}
