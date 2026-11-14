@@ -1,5 +1,6 @@
 ---
 import AbacusCounter from "../components/AbacusCounter.astro";
+import SiteFooter from "../components/SiteFooter.astro";
 import NewsTicker from "../components/NewsTicker.astro";
 import { ClientRouter } from "astro:transitions";
 
@@ -321,5 +322,6 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       })();
     </script>
     <AbacusCounter pathname={Astro.url.pathname} />
+    <SiteFooter />
   </body>
 </html>

@@ -1069,6 +1069,10 @@ html.dark-mode {
   .site-title img {
     filter: none;
   }
+
+  .footer-logo-img {
+    filter: none;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1083,6 +1087,10 @@ html.dark-mode {
     }
 
     .site-title img {
+      filter: none;
+    }
+
+    .footer-logo-img {
       filter: none;
     }
 
