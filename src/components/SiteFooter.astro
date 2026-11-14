@@ -1,11 +1,14 @@
 ---
 import { execSync } from "child_process";
 
-let commitHash: string;
-try {
-  commitHash = execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
-} catch {
-  commitHash = "dev";
+// Vercel functions have no git checkout at request time, so prefer its env var.
+let commitHash = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "";
+if (!commitHash) {
+  try {
+    commitHash = execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
+  } catch {
+    commitHash = "dev";
+  }
 }
 ---
 
