@@ -1,55 +1,23 @@
 import { getPosts, type Post } from "./content";
 import {
-  getIndigestMessages,
-  getSlackColumns,
+  getMarkdownColumnArticles,
   type IndigestMessage,
-  type SlackColumnConfig,
+  type SlackArticle,
 } from "./indigest";
 
 export type ColumnFeedItem =
   | { kind: "post"; post: Post; date: Date }
   | {
       kind: "slack";
-      column: SlackColumnConfig;
       message: IndigestMessage;
+      article: SlackArticle;
       date: Date;
       readingTime: number;
     };
 
-function slackDate(message: IndigestMessage): Date {
-  const parsed = new Date(message.timestamp);
-  if (!Number.isNaN(parsed.getTime())) return parsed;
-
-  const timestamp = Number(message.slackTs);
-  return Number.isFinite(timestamp) ? new Date(timestamp * 1000) : new Date(0);
-}
-
 function slackReadingTime(message: IndigestMessage): number {
   const wordCount = message.text.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(wordCount / 200));
-}
-
-export function firstMetadataValue(
-  metadata: IndigestMessage["metadata"],
-): string | undefined {
-  let parsed: Record<string, unknown> | undefined;
-
-  if (typeof metadata === "string") {
-    try {
-      const value = JSON.parse(metadata);
-      if (value && typeof value === "object" && !Array.isArray(value))
-        parsed = value;
-    } catch {
-      return undefined;
-    }
-  } else if (metadata && typeof metadata === "object") {
-    parsed = metadata;
-  }
-
-  const value = parsed ? Object.values(parsed)[0] : undefined;
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (value !== undefined && value !== null) return String(value);
-  return undefined;
 }
 
 export async function getColumnFeedItems(
@@ -60,29 +28,15 @@ export async function getColumnFeedItems(
     .filter((post) => post.category === columnId)
     .map((post) => ({ kind: "post" as const, post, date: post.date }));
 
-  const slackColumns = getSlackColumns().filter(
-    (column) =>
-      column.column === columnId && (!column.authRequired || authenticated),
-  );
-  const slackMessages = await Promise.all(
-    slackColumns.map(async (column) => ({
-      column,
-      messages: await getIndigestMessages(
-        column.channelId ?? column.column,
-        column.limit,
-      ),
-    })),
-  );
-
-  const slackItems = slackMessages.flatMap(({ column, messages }) =>
-    messages.map((message) => ({
+  const slackItems = (await getMarkdownColumnArticles(authenticated))
+    .filter(({ article }) => article.column === columnId)
+    .map(({ message, article }) => ({
       kind: "slack" as const,
-      column,
       message,
-      date: slackDate(message),
+      article,
+      date: Number.isNaN(article.date.getTime()) ? new Date(0) : article.date,
       readingTime: slackReadingTime(message),
-    })),
-  );
+    }));
 
   return [...posts, ...slackItems].sort(
     (a, b) => b.date.getTime() - a.date.getTime(),

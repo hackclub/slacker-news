@@ -8,6 +8,7 @@
     "homepageMessagesPerRow": 3,
     "homepageLimit": 6,
     "showMetadata": false,
+    "rss": true,
     "limit": 1000
   },
   {
@@ -19,17 +20,20 @@
     "homepageMessagesPerRow": 4,
     "homepageLimit": 12,
     "showMetadata": false,
+    "rss": true,
     "limit": 1000
   },
   {
-    "column": "opinion",
+    "column": "protected",
     "channelId": "C0BQ3M5QRQQ",
-    "title": "Protected Opinions",
+    "title": "Protected",
     "homepage": true,
     "homepageMessagesPerRow": 4,
     "homepageLimit": 12,
     "showMetadata": false,
     "authRequired": true,
+    "markdownColumns": true,
+    "rss": true,
     "limit": 1000
   },
   {
@@ -42,6 +46,7 @@
     "homepageLimit": 3,
     "limit": 1000,
     "authRequired": true,
+    "rss": true,
     "showMetadata": false
   }
 ]

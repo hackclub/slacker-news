@@ -1,0 +1,51 @@
+---
+title: Hack Club can't ban Message Loggers. It shouldn’t try to
+author: "@Rowan"
+date: 2026-09-29
+---
+
+*Disclosure/[COI](https://en.wikipedia.org/wiki/Wikipedia:Conflict_of_interest) notice: I maintain [Slick](https://slickclient.net/), the biggest Slack client mod that [offers message logging](https://github.com/3kh0/slick/blob/main/src/plugins/MessageLogger/meta.ts). I have quite a stake in this argument, and you should hear that from me first.*
+
+When you hit "Delete" on a message, you expect it to go away and never haunt you again.
+
+Here is what actually happens when you delete a message: Slack's server sends every client a nice request of "pretty please remove that message. :3" Your normal Slack client would comply. A message logger keeps the message and marks it as deleted instead.
+
+The idea is new to Slack but not new in general. On Discord, the MessageLogger plugin is one of the headline features of [Vencord](https://vencord.dev/), a popular client mod. Vencord's own README [admits that client mods break Discord's ToS](https://github.com/Vendicated/Vencord#disclaimer), then notes that Discord seems indifferent and that no bans over it are known. It is a rule on paper that never gets enforced. Keep that in mind.
+
+![Mickey Mouse from Mickey Mouse Clubhouse smiling with one hand raised to his cheek. White caption text at the bottom reads: "It's a surprise tool that will help us later!" as if he is whispering to the viewer](https://cdn.hackclub.com/01a0ef51-7f35-75fa-bc60-6fab1cbeda76/2026_09_29_0v1_Kleki%20(1).png)
+
+**What goes on the Internet stays on the Internet.**
+
+Loggers make some people uneasy, and that is expected. But that unease comes from an assumption that deleting something from the Internet means that it is gone for good. I think we have all heard of the phrase “The Internet never forgets.” Yeah, people don’t say that for no reason.
+
+If we focus only on Slack, a deleted message can already survive in plenty of places. Someone screenshotted it. It popped up as a notification and sits in someone's notification history. It got emailed to someone with email notifications on. A bot in the channel stored it. None of this requires a fancy mod, and all of it can happen by accident.
+
+A logger saves what Slack already sent to your client. It does not break into Slack or use any trick to get data it wasn't given. When the FD asked the community for its takes on message logging [in a \#fire-dept thread](https://hackclub.slack.com/archives/C0707TCFG7J/p1785948354865839), it said it had no plans to log messages itself, but made it clear that any Hack Clubber could already log yours.
+
+Loggers make the gap between what is deleted and what is truly gone visible. In my opinion, it's healthier for all of us to know that what we send is never really gone.
+
+**A ban would only punish honest people**
+
+But the million dollar question is: could a ban even work? A logger runs on the user's own machine. Nothing it does is visible to Slack, to the FD, or to anyone else in the channel. The only way the FD learns someone runs one is if they say so. A "no message loggers" rule punishes the people who tell you the truth. Anyone who uses a logger but keeps quiet is untouchable. You end up rewarding secrecy over honesty.
+
+This is where Discord comes back into play. Discord bans client mods on paper, but in practice, they do nothing about it. Instead, people on Discord know that since message loggers are common, they should think twice before sending something they don't want to stick around. We don't have to look at Discord to see how this plays out, either. Slick's logger has been public since July and is used openly across the Slack, and nothing has blown up.
+
+**Counterclaim**
+
+*Imma be honest, I could not come up with a cooler title than this*
+
+The strongest objection comes from people who delete their messages. We are all teenagers, and we have all sent things we probably shouldn't have. People sometimes need a legit way to take something back. Teenagers should be able to leave their mistakes behind, and I fully agree.
+
+But you may ask how I can agree when I make the tool that supposedly defeats this? I see the harm not as the message existing somewhere, but as someone using it against the person. When someone shares a deleted log around, that can be Shrouded and punished.
+
+Others may say they didn't consent to their messages being stored, and I get that. But once a message is sent, where it ends up was never fully in the sender's hands. A logger does make this automatic, where a screenshot takes someone choosing to save it, and I understand why that feels different. But the protection a ban promises, that nobody kept a copy, never existed in the first place. The same idea applies to people concerned that if people have loggers on, they can't freely speak their mind. I would rather people be told what they shouldn't post than trust that no one will screenshot their spicy take.
+
+The last objection is the one the FD will raise: what happens to stuff the FD deletes? I won't pretend loggers are innocent here because they do make cleanup less complete. But cleanup was never complete in the first place! Everyone online when a message was posted already saw it, and anyone could have screenshotted it. The point of removing a message is to stop it from spreading, and a logger doesn't change that: the message is still gone from the channel for everyone else. What matters is what people do with it next. Loggers also cut the other way. Several FD members use Slick or their own loggers, so people who send something awful and delete it quickly can no longer count on getting off scot-free.
+
+**What to do about it instead**
+
+1. Punish bad use. Harassment, reposting someone's deleted messages to embarrass and/or shame them, or feeding content to AI models is harmful whether it's done with a logger or a screenshot. We already have some limits with the [scraping policy](https://news.hackclub.com/news/scraping-use-policy/). We should apply the same principles for message loggers: if you use it to hurt someone, you get punished. Resharing something the FD removed already breaks the code of conduct, whether it came from a logger, a screenshot, or someone retyping it. The rule is already where the harm is.
+2. Keep loggers in the open, and build norms around them. Nobody should be shamed for running a logger. When people can say they use one, the community can agree on how they should be used, like logs expiring after a week. But if we push loggers away, there's no way we could get anyone to limit them.
+3. Share the poll. The FD asked the community what it thinks in August and never shared the results. Before writing any rule, the people it affects should see what everyone actually said and deliberate on what these results mean. If the results are in favor of banning, then that means people are wanting something that can't be enforced to give them a false sense of security.
+
+Hack Club is an amazing place for computer nerds, and as computer nerds, we have always made computers do unexpected things. But message loggers are not unexpected, and honestly, it is surprising how long it took for them to become common among the masses. A rule banning message loggers would be unenforceable, punish honest people, and fail to protect anyone the rule claims to protect. Instead, we should punish people who misuse deleted messages, not the people honest enough to say they keep them.

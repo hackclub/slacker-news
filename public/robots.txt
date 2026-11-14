@@ -1,2 +1,6 @@
+# LinkedIn fetches pages to build link previews when articles are shared.
+User-agent: LinkedInBot
+Allow: /
+
 User-agent: *
 Disallow: /

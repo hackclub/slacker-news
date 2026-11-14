@@ -34,87 +34,142 @@ const site = await getSiteConfig();
   <script>
     import { tokenize, scoreDocument, type SearchIndex } from "../lib/search";
 
-    const input = document.getElementById("search-input") as HTMLInputElement | null;
-    const results = document.getElementById("search-results");
-    const status = document.getElementById("search-status");
+    // Bundled scripts run once per full page load, so re-run on every
+    // client-side navigation to set up search on this page again.
+    document.addEventListener("astro:page-load", () => {
+      const input = document.getElementById("search-input") as HTMLInputElement | null;
+      const results = document.getElementById("search-results");
+      const status = document.getElementById("search-status");
 
-    if (input && results && status) {
-      let index: SearchIndex | null = null;
-      let pending: string | null = null;
+      if (input && results && status) {
+        let index: SearchIndex | null = null;
+        let pending: string | null = null;
 
-      const escapeHtml = (value: string) =>
-        value.replace(/[&<>"']/g, (char) =>
-          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] as string)
-        );
+        const escapeHtml = (value: string) =>
+          value.replace(/[&<>"']/g, (char) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] as string)
+          );
 
-      const truncateWords = (text: string, count: number) => {
-        const words = text.trim().split(/\s+/).filter(Boolean);
-        return words.length <= count ? words.join(" ") : `${words.slice(0, count).join(" ")}…`;
-      };
+        const truncateWords = (text: string, count: number) => {
+          const words = text.trim().split(/\s+/).filter(Boolean);
+          return words.length <= count ? words.join(" ") : `${words.slice(0, count).join(" ")}…`;
+        };
 
-      const wordMatches = (word: string, terms: string[]) => {
-        const cores = word.toLowerCase().match(/[a-z0-9]+/g);
-        return Boolean(cores?.some((core) => terms.some((term) => core === term || core.startsWith(term))));
-      };
+        const wordMatches = (word: string, terms: string[]) => {
+          const cores = word.toLowerCase().match(/[a-z0-9]+/g);
+          return Boolean(cores?.some((core) => terms.some((term) => core === term || core.startsWith(term))));
+        };
 
-      const highlightWord = (word: string, terms: string[]) =>
-        wordMatches(word, terms) ? `<mark>${escapeHtml(word)}</mark>` : escapeHtml(word);
+        const highlightWord = (word: string, terms: string[]) =>
+          wordMatches(word, terms) ? `<mark>${escapeHtml(word)}</mark>` : escapeHtml(word);
 
-      const highlightText = (text: string, terms: string[]) =>
-        text.split(/\s+/).filter(Boolean).map((word) => highlightWord(word, terms)).join(" ");
+        const highlightText = (text: string, terms: string[]) =>
+          text.split(/\s+/).filter(Boolean).map((word) => highlightWord(word, terms)).join(" ");
 
-      const buildSnippet = (text: string, terms: string[]) => {
-        const CONTEXT = 6;
-        const MAX_WINDOWS = 3;
-        const words = text.split(/\s+/).filter(Boolean);
-        if (words.length === 0) return null;
+        const buildSnippet = (text: string, terms: string[]) => {
+          const CONTEXT = 6;
+          const MAX_WINDOWS = 3;
+          const words = text.split(/\s+/).filter(Boolean);
+          if (words.length === 0) return null;
 
-        const windows: { start: number; end: number }[] = [];
-        words.forEach((word, i) => {
-          if (!wordMatches(word, terms)) return;
-          const start = Math.max(0, i - CONTEXT);
-          const end = Math.min(words.length - 1, i + CONTEXT);
-          const last = windows[windows.length - 1];
-          if (last && start <= last.end + 1) last.end = Math.max(last.end, end);
-          else windows.push({ start, end });
-        });
-
-        if (windows.length === 0) return null;
-
-        const chosen = windows.slice(0, MAX_WINDOWS);
-        const segments = chosen.map((win) =>
-          words.slice(win.start, win.end + 1).map((word) => highlightWord(word, terms)).join(" ")
-        );
-
-        let out = segments.join(" … ");
-        if (chosen[0].start > 0) out = `… ${out}`;
-        // Trailing ellipsis if the last shown window isn't the end, or hits were dropped.
-        if (chosen[chosen.length - 1].end < words.length - 1 || windows.length > MAX_WINDOWS) out = `${out} …`;
-        return out;
-      };
-
-      const parseQuery = (query: string) => {
-        const authorMatch = query.match(/^@(\S+)/);
-        if (authorMatch) {
-          return { authorFilter: authorMatch[1], textQuery: query.slice(authorMatch[0].length).trim() };
-        }
-        return { authorFilter: null, textQuery: query };
-      };
-
-      const render = (query: string) => {
-        if (!index) return;
-        const { authorFilter, textQuery } = parseQuery(query);
-        const terms = tokenize(textQuery);
-
-        if (terms.length === 0 && !authorFilter) {
-          const all = [...index.documents].sort((a, b) => {
-            if (a.date && b.date) return b.date.localeCompare(a.date);
-            return 0;
+          const windows: { start: number; end: number }[] = [];
+          words.forEach((word, i) => {
+            if (!wordMatches(word, terms)) return;
+            const start = Math.max(0, i - CONTEXT);
+            const end = Math.min(words.length - 1, i + CONTEXT);
+            const last = windows[windows.length - 1];
+            if (last && start <= last.end + 1) last.end = Math.max(last.end, end);
+            else windows.push({ start, end });
           });
-          status.textContent = `${all.length} articles.`;
-          results.innerHTML = all
-            .map((doc) => {
+
+          if (windows.length === 0) return null;
+
+          const chosen = windows.slice(0, MAX_WINDOWS);
+          const segments = chosen.map((win) =>
+            words.slice(win.start, win.end + 1).map((word) => highlightWord(word, terms)).join(" ")
+          );
+
+          let out = segments.join(" … ");
+          if (chosen[0].start > 0) out = `… ${out}`;
+          // Trailing ellipsis if the last shown window isn't the end, or hits were dropped.
+          if (chosen[chosen.length - 1].end < words.length - 1 || windows.length > MAX_WINDOWS) out = `${out} …`;
+          return out;
+        };
+
+        const parseQuery = (query: string) => {
+          const authorMatch = query.match(/^@(\S+)/);
+          if (authorMatch) {
+            return { authorFilter: authorMatch[1], textQuery: query.slice(authorMatch[0].length).trim() };
+          }
+          return { authorFilter: null, textQuery: query };
+        };
+
+        const render = (query: string) => {
+          if (!index) return;
+          const { authorFilter, textQuery } = parseQuery(query);
+          const terms = tokenize(textQuery);
+
+          if (terms.length === 0 && !authorFilter) {
+            const all = [...index.documents].sort((a, b) => {
+              if (a.date && b.date) return b.date.localeCompare(a.date);
+              return 0;
+            });
+            status.textContent = `${all.length} articles.`;
+            results.innerHTML = all
+              .map((doc) => {
+                const isSlack = doc.url.startsWith("/slack/");
+                const categoryLabel = isSlack
+                  ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
+                  : doc.category
+                    ? escapeHtml(doc.category)
+                    : "";
+                const authorLabel = doc.author
+                  ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
+                  : "";
+                return `
+              <a href="${doc.url}" class="front-block story-block">
+                <h3 class="story-block-title">${escapeHtml(doc.title)}</h3>
+                <p class="story-block-excerpt">${truncateWords(doc.excerpt, 24)}</p>
+                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
+              </a>`;
+              })
+              .join("");
+            return;
+          }
+
+          let ranked = index.documents
+            .map((doc) => ({ doc, score: scoreDocument(doc, terms.length > 0 ? terms : [""], index!.weights) }))
+            .filter((entry) => entry.score > 0);
+
+          if (authorFilter) {
+            const authorTerms = tokenize(authorFilter);
+            ranked = ranked.filter((entry) => {
+              const docAuthor = entry.doc.author.toLowerCase();
+              return authorTerms.some((term) => docAuthor.includes(term));
+            });
+            // Boost author matches
+            ranked = ranked.map((entry) => ({
+              ...entry,
+              score: entry.score + (entry.doc.author.toLowerCase().includes(authorFilter.toLowerCase()) ? 20 : 0),
+            }));
+          }
+
+          ranked.sort((a, b) => b.score - a.score);
+
+          if (ranked.length === 0) {
+            results.innerHTML = "";
+            status.textContent = `No results for "${query.trim()}".`;
+            return;
+          }
+
+          status.textContent = `${ranked.length} result${ranked.length === 1 ? "" : "s"} for "${query.trim()}".`;
+          results.innerHTML = ranked
+            .map(({ doc }) => {
               const isSlack = doc.url.startsWith("/slack/");
+              const preview =
+                terms.length > 0
+                  ? buildSnippet(doc.text, terms) ?? highlightText(truncateWords(doc.excerpt, 24), terms)
+                  : truncateWords(doc.excerpt, 24);
               const categoryLabel = isSlack
                 ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
                 : doc.category
@@ -124,90 +179,39 @@ const site = await getSiteConfig();
                 ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
                 : "";
               return `
-            <a href="${doc.url}" class="front-block story-block">
-              <h3 class="story-block-title">${escapeHtml(doc.title)}</h3>
-              <p class="story-block-excerpt">${truncateWords(doc.excerpt, 24)}</p>
-              <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
-            </a>`;
+              <a href="${doc.url}" class="front-block story-block">
+                <h3 class="story-block-title">${terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title)}</h3>
+                <p class="story-block-excerpt">${preview}</p>
+                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
+              </a>`;
             })
             .join("");
-          return;
-        }
+        };
 
-        let ranked = index.documents
-          .map((doc) => ({ doc, score: scoreDocument(doc, terms.length > 0 ? terms : [""], index!.weights) }))
-          .filter((entry) => entry.score > 0);
-
-        if (authorFilter) {
-          const authorTerms = tokenize(authorFilter);
-          ranked = ranked.filter((entry) => {
-            const docAuthor = entry.doc.author.toLowerCase();
-            return authorTerms.some((term) => docAuthor.includes(term));
-          });
-          // Boost author matches
-          ranked = ranked.map((entry) => ({
-            ...entry,
-            score: entry.score + (entry.doc.author.toLowerCase().includes(authorFilter.toLowerCase()) ? 20 : 0),
-          }));
-        }
-
-        ranked.sort((a, b) => b.score - a.score);
-
-        if (ranked.length === 0) {
-          results.innerHTML = "";
-          status.textContent = `No results for "${query.trim()}".`;
-          return;
-        }
-
-        status.textContent = `${ranked.length} result${ranked.length === 1 ? "" : "s"} for "${query.trim()}".`;
-        results.innerHTML = ranked
-          .map(({ doc }) => {
-            const isSlack = doc.url.startsWith("/slack/");
-            const preview =
-              terms.length > 0
-                ? buildSnippet(doc.text, terms) ?? highlightText(truncateWords(doc.excerpt, 24), terms)
-                : truncateWords(doc.excerpt, 24);
-            const categoryLabel = isSlack
-              ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
-              : doc.category
-                ? escapeHtml(doc.category)
-                : "";
-            const authorLabel = doc.author
-              ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
-              : "";
-            return `
-            <a href="${doc.url}" class="front-block story-block">
-              <h3 class="story-block-title">${terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title)}</h3>
-              <p class="story-block-excerpt">${preview}</p>
-              <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
-            </a>`;
-          })
-          .join("");
-      };
-
-      input.addEventListener("input", () => {
-        if (index) render(input.value);
-        else pending = input.value;
-      });
-
-      const initialQuery = new URLSearchParams(window.location.search).get("q");
-      if (initialQuery) {
-        input.value = initialQuery;
-        pending = initialQuery;
-      }
-      status.textContent = "Loading index…";
-      input.focus();
-
-      fetch("/search-index.json")
-        .then((response) => response.json())
-        .then((data: SearchIndex) => {
-          index = data;
-          render(pending ?? input.value);
-        })
-        .catch(() => {
-          status.textContent = "Could not load the search index.";
+        input.addEventListener("input", () => {
+          if (index) render(input.value);
+          else pending = input.value;
         });
-    }
+
+        const initialQuery = new URLSearchParams(window.location.search).get("q");
+        if (initialQuery) {
+          input.value = initialQuery;
+          pending = initialQuery;
+        }
+        status.textContent = "Loading index…";
+        input.focus();
+
+        fetch("/search-index.json")
+          .then((response) => response.json())
+          .then((data: SearchIndex) => {
+            index = data;
+            render(pending ?? input.value);
+          })
+          .catch(() => {
+            status.textContent = "Could not load the search index.";
+          });
+      }
+    });
   </script>
 
   <style>

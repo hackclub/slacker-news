@@ -1,0 +1,647 @@
+---
+import { getPosts } from "../lib/content";
+import { getSlackColumns } from "../lib/indigest";
+import { MAX_HEADLINES_PER_SOURCE } from "../lib/ticker-headlines";
+
+// Article headlines come from local content, so they render with the page.
+// Slack columns and figures stream in from the browser as each API answers.
+const postCounts = new Map<string, number>();
+const headlines = (await getPosts()).filter((post) => {
+  const category = post.category ?? "post";
+  const count = postCounts.get(category) ?? 0;
+  if (count >= MAX_HEADLINES_PER_SOURCE) return false;
+  postCounts.set(category, count + 1);
+  return true;
+});
+
+// Protected columns' titles stay hidden from signed-out readers, as on the
+// homepage.
+const slackColumns = getSlackColumns()
+  .filter((column) => !column.authRequired || Astro.locals.user)
+  .map((column) => column.column);
+---
+
+<div
+  class="news-ticker"
+  aria-label="News ticker"
+  data-ticker-live
+  data-slack-columns={JSON.stringify(slackColumns)}
+>
+  <button class="news-ticker-label" type="button" aria-label="Hide newswire ticker"><span class="news-ticker-label-text">newswire</span></button>
+  <div class="news-ticker-track">
+    <div class="news-ticker-scroll" data-ticker>
+      <span class="news-ticker-set" data-ticker-set>
+        {headlines.map((headline) => (
+          <>
+            <a
+              class="news-ticker-item"
+              href={headline.url}
+              data-ticker-headline
+              data-ticker-date={headline.date.getTime()}
+            >
+              {headline.title}
+            </a>
+            <span class="news-ticker-divider" aria-hidden="true">◆</span>
+          </>
+        ))}
+      </span>
+    </div>
+  </div>
+  <button class="news-ticker-pause" aria-label="Pause ticker" type="button">❚❚</button>
+</div>
+
+<script>
+  const PAUSE_STORAGE_KEY = "news-ticker:paused";
+
+  function isPausedPreference() {
+    try {
+      return localStorage.getItem(PAUSE_STORAGE_KEY) === "true";
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function setPauseButtonState(btn: Element, isPaused: boolean) {
+    const glyph = isPaused ? "▶" : "❚❚";
+    const label = isPaused ? "Resume ticker" : "Pause ticker";
+    // Bail out when nothing changes: the page-wide MutationObserver below
+    // reinitializes tickers on any DOM mutation, and an unconditional
+    // textContent/attribute write here would re-trigger it every time,
+    // looping forever.
+    if (btn.textContent === glyph && btn.getAttribute("aria-label") === label) return;
+    btn.textContent = glyph;
+    btn.setAttribute("aria-label", label);
+  }
+
+  const awaitingShow = new WeakSet<Element>();
+
+  function whenShown(element: Element, callback: () => void) {
+    if (awaitingShow.has(element)) return;
+    awaitingShow.add(element);
+    const observer = new ResizeObserver(() => {
+      if (!(element instanceof HTMLElement) || element.offsetWidth === 0) return;
+      observer.disconnect();
+      awaitingShow.delete(element);
+      requestAnimationFrame(callback);
+    });
+    observer.observe(element);
+  }
+
+  function initializeTickers() {
+    document
+      .querySelectorAll("[data-ticker]:not([data-ticker-initialized])")
+      .forEach((scroll) => {
+        if (!(scroll instanceof HTMLElement)) return;
+        const set = scroll.querySelector("[data-ticker-set]");
+        if (!(set instanceof HTMLElement)) return;
+        const parent = scroll.parentElement;
+        if (!parent) return;
+
+        // A ticker that loads collapsed has no width to measure; set it up
+        // once it is shown instead of baking in zero-width animation values.
+        const trackWidth = parent.offsetWidth;
+        if (trackWidth === 0) {
+          whenShown(parent, () => {
+            initializeTickers();
+            insertArrivals();
+          });
+          return;
+        }
+        scroll.setAttribute("data-ticker-initialized", "true");
+        const items = Array.from(set.children);
+        if (items.length === 0) return;
+
+        let i = 0;
+        while (set.offsetWidth < trackWidth) {
+          const clone = items[i % items.length].cloneNode(true) as Element;
+          clone.setAttribute("data-ticker-fill", "");
+          set.appendChild(clone);
+          i++;
+        }
+
+        const dupe = set.cloneNode(true);
+        if (!(dupe instanceof HTMLElement)) return;
+        dupe.setAttribute("aria-hidden", "true");
+        scroll.appendChild(dupe);
+
+        const setWidth = set.offsetWidth;
+        const pxPerSecond = 30;
+        const duration = setWidth / pxPerSecond;
+
+        scroll.style.animationDuration = duration + "s";
+        scroll.style.setProperty("--set-width", "-" + setWidth + "px");
+        scroll.classList.add("news-ticker-animate");
+
+        const startedAt = (
+          window as Window & { __newsTickerStartedAt?: number }
+        ).__newsTickerStartedAt;
+        const animation = scroll.getAnimations()[0];
+        if (typeof startedAt === "number" && animation) {
+          animation.currentTime = (performance.now() - startedAt) % (duration * 1000);
+        }
+
+        if (isPausedPreference() && animation) {
+          animation.pause();
+        }
+      });
+  }
+
+  function initializePauseButtons() {
+    document.querySelectorAll(".news-ticker-pause").forEach((btn) => {
+      setPauseButtonState(btn, isPausedPreference());
+
+      if (btn.hasAttribute("data-pause-initialized")) return;
+      btn.setAttribute("data-pause-initialized", "true");
+
+      btn.addEventListener("click", () => {
+        const nextIsPaused = !isPausedPreference();
+
+        try {
+          localStorage.setItem(PAUSE_STORAGE_KEY, String(nextIsPaused));
+        } catch (_error) {
+          // Ignore unavailable browser storage; state just won't persist.
+        }
+
+        document.querySelectorAll(".news-ticker").forEach((ticker) => {
+          const scroll = ticker.querySelector(".news-ticker-scroll");
+          if (scroll instanceof HTMLElement) {
+            scroll.getAnimations().forEach((a) => (nextIsPaused ? a.pause() : a.play()));
+          }
+        });
+
+        document.querySelectorAll(".news-ticker-pause").forEach((pauseBtn) => {
+          setPauseButtonState(pauseBtn, nextIsPaused);
+        });
+      });
+    });
+  }
+
+  function initializeHoverPause() {
+    document.querySelectorAll(".news-ticker-track:not([data-hover-pause-initialized])").forEach((track) => {
+      track.setAttribute("data-hover-pause-initialized", "true");
+      const scroll = track.querySelector(".news-ticker-scroll");
+      if (!(scroll instanceof HTMLElement)) return;
+
+      track.addEventListener("mouseenter", () => {
+        scroll.getAnimations().forEach((a) => a.pause());
+      });
+
+      track.addEventListener("mouseleave", () => {
+        // Leave it paused if the user explicitly paused it with the button.
+        if (isPausedPreference()) return;
+        scroll.getAnimations().forEach((a) => a.play());
+      });
+    });
+  }
+
+  type TickerFigure = {
+    label: string;
+    value: string;
+    change?: { direction: "up" | "down"; text: string };
+  };
+
+  type TickerHeadline = { title: string; href: string; date: number };
+
+  type Arrival =
+    | { kind: "figures"; source: number; figures: TickerFigure[] }
+    | { kind: "headlines"; headlines: TickerHeadline[] };
+
+  const FIGURE_SOURCES = ["otter", "clubs", "slack-data"];
+  const PX_PER_SECOND = 30;
+
+  // How long the figures usually take to arrive, learned per browser. The
+  // ticker opens with enough article headlines to cover that wait, so the
+  // first figure slot only scrolls into view once its data is likely there.
+  const FIGURES_LATENCY_KEY = "news-ticker:figures-ms";
+  const DEFAULT_FIGURES_LATENCY_MS = 2000;
+
+  function estimatedFiguresLatency(): number {
+    try {
+      const stored = Number(localStorage.getItem(FIGURES_LATENCY_KEY));
+      if (Number.isFinite(stored) && stored > 0) return stored;
+    } catch (_error) {
+      // Fall back to the default estimate.
+    }
+    return DEFAULT_FIGURES_LATENCY_MS;
+  }
+
+  function recordFiguresLatency(elapsed: number) {
+    const clamped = Math.min(Math.max(elapsed, 250), 15000);
+    // Weighted towards history so one slow load doesn't swing the layout.
+    const next = Math.round(estimatedFiguresLatency() * 0.7 + clamped * 0.3);
+    try {
+      localStorage.setItem(FIGURES_LATENCY_KEY, String(next));
+    } catch (_error) {
+      // The estimate just won't be remembered.
+    }
+  }
+
+  // Scoped styles (padding, divider colour) key off Astro's data-astro-cid-*
+  // attribute, so items built here copy it from a server-rendered item.
+  function copyScope(from: Element, to: Element) {
+    for (const attribute of Array.from(from.attributes)) {
+      if (attribute.name.startsWith("data-astro-cid-")) to.setAttribute(attribute.name, "");
+    }
+  }
+
+  function figureNodes(
+    figure: TickerFigure,
+    order: number,
+    template: Element,
+    divider: Element,
+  ): Node[] {
+    const item = document.createElement("span");
+    item.className = "news-ticker-item news-ticker-figure";
+    item.setAttribute("data-ticker-figure", String(order));
+    copyScope(template, item);
+
+    const label = document.createElement("span");
+    label.className = "news-ticker-figure-label";
+    label.textContent = figure.label;
+    const value = document.createElement("span");
+    value.className = "news-ticker-figure-value";
+    value.textContent = figure.value;
+    item.append(label, value);
+
+    if (figure.change) {
+      const change = document.createElement("span");
+      change.className = `news-ticker-figure-change news-ticker-figure-change--${figure.change.direction}`;
+      change.textContent = `${figure.change.direction === "up" ? "▲" : "▼"}${figure.change.text}`;
+      item.append(change);
+    }
+
+    return [item, divider.cloneNode(true)];
+  }
+
+  function headlineNodes(headline: TickerHeadline, template: Element, divider: Element): Node[] {
+    const item = document.createElement("a");
+    item.className = "news-ticker-item";
+    item.href = headline.href;
+    item.textContent = headline.title;
+    item.setAttribute("data-ticker-headline", "");
+    item.setAttribute("data-ticker-date", String(headline.date));
+    item.setAttribute("data-ticker-streamed", "");
+    copyScope(template, item);
+    return [item, divider.cloneNode(true)];
+  }
+
+  type Unit = {
+    nodes: Element[];
+    kind: "lead" | "headline" | "figure";
+    date: number;
+    order: number;
+    left: number;
+    width: number;
+  };
+
+  // The set is a run of item + divider pairs; measure each pair where it
+  // currently sits.
+  function readUnits(set: HTMLElement): { units: Unit[]; fill: Element[] } {
+    const children = Array.from(set.children);
+    const setLeft = set.getBoundingClientRect().left;
+    const setRight = set.getBoundingClientRect().right;
+    const units: Unit[] = [];
+    const fill: Element[] = [];
+
+    for (let index = 0; index < children.length; index += 2) {
+      const item = children[index];
+      const nodes = [item, children[index + 1]].filter(Boolean);
+      if (item.hasAttribute("data-ticker-fill")) {
+        fill.push(...nodes);
+        continue;
+      }
+      const next = children[index + 2];
+      const left = item.getBoundingClientRect().left - setLeft;
+      const right = (next ? next.getBoundingClientRect().left : setRight) - setLeft;
+      const figure = item.getAttribute("data-ticker-figure");
+      units.push({
+        nodes,
+        kind: figure !== null ? "figure" : "headline",
+        date: Number(item.getAttribute("data-ticker-date")) || 0,
+        order: Number(figure) || 0,
+        left,
+        width: right - left,
+      });
+    }
+
+    return { units, fill };
+  }
+
+  // Article headlines render with the page, so they open the ticker for as
+  // long as the figures usually take to arrive (plus the first screen).
+  function leadCount(units: Unit[], trackWidth: number): number {
+    const needed = trackWidth + (estimatedFiguresLatency() / 1000) * PX_PER_SECOND;
+    let covered = 0;
+    let count = 0;
+    for (const unit of units) {
+      if (unit.kind !== "headline" || unit.nodes[0].hasAttribute("data-ticker-streamed")) break;
+      if (covered >= needed) break;
+      covered += unit.width;
+      count++;
+    }
+    return count;
+  }
+
+  // Lead articles first, then every other headline newest-first with the
+  // figures spaced evenly between them.
+  function idealOrder(units: Unit[], lead: number): Unit[] {
+    const leadUnits = units.slice(0, lead);
+    const rest = units
+      .slice(lead)
+      .filter((unit) => unit.kind === "headline")
+      .sort((a, b) => b.date - a.date);
+    const figures = units.filter((unit) => unit.kind === "figure").sort((a, b) => a.order - b.order);
+
+    const ordered: Unit[] = [...leadUnits];
+    let placed = 0;
+    rest.forEach((unit, index) => {
+      ordered.push(unit);
+      while (
+        placed < figures.length &&
+        index + 1 >= Math.round(((placed + 1) * rest.length) / (figures.length + 1))
+      ) {
+        ordered.push(figures[placed++]);
+      }
+    });
+    ordered.push(...figures.slice(placed));
+    return ordered;
+  }
+
+  // Lay arrivals out without moving anything the reader can see: whatever is
+  // on screen stays one contiguous run, and the animation offset shifts by
+  // however much content lands before it.
+  const pending: Arrival[] = [];
+  let retryTimer: number | undefined;
+
+  function insertArrivals(arrival?: Arrival) {
+    if (arrival) pending.push(arrival);
+    const scroll = document.querySelector("#news-ticker [data-ticker-live] [data-ticker]");
+    if (!(scroll instanceof HTMLElement) || pending.length === 0) return;
+    const set = scroll.querySelector("[data-ticker-set]");
+    const track = scroll.parentElement;
+    if (!(set instanceof HTMLElement) || !track) return;
+
+    // A collapsed ticker has no width to measure, so hold arrivals until it
+    // is shown again. A shown ticker without an animation is standing still
+    // for a reader who prefers reduced motion; it starts at offset zero.
+    if (set.offsetWidth === 0) {
+      whenShown(track, () => insertArrivals());
+      return;
+    }
+    const animation = scroll.getAnimations()[0];
+    const trackWidth = track.offsetWidth;
+    const setWidth = set.offsetWidth;
+    const offset = (((Number(animation?.currentTime) || 0) / 1000) * PX_PER_SECOND) % setWidth;
+
+    // While the loop seam is on screen the duplicate set is visible too;
+    // wait for it to pass rather than reshuffle what the reader sees.
+    if (offset + trackWidth > setWidth) {
+      window.clearTimeout(retryTimer);
+      retryTimer = window.setTimeout(() => insertArrivals(), 1000);
+      return;
+    }
+
+    const template = set.querySelector("[data-ticker-headline]");
+    const divider = set.querySelector(".news-ticker-divider");
+    if (!template || !divider) return;
+
+    if (!scroll.dataset.leadCount) {
+      scroll.dataset.leadCount = String(leadCount(readUnits(set).units, trackWidth));
+    }
+    const lead = Number(scroll.dataset.leadCount);
+
+    // Append first so the new items can be measured, then lay out.
+    const firstFill = set.querySelector("[data-ticker-fill]");
+    for (const next of pending.splice(0)) {
+      const nodes =
+        next.kind === "headlines"
+          ? next.headlines.flatMap((headline) => headlineNodes(headline, template, divider))
+          : next.figures.flatMap((figure, index) =>
+              figureNodes(figure, next.source * 100 + index, template, divider),
+            );
+      if (firstFill) firstFill.before(...nodes);
+      else set.append(...nodes);
+    }
+
+    const { units, fill } = readUnits(set);
+    const visible = units.filter(
+      (unit) => unit.left + unit.width > offset && unit.left < offset + trackWidth,
+    );
+    const ideal = idealOrder(units, lead);
+    const others = ideal.filter((unit) => !visible.includes(unit));
+    const anchor = visible[0];
+    // Still tickers can't absorb a shift, so their visible run stays first.
+    const at = !anchor || !animation ? 0 : others.filter((unit) => ideal.indexOf(unit) < ideal.indexOf(anchor)).length;
+    const final = [...others.slice(0, at), ...visible, ...others.slice(at)];
+
+    set.replaceChildren(...final.flatMap((unit) => unit.nodes), ...fill);
+
+    const anchorLeft = anchor
+      ? anchor.nodes[0].getBoundingClientRect().left - set.getBoundingClientRect().left
+      : 0;
+    const shift = anchor ? anchorLeft - anchor.left : 0;
+
+    // The duplicate set must match for the loop to stay seamless.
+    scroll.querySelectorAll("[data-ticker-set]").forEach((other) => {
+      if (other === set) return;
+      const copy = set.cloneNode(true) as HTMLElement;
+      copy.setAttribute("aria-hidden", "true");
+      other.replaceWith(copy);
+    });
+
+    const width = set.offsetWidth;
+    scroll.style.animationDuration = width / PX_PER_SECOND + "s";
+    scroll.style.setProperty("--set-width", "-" + width + "px");
+    if (animation) animation.currentTime = ((offset + shift) / PX_PER_SECOND) * 1000;
+  }
+
+  function fetchJson<T>(url: string): Promise<T[]> {
+    return fetch(url)
+      .then((response) => (response.ok ? response.json() : []))
+      .catch(() => []);
+  }
+
+  // Each source is fetched separately and slotted in as it answers, so a
+  // slow API only delays its own items. A failed source is just left out.
+  function loadArrivals() {
+    const ticker = document.querySelector("#news-ticker [data-ticker-live]");
+    if (!(ticker instanceof HTMLElement) || ticker.hasAttribute("data-arrivals-requested")) return;
+    ticker.setAttribute("data-arrivals-requested", "");
+
+    let columns: string[] = [];
+    try {
+      columns = JSON.parse(ticker.dataset.slackColumns ?? "[]");
+    } catch (_error) {
+      // Without a column list, the ticker keeps its article headlines.
+    }
+
+    for (const column of columns) {
+      fetchJson<TickerHeadline>(`/api/ticker-headlines/${encodeURIComponent(column)}.json`).then(
+        (headlines) => headlines.length > 0 && insertArrivals({ kind: "headlines", headlines }),
+      );
+    }
+
+    const startedAt = performance.now();
+    Promise.all(
+      FIGURE_SOURCES.map((source, index) =>
+        fetchJson<TickerFigure>(`/api/ticker-figures/${source}.json`).then((figures) => {
+          if (figures.length > 0) insertArrivals({ kind: "figures", source: index, figures });
+        }),
+      ),
+    ).then(() => recordFiguresLatency(performance.now() - startedAt));
+  }
+
+  function initializeAllTickers() {
+    // Run before collapsing: measuring a hidden (display:none) track
+    // would bake in zero-width animation values that never get fixed
+    // once the ticker is expanded again.
+    initializeTickers();
+    initializePauseButtons();
+    initializeHoverPause();
+    loadArrivals();
+  }
+
+  function saveTickerPositions() {
+    document
+      .querySelectorAll(
+        ".news-ticker-scroll",
+      )
+      .forEach((scroll) => {
+        if (!(scroll instanceof HTMLElement)) return;
+
+        const currentTime = scroll.getAnimations()[0]?.currentTime;
+        if (typeof currentTime === "number") {
+          scroll.setAttribute("data-ticker-current-time", String(currentTime));
+          scroll.setAttribute("data-ticker-saved-at", String(performance.now()));
+        }
+      });
+  }
+
+  function restoreTickerPositions() {
+    document
+      .querySelectorAll(
+        ".news-ticker-scroll[data-ticker-current-time]",
+      )
+      .forEach((scroll) => {
+        if (!(scroll instanceof HTMLElement)) return;
+
+        const currentTime = Number(scroll.getAttribute("data-ticker-current-time"));
+        const savedAt = Number(scroll.getAttribute("data-ticker-saved-at"));
+        const duration = parseFloat(getComputedStyle(scroll).animationDuration) * 1000;
+        const navigationTime = Number.isFinite(savedAt)
+          ? performance.now() - savedAt
+          : 0;
+
+        if (!Number.isFinite(currentTime) || duration <= 0) return;
+
+        const animation = scroll.getAnimations()[0];
+        if (!animation) return;
+
+        scroll.style.animationDelay = "0s";
+        animation.currentTime = (currentTime + navigationTime) % duration;
+        animation.play();
+      });
+  }
+
+  function initializeAllTickersAndRestorePosition() {
+    initializeAllTickers();
+    restoreTickerPositions();
+  }
+
+  initializeAllTickers();
+  document.addEventListener("astro:before-swap", saveTickerPositions);
+  document.addEventListener("astro:after-swap", initializeAllTickersAndRestorePosition);
+  document.addEventListener("astro:page-load", initializeAllTickersAndRestorePosition);
+  new MutationObserver(initializeAllTickers).observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+</script>
+
+<style>
+  .news-ticker {
+    background: #f5f5f0;
+    color: #000;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    border-top: 3px solid #000;
+    border-bottom: 3px double #000;
+  }
+
+
+  .news-ticker-track {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .news-ticker-scroll {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .news-ticker-animate {
+    animation: ticker-scroll linear infinite;
+  }
+
+  .news-ticker-set {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .news-ticker-item {
+    padding: 8px 0;
+  }
+
+  .news-ticker-divider {
+    margin: 0 1.2em;
+    font-size: 0.45em;
+    vertical-align: middle;
+    color: var(--hc-muted);
+  }
+
+  .news-ticker-pause {
+    flex: 0 0 auto;
+    height: 31px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-left: 2px solid #000;
+    background: #f5f5f0;
+    font-size: 0.7rem;
+    line-height: 1;
+    cursor: pointer;
+    font-family: inherit;
+    color: #000;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .news-ticker-pause:hover {
+    background: #fff;
+  }
+
+  @keyframes ticker-scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(var(--set-width));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .news-ticker-animate {
+      animation: none;
+    }
+  }
+</style>

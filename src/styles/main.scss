@@ -16,6 +16,15 @@ $link-hover-color: #000000;
 
 @use "minima";
 
+// ─── Palette ─────────────────────────────────────────────────────────────────
+// Hack Club brand colours. Red is the hero; the rest are supporting accents.
+
+:root {
+  --hc-red: #ec3750;
+  --hc-green: #33d6a6;
+  --hc-muted: #8492a6;
+}
+
 // ─── Base ────────────────────────────────────────────────────────────────────
 
 body {
@@ -45,16 +54,17 @@ a {
 // ─── Masthead ────────────────────────────────────────────────────────────────
 
 .site-header {
+  position: relative;
   border-top: 5px solid #000;
-  border-bottom: 3px double #000;
   background-color: #fff;
   text-align: center;
-  padding: 12px 0;
+  padding: 0;
 
   .wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 12px 0;
   }
 }
 
@@ -97,6 +107,96 @@ a {
     @media screen and (max-width: 600px) {
       display: none;
     }
+  }
+}
+
+// ─── News ticker ─────────────────────────────────────────────────────────────
+
+// Collapsed ticker: the rest of the bar disappears entirely (page content
+// reflows up to fill the space) and only the red "newswire" box remains,
+// pinned in place so it keeps working as the toggle.
+.news-ticker.news-ticker--collapsed {
+  border: none;
+  border-bottom: 2px solid #000;
+  min-height: 0;
+
+  .news-ticker-track,
+  .news-ticker-pause {
+    display: none;
+  }
+
+  .news-ticker-label {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 40;
+    margin-right: 0;
+    padding: 3px 1em;
+    border-color: #000;
+  }
+}
+
+@media (max-width: 600px) {
+  .news-ticker.news-ticker--collapsed .news-ticker-label {
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+
+    .news-ticker-label-text {
+      display: none;
+    }
+  }
+}
+
+.news-ticker-label {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 8px 1em;
+  margin-right: 12px;
+  box-sizing: border-box;
+  border: 3px double transparent;
+  background: #000;
+  color: #fff;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.news-ticker-figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+}
+
+.news-ticker-figure-label {
+  font-size: 0.85em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5a5a52;
+}
+
+.news-ticker-figure-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.news-ticker-figure-change {
+  font-size: 0.85em;
+  font-weight: 700;
+
+  &--up {
+    color: color-mix(in srgb, var(--hc-green) 72%, #101018);
+  }
+
+  &--down {
+    color: var(--hc-red);
   }
 }
 
@@ -672,14 +772,72 @@ a {
   }
 }
 
+.acknowledgements-section {
+  margin-bottom: 32px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.acknowledgements-heading {
+  font-family: Georgia, serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
 .acknowledgements-full-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px 20px;
+  gap: 10px;
 
   .acknowledgement-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 2px solid #000;
+    border-radius: 10px;
+    background: #fff;
     font-size: 1.05rem;
-    line-height: 1.75;
+    line-height: 1.4;
+
+    // Avatars stay muted until the box is hovered. The filter sits on the box
+    // rather than the image so that dark mode's own invert on <img> still
+    // applies underneath it; the box's text is black, so graying it is a no-op.
+    filter: grayscale(1);
+    transition: filter 0.15s ease;
+
+    &:hover,
+    &:focus-within {
+      filter: grayscale(0);
+    }
+
+    // The mention is the only text in the box, so let it take the space left
+    // over and trim rather than push the avatar around.
+    .slack_user {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .acknowledgement-avatar {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #000;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #e8e8e0;
+  }
+
+  @media screen and (max-width: 600px) {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

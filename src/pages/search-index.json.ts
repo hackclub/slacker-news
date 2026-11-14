@@ -24,7 +24,8 @@ export const GET: APIRoute = async ({ locals }) => {
             col.limit,
           );
           for (const msg of messages) {
-            slackDocs.push(slackMessageToDocument(msg, col));
+            const doc = slackMessageToDocument(msg, col);
+            if (doc) slackDocs.push(doc);
           }
         } catch (err) {
           console.error(

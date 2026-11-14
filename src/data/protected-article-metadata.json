@@ -1,0 +1,58 @@
+{
+  "title": "Protected Article",
+  "submit_label": "Publish",
+  "fields": [
+    {
+      "action_id": "title",
+      "label": "Title",
+      "type": "plain_text_input",
+      "placeholder": "The headline readers will see",
+      "optional": false,
+      "max_length": 150
+    },
+    {
+      "action_id": "column",
+      "label": "Column",
+      "type": "static_select",
+      "placeholder": "Choose a column",
+      "optional": false,
+      "options": [
+        {
+          "label": "News",
+          "value": "news"
+        },
+        {
+          "label": "Opinion",
+          "value": "opinion"
+        },
+        {
+          "label": "Essays",
+          "value": "essays"
+        }
+      ]
+    },
+    {
+      "action_id": "slug",
+      "label": "Slug",
+      "type": "plain_text_input",
+      "placeholder": "The last part of the article's URL. Leave blank to make one from the title",
+      "optional": true,
+      "max_length": 100
+    },
+    {
+      "action_id": "author",
+      "label": "Author",
+      "type": "plain_text_input",
+      "placeholder": "Slack user ID, like U080HHYN0JD. Leave blank to credit the poster",
+      "optional": true,
+      "max_length": 100
+    },
+    {
+      "action_id": "publishdate",
+      "label": "Publish date",
+      "type": "datepicker",
+      "placeholder": "Leave blank to use the post time",
+      "optional": true
+    }
+  ]
+}

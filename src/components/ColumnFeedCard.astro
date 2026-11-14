@@ -1,7 +1,6 @@
 ---
 import SlackRichText from "./SlackRichText.astro";
 import type { ColumnFeedItem } from "../lib/column-feed";
-import { firstMetadataValue } from "../lib/column-feed";
 import { truncateWords, formatStoryDate } from "../lib/content";
 
 interface Props {
@@ -12,11 +11,9 @@ interface Props {
 
 const { item, variant, homepage } = Astro.props;
 const isSlack = item.kind === "slack";
-const title = isSlack ? firstMetadataValue(item.message.metadata) ?? item.column.title : item.post.title;
-const date = isSlack ? new Date(item.message.timestamp) : item.post.date;
-const href = isSlack
-  ? `/slack/${encodeURIComponent(item.column.column)}/${encodeURIComponent(item.message.slackTs)}/`
-  : item.post.url;
+const title = isSlack ? item.article.title : item.post.title;
+const date = isSlack ? item.article.date : item.post.date;
+const href = isSlack ? item.article.url : item.post.url;
 const excerpt = isSlack ? item.message.text : item.post.excerpt;
 const truncatedExcerpt = truncateWords(excerpt, 18);
 ---

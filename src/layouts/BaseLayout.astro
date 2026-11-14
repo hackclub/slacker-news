@@ -1,6 +1,8 @@
 ---
 import AbacusCounter from "../components/AbacusCounter.astro";
 import SiteFooter from "../components/SiteFooter.astro";
+import NewsTicker from "../components/NewsTicker.astro";
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
   title?: string;
@@ -46,7 +48,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 ---
 
 <!doctype html>
-<html lang="en" class="no-js">
+<html lang="en" class="no-js" transition:animate="none">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -69,6 +71,8 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     <meta property="og:locale" content={openGraphLocale} />
     <meta property="og:image" content={socialImageURL} />
     <meta property="og:image:alt" content={socialImageAlt} />
+
+    <ClientRouter />
 
 
     {openGraphType === "article" && articlePublishedTime && (
@@ -96,42 +100,54 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     </noscript>
     <script is:inline>
       (function () {
-        var root = document.documentElement;
-        root.classList.remove("no-js");
-        root.classList.add("js");
+        function applyTheme() {
+          var root = document.documentElement;
+          root.classList.remove("no-js");
+          root.classList.add("js");
 
-        try {
-          var storedPreference = localStorage.getItem("dark-mode");
-          var prefersDark =
-            typeof window.matchMedia === "function" &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          try {
+            var storedPreference = localStorage.getItem("dark-mode");
+            var prefersDark =
+              typeof window.matchMedia === "function" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-          if (storedPreference === "false") {
-            root.classList.remove("dark-mode");
-            root.classList.add("light-mode");
-            return;
+            if (storedPreference === "false") {
+              root.classList.remove("dark-mode");
+              root.classList.add("light-mode");
+              return;
+            }
+
+            if (storedPreference === "true" || (storedPreference === null && prefersDark)) {
+              root.classList.remove("light-mode");
+              root.classList.add("dark-mode");
+            }
+          } catch (_error) {
+            // do nothing :)
           }
-
-          if (storedPreference === "true" || (storedPreference === null && prefersDark)) {
-            root.classList.remove("light-mode");
-            root.classList.add("dark-mode");
-          }
-        } catch (_error) {
-          // do nothing :)
         }
+
+        // Re-apply after every client-side navigation: the router can
+        // replace <html>'s attributes with the freshly fetched page's
+        // server-rendered ones, which never carry dark-mode/light-mode.
+        applyTheme();
+        document.addEventListener("astro:after-swap", applyTheme);
       })();
     </script>
     <script is:inline>
-      document.addEventListener("DOMContentLoaded", function () {
-        var btn = document.getElementById("theme-toggle");
-        if (!btn) return;
-
+      (function () {
         function updateThemeButtonLabel() {
+          var btn = document.getElementById("theme-toggle");
+          if (!btn) return;
           btn.textContent = document.documentElement.classList.contains("dark-mode") ? "Light Mode" : "Dark Mode";
         }
 
-        updateThemeButtonLabel();
-        btn.addEventListener("click", function () {
+        // Delegate from `document` instead of binding to the button directly:
+        // client-side navigation replaces the header (and its button) with a
+        // fresh node that would otherwise have no listener attached to it.
+        document.addEventListener("click", function (event) {
+          var btn = event.target.closest && event.target.closest("#theme-toggle");
+          if (!btn) return;
+
           var root = document.documentElement;
           root.classList.toggle("dark-mode");
           var isDark = root.classList.contains("dark-mode");
@@ -143,7 +159,10 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           }
           updateThemeButtonLabel();
         });
-      });
+
+        updateThemeButtonLabel();
+        document.addEventListener("astro:page-load", updateThemeButtonLabel);
+      })();
     </script>
   </head>
   <body>
@@ -186,7 +205,65 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           </div>
         </nav>
       </div>
+      <div id="news-ticker" transition:persist="news-ticker">
+        <NewsTicker />
+      </div>
     </header>
+    <script is:inline>
+      (function () {
+        var STORAGE_KEY = "news-ticker:collapsed";
+
+        // An explicit toggle wins; until the reader makes one, the ticker
+        // starts collapsed for anyone who asked their system to reduce
+        // motion. The in-memory copy keeps a toggle working when storage
+        // is unavailable, and survives client-side navigation.
+        function isCollapsedPreference() {
+          if (typeof window.__newsTickerCollapsed === "boolean") {
+            return window.__newsTickerCollapsed;
+          }
+          try {
+            var stored = localStorage.getItem(STORAGE_KEY);
+            if (stored !== null) return stored === "true";
+          } catch (_error) {
+            // Fall through to the motion preference.
+          }
+          return (
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          );
+        }
+
+        // The red "newswire" box itself is the toggle: collapsing hides
+        // everything else in the ticker bar but leaves that box in place
+        // to expand it again.
+        function applyTickerCollapse() {
+          var collapsed = isCollapsedPreference();
+          document.querySelectorAll(".news-ticker").forEach(function (ticker) {
+            ticker.classList.toggle("news-ticker--collapsed", collapsed);
+          });
+          document.querySelectorAll(".news-ticker-label").forEach(function (label) {
+            label.setAttribute("aria-label", collapsed ? "Show newswire ticker" : "Hide newswire ticker");
+          });
+        }
+
+        applyTickerCollapse();
+        document.addEventListener("astro:after-swap", applyTickerCollapse);
+
+        document.addEventListener("click", function (event) {
+          var label = event.target.closest && event.target.closest(".news-ticker-label");
+          if (!label) return;
+
+          var next = !isCollapsedPreference();
+          window.__newsTickerCollapsed = next;
+          try {
+            localStorage.setItem(STORAGE_KEY, String(next));
+          } catch (_error) {
+            // Ignore unavailable browser storage; state just won't persist.
+          }
+          applyTickerCollapse();
+        });
+      })();
+    </script>
 
     <main class="page-content" aria-label="Content">
       <div class="wrapper">

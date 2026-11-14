@@ -1,10 +1,194 @@
 import rss from "@astrojs/rss";
+import { timingSafeEqual } from "node:crypto";
 import { getChangelogEntries, getPosts, getSiteConfig } from "../lib/content";
 import { legacyRedirects } from "../data/legacy-redirects.mjs";
+import {
+  getMarkdownColumnArticles,
+  getSlackArticle,
+  getSlackColumnData,
+  getSlackColumns,
+} from "../lib/indigest";
+import { getFeedTokenStatus } from "../lib/feed-tokens";
 
 const legacyPaths = new Set(
   Object.keys(legacyRedirects).map((path) => path.replace(/\/$/, "")),
 );
+
+function isLegacyRssToken(provided) {
+  const expected = import.meta.env.RSS_ACCESS_TOKEN;
+  if (!expected) return false;
+
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+  if (expectedBuf.length !== providedBuf.length) return false;
+
+  return timingSafeEqual(expectedBuf, providedBuf);
+}
+
+// Which protected Slack columns the ?token= may read: every one for the
+// shared legacy token, those in scope of a reader's Indigest feed token, or,
+// for a revoked feed token, none plus a notice.
+async function getTokenAccess(context) {
+  const token = context.url.searchParams.get("token");
+  if (!token) return { canRead: () => false };
+  if (isLegacyRssToken(token)) return { canRead: () => true };
+
+  const status = await getFeedTokenStatus(token).catch((error) => {
+    console.error("Unable to validate feed token", error);
+    return { status: "unknown" };
+  });
+  if (status.status === "revoked") {
+    return { canRead: () => false, revokedAt: status.revokedAt };
+  }
+  if (status.status !== "active") return { canRead: () => false };
+  return {
+    canRead: (column) =>
+      status.channelIds.includes(column.channelId ?? column.column),
+  };
+}
+
+// The feed carries its defaults (every article category), adjusted by
+// ?exclude= and ?include=, as built on /rss/. Slack columns marked rss are
+// opt-in through ?include=.
+// Ids are article categories (news, opinion, essays, changelogs) and
+// slack-<column>. Articles from integrations with markdown columns are filed
+// under their category, and protected ones also need the opt-in "protected"
+// id and a token that can read them. Links only name departures from the
+// defaults, so changing a default later reaches existing subscribers.
+// ?includeOnly opts out of that: the feed is exactly ?include=, and defaults
+// and ?exclude= are ignored. ?noKeyRevocationAlerts leaves out the weekly
+// "Your key is revoked" item a revoked token otherwise gets.
+function listParam(context, name) {
+  return new Set(
+    (context.url.searchParams.get(name) ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+}
+
+// A bare ?name counts as set; only an explicit 0 or false turns it off.
+function isFlagSet(context, name) {
+  const value = context.url.searchParams.get(name);
+  return value !== null && value !== "0" && value.toLowerCase() !== "false";
+}
+
+function getColumnSelection(context) {
+  const include = listParam(context, "include");
+  if (isFlagSet(context, "includeOnly")) return (id) => include.has(id);
+  const exclude = listParam(context, "exclude");
+  return (id, isDefault) => (isDefault || include.has(id)) && !exclude.has(id);
+}
+
+function getFeedSlackColumns(wants, tokenAccess) {
+  return getSlackColumns().filter(
+    (column) =>
+      column.rss &&
+      !column.markdownColumns &&
+      wants(`slack-${column.column}`, false) &&
+      (!column.authRequired || tokenAccess.canRead(column)),
+  );
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+// Keys revoked before Indigest recorded revocation times have no date, so
+// their notices fall on Mondays.
+const FALLBACK_REVOKED_AT = new Date(Date.UTC(1970, 0, 5));
+
+// Tell a reader still polling a revoked link how to get a new one. The notice
+// is a fresh item once a week, counted from the revocation.
+function revokedTokenNotice(context, revokedAt) {
+  const anchor = (revokedAt ?? FALLBACK_REVOKED_AT).getTime();
+  const week = Math.max(0, Math.floor((Date.now() - anchor) / WEEK_MS));
+  const loginUrl = new URL("/rss/", context.site ?? context.url).toString();
+  const message = `Your key is revoked. Log in to ${loginUrl} to make a new one.`;
+
+  return {
+    title: "Your key is revoked",
+    description: message,
+    pubDate: new Date(anchor + week * WEEK_MS),
+    // The link doubles as the item's GUID, so it changes every week. It is
+    // absolute so @astrojs/rss leaves it alone instead of adding a slash.
+    link: `${loginUrl}#revoked-${week}`,
+    content: `<p>Your key is revoked. Log in to <a href="${loginUrl}">${loginUrl}</a> to make a new one.</p>`,
+  };
+}
+
+// Articles from integrations with markdown columns, in the categories the
+// feed wants.
+async function getMarkdownColumnItems(wants, tokenAccess) {
+  // Protected messages are loaded only when the feed opted in and its token
+  // can read at least one protected integration.
+  const includeProtected =
+    wants("protected", false) &&
+    getSlackColumns().some(
+      (column) =>
+        column.markdownColumns &&
+        column.authRequired &&
+        tokenAccess.canRead(column),
+    );
+  const articles = await getMarkdownColumnArticles(includeProtected);
+
+  return articles
+    .filter(
+      ({ integration, article }) =>
+        integration.rss &&
+        wants(article.column, true) &&
+        (!integration.authRequired ||
+          (wants("protected", false) && tokenAccess.canRead(integration))),
+    )
+    .map(({ message, article }) => {
+      const authorId = article.author?.match(
+        /^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/,
+      )?.[1];
+      // Readers like the Slack bot cannot open a protected page to find its
+      // byline, so the feed names the author: a Slack mention where there is
+      // an ID, the name otherwise.
+      const author = authorId
+        ? `<@${authorId}>`
+        : (article.author ?? `<@${message.userId}>`);
+
+      return {
+        title: article.title,
+        description: excerpt(message.text),
+        pubDate: article.date,
+        link: article.url,
+        content: `<p>${escapeHtml(message.text)}</p>`,
+        customData: `<dc:creator>${escapeHtml(author)}</dc:creator>`,
+      };
+    })
+    .filter((item) => !Number.isNaN(item.pubDate.getTime()));
+}
+
+function excerpt(text) {
+  const words = text.trim().split(/\s+/);
+  return words.length > 40 ? `${words.slice(0, 40).join(" ")}…` : text.trim();
+}
+
+async function getSlackItems(columns) {
+  const columnData = await Promise.all(
+    columns.map((column) => getSlackColumnData(column.column)),
+  );
+
+  return columnData
+    .filter((column) => column !== undefined)
+    .flatMap((column) =>
+      column.messages
+        .map((message) => {
+          const article = getSlackArticle(message, column);
+          return {
+            title: article.title || "Slack message",
+            description: column.title,
+            pubDate: article.date,
+            link: article.url,
+            content: `<p>${escapeHtml(message.text)}</p>`,
+          };
+        })
+        // Indigest occasionally returns a malformed timestamp; drop those
+        // rather than let one bad record break the whole feed.
+        .filter((item) => !Number.isNaN(item.pubDate.getTime())),
+    );
+}
 
 function escapeHtml(input) {
   return input
@@ -51,44 +235,58 @@ export async function GET(context) {
   const site = await getSiteConfig();
   const posts = await getPosts();
   const changelogs = await getChangelogEntries();
+  const wants = getColumnSelection(context);
+  const tokenAccess = await getTokenAccess(context);
+  const [slackItems, markdownColumnItems] = await Promise.all([
+    getSlackItems(getFeedSlackColumns(wants, tokenAccess)),
+    getMarkdownColumnItems(wants, tokenAccess),
+  ]);
+  if (
+    "revokedAt" in tokenAccess &&
+    !isFlagSet(context, "noKeyRevocationAlerts")
+  ) {
+    slackItems.push(revokedTokenNotice(context, tokenAccess.revokedAt));
+  }
 
   await trackFeedView(context);
 
-  const postItems = posts.map((post) => {
-    const baseSlug = post.slug.split("/").pop();
-    const legacyKey = baseSlug ? `/${baseSlug}` : null;
-    const legacyLink =
-      legacyKey && legacyPaths.has(legacyKey) ? `${legacyKey}/` : post.url;
-    const leadingImageSrc =
-      post.leadingImage?.src ??
-      "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png";
-    const leadingImageAlt =
-      post.leadingImage?.alt ?? `Slacker News social preview`;
+  const postItems = posts
+    .filter((post) => wants(post.category, true))
+    .map((post) => {
+      const baseSlug = post.slug.split("/").pop();
+      const legacyKey = baseSlug ? `/${baseSlug}` : null;
+      const legacyLink =
+        legacyKey && legacyPaths.has(legacyKey) ? `${legacyKey}/` : post.url;
+      const leadingImageSrc =
+        post.leadingImage?.src ??
+        "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png";
+      const leadingImageAlt =
+        post.leadingImage?.alt ?? `Slacker News social preview`;
 
-    const paragraphContent = post.paragraphs.length
-      ? post.paragraphs
-          .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-          .join("")
-      : `<p>${escapeHtml(post.excerpt)}</p>`;
+      const paragraphContent = post.paragraphs.length
+        ? post.paragraphs
+            .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+            .join("")
+        : `<p>${escapeHtml(post.excerpt)}</p>`;
 
-    return {
-      title: post.title,
-      description: post.excerpt,
-      pubDate: post.date,
-      link: legacyLink,
-      content: paragraphContent,
+      return {
+        title: post.title,
+        description: post.excerpt,
+        pubDate: post.date,
+        link: legacyLink,
+        content: paragraphContent,
 
-      // @astrojs/rss doesn't support Media RSS
-      customData: `
+        // @astrojs/rss doesn't support Media RSS
+        customData: `
                 <media:content url="${leadingImageSrc}" medium="image" />
                 <media:thumbnail url="${leadingImageSrc}" />
                 <media:title type="plain">${leadingImageAlt}</media:title>
             `,
-    };
-  });
+      };
+    });
 
   const longChangelogItems = changelogs
-    .filter((entry) => entry.kind === "long")
+    .filter((entry) => entry.kind === "long" && wants("changelogs", true))
     .map((entry) => {
       const paragraphContent = entry.paragraphs.length
         ? entry.paragraphs
@@ -105,9 +303,12 @@ export async function GET(context) {
       };
     });
 
-  const items = [...postItems, ...longChangelogItems].sort(
-    (a, b) => b.pubDate.getTime() - a.pubDate.getTime(),
-  );
+  const items = [
+    ...postItems,
+    ...markdownColumnItems,
+    ...longChangelogItems,
+    ...slackItems,
+  ].sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
 
   return rss({
     title: site.title,
@@ -115,6 +316,7 @@ export async function GET(context) {
     site: context.site,
     xmlns: {
       media: "http://search.yahoo.com/mrss/",
+      dc: "http://purl.org/dc/elements/1.1/",
     },
     items,
   });

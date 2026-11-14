@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import AuthorList from "../../components/AuthorList.astro";
+import SubmitFollowUp from "../../components/SubmitFollowUp.astro";
 import { formatStoryDate, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../../lib/content";
 import { render } from "astro:content";
 
@@ -79,6 +80,8 @@ const { Content } = await render(changelog.entry);
     <div class="story-body">
       <Content />
     </div>
+
+    <SubmitFollowUp />
 
     <footer class="story-footer">
       <a href="/changelogs/">&larr; All changelogs</a>

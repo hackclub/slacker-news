@@ -15,6 +15,8 @@ import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
 
 import ColumnFeedCard from "../components/ColumnFeedCard.astro";
 import { getColumnFeedItems } from "../lib/column-feed";
+import { stripSlackMrkdwn } from "../lib/search";
+import { parseSlackBlocks } from "../lib/slack-rich-text";
 
 export const prerender = false;
 
@@ -28,8 +30,35 @@ const longChangelogs = allChangelogs.filter((e) => e.kind === "long");
 
 const allNews = posts.filter((post) => post.category === "news");
 
+const [opinionItems, newsItems, essayItems] = await Promise.all([
+  getColumnFeedItems("opinion", Boolean(Astro.locals.user)),
+  getColumnFeedItems("news", Boolean(Astro.locals.user)),
+  getColumnFeedItems("essays", Boolean(Astro.locals.user)),
+]);
+
+// News articles published from Slack can lead too. Their slug matches the
+// markdown posts' form ("news/<slug>"), so headlineOverride can name them.
+const slackNewsCandidates = newsItems.flatMap((item) =>
+  item.kind === "slack"
+    ? [{
+        slug: item.article.url.replace(/^\/|\/$/g, ""),
+        url: item.article.url,
+        title: item.article.title,
+        excerpt: "",
+        // Same blocks as the article page, so quotes (including a leading
+        // italic note) stay out of the excerpt, as they do for posts.
+        paragraphs: parseSlackBlocks(item.message.formattedText || item.message.text)
+          .flatMap((block) => (block.type === "paragraph" ? [stripSlackMrkdwn(block.text)] : []))
+          .filter(Boolean),
+        date: item.date,
+        leadingImage: undefined,
+      }]
+    : [],
+);
+
 const allCandidates = [
-  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
+  ...slackNewsCandidates,
+  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, frontPagePreview: p.frontPagePreview, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
   ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -38,6 +67,7 @@ const headline = site.headlineOverride
   : allCandidates[0];
 const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
+  if (headline?.frontPagePreview) return headline.frontPagePreview;
   const paras = headline?.paragraphs ?? [];
   const filtered = paras.filter((p) => {
     const s = p.replace(/\s+/g, " ").trim();
@@ -45,7 +75,7 @@ const headlineExcerpts = (() => {
     if (/^#{1,6}\s+/.test(s)) return false;
     if (/^[=-]{3,}\s*$/.test(s)) return false;
     if (/^>\s/.test(s)) return false;
-    if (/^\u201C/.test(s)) return false;
+    if (s.startsWith("\u201C")) return false;
     const words = s.split(/\s+/).length;
     if (words < 6) return false;
     if (s.length < 40) return false;
@@ -55,12 +85,6 @@ const headlineExcerpts = (() => {
   return filtered.slice(0, headline?.leadingImage ? 2 : 3);
 })();
 const headlineExcerptText = headlineExcerpts.join("\n\n");
-
-const [opinionItems, newsItems, essayItems] = await Promise.all([
-  getColumnFeedItems("opinion", Boolean(Astro.locals.user)),
-  getColumnFeedItems("news", Boolean(Astro.locals.user)),
-  getColumnFeedItems("essays", Boolean(Astro.locals.user)),
-]);
 
 const displayOpinion = opinionItems.slice(0, 3);
 
@@ -82,7 +106,11 @@ function changelogToPostLike(changelog: LongChangelogEntry) {
 const longChangelogItems = longChangelogs.map((c) => changelogToPostLike(c as LongChangelogEntry));
 
 const combinedNewsAndChangelogs = [...newsItems, ...longChangelogItems]
-  .filter((item) => item.kind !== "post" || item.post.slug !== headline?.slug)
+  .filter((item) =>
+    item.kind === "post"
+      ? item.post.slug !== headline?.slug
+      : item.article.url !== headline?.url
+  )
   .sort((a, b) => b.date.getTime() - a.date.getTime())
   .slice(0, 8);
 
@@ -92,7 +120,14 @@ const displayEssays = essayItems.slice(0, 4);
 
 const recentChangelog = allChangelogs.slice(0, 3);
 const acknowledgements = await getAcknowledgements();
-const homepageSlackColumns = getSlackColumns().filter((column) => column.homepage);
+// Markdown-column integrations show inside the opinion, news and essays
+// sections instead of a row of their own.
+const homepageSlackColumns = getSlackColumns().filter(
+  (column) =>
+    column.homepage &&
+    !column.markdownColumns &&
+    (!column.authRequired || Astro.locals.user)
+);
 
 function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
   return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 4), 1), 8);
@@ -242,125 +277,134 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
   <script>
     import { layout, prepare } from "@chenglou/pretext";
 
-    const excerpt = document.getElementById("headline-excerpt");
+    // Bundled scripts run once per full page load, so re-run on every
+    // client-side navigation to fit the headline excerpt on this page again.
+    document.addEventListener("astro:page-load", () => {
+      const excerpt = document.getElementById("headline-excerpt");
 
-    if (excerpt instanceof HTMLElement) {
-      const source = excerpt.dataset.source ?? "";
-      const sourceWords = source.trim().split(/\s+/).filter(Boolean);
+      if (excerpt instanceof HTMLElement) {
+        const source = excerpt.dataset.source ?? "";
+        const sourceWords = source.trim().split(/\s+/).filter(Boolean);
 
-      if (sourceWords.length > 0) {
-        const sourceParagraphs = source.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
-        let frame = 0;
+        if (sourceWords.length > 0) {
+          const sourceParagraphs = source.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
+          let frame = 0;
 
-        function splitSentences(paragraph: string): string[] {
-          if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
-            const segmenter = new Intl.Segmenter(undefined, { granularity: "sentence" });
-            return Array.from(segmenter.segment(paragraph), (segment) => segment.segment.trim()).filter(Boolean);
-          }
-
-          return paragraph
-            .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
-            ?.map((sentence) => sentence.trim())
-            .filter(Boolean) ?? [paragraph];
-        }
-
-        const paragraphSentenceGroups = sourceParagraphs.map((paragraph) => splitSentences(paragraph));
-
-        const buildCandidate = (sentenceCount: number) => {
-          let remaining = sentenceCount;
-          const chunks = [];
-
-          for (const paragraphSentences of paragraphSentenceGroups) {
-            if (remaining <= 0) {
-              break;
+          function splitSentences(paragraph: string): string[] {
+            if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
+              const segmenter = new Intl.Segmenter(undefined, { granularity: "sentence" });
+              return Array.from(segmenter.segment(paragraph), (segment) => segment.segment.trim()).filter(Boolean);
             }
 
-            const take = Math.min(remaining, paragraphSentences.length);
-            if (take > 0) {
-              chunks.push(paragraphSentences.slice(0, take).join(" "));
-              remaining -= take;
-            }
-
-            if (remaining > 0 && take === paragraphSentences.length) {
-              chunks.push("\n\n");
-            } else {
-              break;
-            }
+            return paragraph
+              .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
+              ?.map((sentence) => sentence.trim())
+              .filter(Boolean) ?? [paragraph];
           }
 
-          return chunks.join("");
-        };
+          const paragraphSentenceGroups = sourceParagraphs.map((paragraph) => splitSentences(paragraph));
 
-        const fitExcerpt = () => {
-          const excerptBox = excerpt.parentElement;
+          const buildCandidate = (sentenceCount: number) => {
+            let remaining = sentenceCount;
+            const chunks = [];
 
-          if (!(excerptBox instanceof HTMLElement)) {
-            return;
-          }
+            for (const paragraphSentences of paragraphSentenceGroups) {
+              if (remaining <= 0) {
+                break;
+              }
 
-          const maxWidth = excerptBox.clientWidth;
-          const maxHeight = excerptBox.clientHeight;
+              const take = Math.min(remaining, paragraphSentences.length);
+              if (take > 0) {
+                chunks.push(paragraphSentences.slice(0, take).join(" "));
+                remaining -= take;
+              }
 
-          if (maxWidth <= 0 || maxHeight <= 0) {
-            return;
-          }
-
-          const style = getComputedStyle(excerpt);
-          const fontSize = Number.parseFloat(style.fontSize);
-          const lineHeight = Number.parseFloat(style.lineHeight);
-          const resolvedLineHeight = Number.isFinite(lineHeight) && lineHeight > 0
-            ? lineHeight
-            : Math.round(fontSize * 1.5);
-          const font = `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
-            .replace(/\s+/g, " ")
-            .trim();
-          const cache = new Map();
-
-          const fits = (sentenceCount: number) => {
-            const cached = cache.get(sentenceCount);
-
-            if (cached !== undefined) {
-              return cached <= maxHeight;
+              if (remaining > 0 && take === paragraphSentences.length) {
+                chunks.push("\n\n");
+              } else {
+                break;
+              }
             }
 
-            const candidate = buildCandidate(sentenceCount);
-            const prepared = prepare(candidate, font, { whiteSpace: "pre-wrap" });
-            const measured = layout(prepared, maxWidth, resolvedLineHeight).height;
-            cache.set(sentenceCount, measured);
-            return measured <= maxHeight;
+            return chunks.join("");
           };
 
-          let lo = 1;
-          let hi = paragraphSentenceGroups.reduce((total, paragraphSentences) => total + paragraphSentences.length, 0);
-          let best = 0;
+          const fitExcerpt = () => {
+            const excerptBox = excerpt.parentElement;
 
-          while (lo <= hi) {
-            const mid = Math.floor((lo + hi) / 2);
-
-            if (fits(mid)) {
-              best = mid;
-              lo = mid + 1;
-            } else {
-              hi = mid - 1;
+            if (!(excerptBox instanceof HTMLElement)) {
+              return;
             }
+
+            const maxWidth = excerptBox.clientWidth;
+            const maxHeight = excerptBox.clientHeight;
+
+            if (maxWidth <= 0 || maxHeight <= 0) {
+              return;
+            }
+
+            const style = getComputedStyle(excerpt);
+            const fontSize = Number.parseFloat(style.fontSize);
+            const lineHeight = Number.parseFloat(style.lineHeight);
+            const resolvedLineHeight = Number.isFinite(lineHeight) && lineHeight > 0
+              ? lineHeight
+              : Math.round(fontSize * 1.5);
+            const font = `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+              .replace(/\s+/g, " ")
+              .trim();
+            const cache = new Map();
+
+            const fits = (sentenceCount: number) => {
+              const cached = cache.get(sentenceCount);
+
+              if (cached !== undefined) {
+                return cached <= maxHeight;
+              }
+
+              const candidate = buildCandidate(sentenceCount);
+              const prepared = prepare(candidate, font, { whiteSpace: "pre-wrap" });
+              const measured = layout(prepared, maxWidth, resolvedLineHeight).height;
+              cache.set(sentenceCount, measured);
+              return measured <= maxHeight;
+            };
+
+            let lo = 1;
+            let hi = paragraphSentenceGroups.reduce((total, paragraphSentences) => total + paragraphSentences.length, 0);
+            let best = 0;
+
+            while (lo <= hi) {
+              const mid = Math.floor((lo + hi) / 2);
+
+              if (fits(mid)) {
+                best = mid;
+                lo = mid + 1;
+              } else {
+                hi = mid - 1;
+              }
+            }
+
+            excerpt.textContent = buildCandidate(best);
+          };
+
+          const scheduleFit = () => {
+            window.cancelAnimationFrame(frame);
+            frame = window.requestAnimationFrame(fitExcerpt);
+          };
+
+          scheduleFit();
+
+          window.addEventListener("resize", scheduleFit);
+          document.addEventListener(
+            "astro:before-swap",
+            () => window.removeEventListener("resize", scheduleFit),
+            { once: true },
+          );
+
+          if (document.fonts) {
+            void document.fonts.ready.then(scheduleFit);
           }
-
-          excerpt.textContent = buildCandidate(best);
-        };
-
-        const scheduleFit = () => {
-          window.cancelAnimationFrame(frame);
-          frame = window.requestAnimationFrame(fitExcerpt);
-        };
-
-        scheduleFit();
-
-        window.addEventListener("resize", scheduleFit);
-
-        if (document.fonts) {
-          void document.fonts.ready.then(scheduleFit);
         }
       }
-    }
+    });
   </script>
 </BaseLayout>

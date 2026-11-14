@@ -13,6 +13,7 @@ const posts = defineCollection({
     author: z.union([z.string(), z.array(z.string())]).optional(),
     category: z.string().optional(),
     excerpt: z.string().optional(),
+    frontPagePreview: z.string().optional(),
     responseTo: z.union([z.string(), z.array(z.string())]).optional(),
     followUpTo: z.union([z.string(), z.array(z.string())]).optional(),
   }),

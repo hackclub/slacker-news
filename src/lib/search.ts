@@ -1,5 +1,9 @@
 import type { Post } from "./content";
-import type { IndigestMessage, SlackColumnConfig } from "./indigest";
+import {
+  getSlackArticle,
+  type IndigestMessage,
+  type SlackColumnConfig,
+} from "./indigest";
 
 const STOPWORDS = new Set([
   "the",
@@ -89,7 +93,7 @@ export type SearchIndex = {
   documents: SearchDocument[];
 };
 
-function stripSlackMrkdwn(text: string): string {
+export function stripSlackMrkdwn(text: string): string {
   return text
     .replace(/<@[UW][A-Z0-9]+>/g, "") // user mentions
     .replace(/<#[A-Z0-9]+\|([^>]+)>/g, "$1") // channel mentions with label
@@ -97,6 +101,7 @@ function stripSlackMrkdwn(text: string): string {
     .replace(/<(https?:\/\/[^|>]+)\|([^>]+)>/g, "$2") // links with label
     .replace(/<(https?:\/\/[^>]+)>/g, "$1") // plain links
     .replace(/:([a-z0-9_+-]+):/g, "") // emoji
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // markdown bold
     .replace(/\*([^*]+)\*/g, "$1") // bold
     .replace(/_([^_]+)_/g, "$1") // italic
     .replace(/~([^~]+)~/g, "$1") // strikethrough
@@ -112,40 +117,35 @@ function stripSlackMrkdwn(text: string): string {
 export function slackMessageToDocument(
   message: IndigestMessage,
   column: SlackColumnConfig,
-): SearchDocument {
-  const title =
-    (typeof message.metadata === "object" && message.metadata !== null
-      ? Object.values(message.metadata)[0]
-      : typeof message.metadata === "string"
-        ? (() => {
-            try {
-              const parsed = JSON.parse(message.metadata);
-              return parsed && typeof parsed === "object"
-                ? Object.values(parsed)[0]
-                : undefined;
-            } catch {
-              return undefined;
-            }
-          })()
-        : undefined) ?? column.title;
+): SearchDocument | undefined {
+  const article = getSlackArticle(message, column);
+  if (!article) return undefined;
+  const title = article.title;
+  // A Slack ID is no use as a search term.
+  const author =
+    article.author && !/^[UW][A-Z0-9]+$/.test(article.author)
+      ? article.author
+      : "";
 
   const cleanText = stripSlackMrkdwn(message.text);
   const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
-  const url = `/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`;
+  const url = article.url;
 
   return {
     url,
     title: String(title),
     excerpt: cleanText,
-    category: column.title,
+    category: column.markdownColumns ? article.column : column.title,
     readingTime,
     text: cleanText,
-    author: "",
-    date: message.timestamp ? new Date(parseFloat(message.timestamp) * 1000).toISOString().slice(0, 10) : "",
-    titleTerms: termFrequency(String(title)),
+    author,
+    date: Number.isNaN(article.date.getTime())
+      ? ""
+      : article.date.toISOString().slice(0, 10),
+    titleTerms: termFrequency(title),
     bodyTerms: termFrequency(cleanText),
-    authorTerms: {},
+    authorTerms: termFrequency(author),
   };
 }
 
@@ -174,11 +174,15 @@ export function buildSearchIndex(
     category: post.category ?? "",
     readingTime: post.readingTime,
     text: post.paragraphs.join(" "),
-    author: Array.isArray(post.author) ? post.author.join(", ") : (post.author ?? ""),
+    author: Array.isArray(post.author)
+      ? post.author.join(", ")
+      : (post.author ?? ""),
     date: post.date.toISOString().slice(0, 10),
     titleTerms: termFrequency(post.title),
     bodyTerms: termFrequency(post.paragraphs.join(" ")),
-    authorTerms: termFrequency(Array.isArray(post.author) ? post.author.join(" ") : (post.author ?? "")),
+    authorTerms: termFrequency(
+      Array.isArray(post.author) ? post.author.join(" ") : (post.author ?? ""),
+    ),
   }));
 
   return {

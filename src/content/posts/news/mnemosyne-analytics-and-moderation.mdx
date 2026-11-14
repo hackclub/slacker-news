@@ -33,15 +33,15 @@ Access is restricted. The Fire Department and senior adult staff at HQ will have
 Since we already have a new airtable base and an org token for Nemo, we’re going to try bundling case management into a web interface to see if this is easier than the FD’s current, Slack-based system. This is still in testing.
 
 # Mnemosyne
-This data is quite sensitive, as is the org owner token that enables the operation. Even with trusted people, it’s common sense not to give out more access than strictly necessary. To this end, the whole system uses a proxy architecture. Mnemosyne has an org owner token, but only @eps has access. Nemo and Fire Engine run in a separate container, and can only access the subset of Mnemosyne’s permissions that they actually need.
+This data is quite sensitive, as is the org owner token that enables the operation. Even with trusted people, it’s common sense not to give out more access than strictly necessary. To this end, the whole system uses a proxy architecture. Mnemosyne has an org owner token, but only <SlackMention name="eps" id="U09Q8MLTE58" /> has access. Nemo and Fire Engine run in a separate container, and can only access the subset of Mnemosyne’s permissions that they actually need.
 
 Go visit [nemo.hackclub.com](https://nemo.hackclub.com) and tell us what you learn about the Slack!
 
 # Acknowledgements
-@dracula - The developer, who put literally hundreds of hours into this project.
+<SlackMention name="dracula" id="U0A5PLKMB25" /> - The developer, who put literally hundreds of hours into this project.
 
-@mat and @rowan - Security testing
+<SlackMention name="mat" id="U07VA44DNBA" /> and <SlackMention name="rowan" id="U080A3QP42C" /> - Security testing
 
-@sahil, @lynn, @izie - UX testing of Fire Engine
+<SlackMention name="sahil" id="U08PUHSMW4V" />, <SlackMention name="lynn" id="U07ULNFPQ4T" />, <SlackMention name="izie" id="U09KKMHLS15" /> - UX testing of Fire Engine
 
-@msw - The idea for the proxy architecture
+<SlackMention name="msw" id="U09UQ385LSG" /> - The idea for the proxy architecture

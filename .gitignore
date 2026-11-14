@@ -21,3 +21,8 @@ review-import.json
 .env.test
 .env.production
 .vercel
+
+.herdr
+
+# Leftovers from the old monorepo layout
+apps/
