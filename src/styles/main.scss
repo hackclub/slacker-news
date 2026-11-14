@@ -1073,11 +1073,6 @@ html.dark-mode {
   .footer-logo-img {
     filter: none;
   }
-
-  .footer-commit,
-  .footer-commit a {
-    color: #ccc !important;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1097,11 +1092,6 @@ html.dark-mode {
 
     .footer-logo-img {
       filter: none;
-    }
-
-    .footer-commit,
-    .footer-commit a {
-      color: #ccc !important;
     }
 
     mark {
