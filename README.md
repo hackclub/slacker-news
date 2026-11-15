@@ -206,6 +206,20 @@ post is left out of the front page, archives, ticker, search and RSS.
 Signed-in readers do not get members-only posts in RSS either: the feed's
 private links cover the Slack columns only.
 
+Members-only articles can also come from a protected Slack column, read
+through Indigest. To retire such a column, `scripts/import-slack-column.mjs`
+copies its articles into the CMS as members-only posts, at the same URLs; then
+remove the column from `src/data/slack-columns.json`. Run it where the
+database is, so the articles never pass through the repository:
+
+```bash
+INDIGEST_API_KEY=... node scripts/import-slack-column.mjs <channel id> data/emdash.db
+```
+
+Those posts have their **Body format** set to `slack`: the body stays in
+Slack's formatting and is drawn the way Slack messages are elsewhere on the
+site.
+
 To deploy, build `Dockerfile.emdash` and mount a volume at `/app/data`. The
 container listens on port 8080 and fills a new volume from the seed when it
 first starts, and brings the content model of an existing one in step with the

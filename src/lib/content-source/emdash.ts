@@ -1,5 +1,5 @@
 import { getEmDashCollection, getEmDashEntry } from "emdash";
-import { renderMdx } from "../mdx-runtime";
+import { renderMdx, renderSlackText } from "../mdx-runtime";
 import type { ChangelogData, PageData, PostData, SourceEntry } from "./types";
 
 /** Content comes from EmDash. The schema is defined in scripts/build-emdash-seed.ts. */
@@ -63,7 +63,8 @@ function entry<Data>(
   fields: Fields,
 ): SourceEntry<Data> {
   const body = text(fields.body) ?? "";
-  return { id, data, body, render: () => renderMdx(body) };
+  const render = fields.body_format === "slack" ? renderSlackText : renderMdx;
+  return { id, data, body, render: () => render(body) };
 }
 
 export async function loadPosts(): Promise<SourceEntry<PostData>[]> {

@@ -46,12 +46,23 @@ function joined(value: unknown): string | undefined {
   return items.join(", ") || undefined;
 }
 
-/** Frontmatter dates are kept as written; YAML turns unquoted ones into Date objects. */
+/**
+ * EmDash stores a date as an instant in UTC. Frontmatter has days
+ * ("2026-06-23") and local times ("2026-04-01 10:57:00"); both are read as
+ * UTC, which is how the site has been showing them.
+ */
 function dateString(value: unknown, file: string): string {
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
-  if (typeof value === "string" && !Number.isNaN(new Date(value).getTime()))
-    return value;
-  throw new Error(`${file}: unreadable date ${JSON.stringify(value)}`);
+  let parsed = new Date(NaN);
+  if (value instanceof Date) {
+    parsed = value;
+  } else if (typeof value === "string") {
+    const hasZone = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(value.trim());
+    parsed = new Date(hasZone ? value : `${value.trim().replace(" ", "T")}Z`);
+  }
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${file}: unreadable date ${JSON.stringify(value)}`);
+  }
+  return parsed.toISOString();
 }
 
 function withoutEmpty(data: Record<string, unknown>): Record<string, unknown> {
@@ -151,9 +162,8 @@ const title = {
 const date = {
   slug: "date",
   label: "Date",
-  type: "string",
+  type: "datetime",
   required: true,
-  options: { helpText: "YYYY-MM-DD, optionally followed by a time." },
 };
 const author = {
   slug: "author",
@@ -190,6 +200,17 @@ const references = [
     },
   },
 ];
+const bodyFormat = {
+  slug: "body_format",
+  label: "Body format",
+  type: "select",
+  defaultValue: "mdx",
+  validation: { options: ["mdx", "slack"] },
+  options: {
+    helpText:
+      "mdx for articles written here. slack for articles brought over from Slack, which keep Slack's formatting.",
+  },
+};
 const body = {
   slug: "body",
   label: "Body (MDX)",
@@ -218,6 +239,8 @@ const seed = {
       label: "Posts",
       labelSingular: "Post",
       sortOrder: 1,
+      // The admin list shows the article's date, not when it was last saved.
+      dateField: "date",
       supports,
       fields: [
         title,
@@ -254,6 +277,7 @@ const seed = {
           },
         },
         { slug: "legacy_id", label: "Legacy ID", type: "string" },
+        bodyFormat,
         body,
       ],
     },
@@ -263,6 +287,7 @@ const seed = {
       labelSingular: "Changelog",
       urlPattern: "/changelogs/{slug}",
       sortOrder: 2,
+      dateField: "date",
       supports,
       fields: [
         title,

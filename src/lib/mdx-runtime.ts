@@ -33,6 +33,7 @@ import M from "../components/M.astro";
 import RawHtml from "../components/RawHtml.astro";
 import SlackChannel from "../components/SlackChannel.astro";
 import SlackMention from "../components/SlackMention.astro";
+import SlackMrkdwnBody from "../components/SlackMrkdwnBody.astro";
 import YouTube from "../components/YouTube.astro";
 
 /** Components a CMS post can use without importing them. */
@@ -96,14 +97,35 @@ async function compile(source: string): Promise<MdxContent> {
         ...(props.components as Record<string, unknown> | undefined),
       } as Record<string, any>,
     });
-  // The markers @astrojs/mdx puts on a compiled file, so Astro renders this
-  // with its JSX renderer like any other MDX component.
+  return tagAsMdx(Content);
+}
+
+/**
+ * Adds the markers @astrojs/mdx puts on a compiled file, so Astro renders the
+ * function with its JSX renderer like any other MDX component.
+ */
+function tagAsMdx(Content: MdxContent): MdxContent {
   Object.assign(Content, {
     [Symbol.for("mdx-component")]: true,
     [Symbol.for("astro.needsHeadRendering")]: true,
   });
   __astro_tag_component__(Content, "astro:jsx");
   return Content;
+}
+
+/**
+ * An article that came from Slack keeps Slack's formatting, and is drawn by
+ * the component that already draws Slack messages on the site.
+ */
+export async function renderSlackText(
+  text: string,
+): Promise<{ Content: MdxContent }> {
+  const { Content: Shell } = await renderMdx(
+    "<SlackMrkdwnBody text={props.text} />",
+  );
+  const Content: MdxContent = (props = {}) =>
+    Shell({ ...props, text, components: { SlackMrkdwnBody } });
+  return { Content: tagAsMdx(Content) };
 }
 
 export function renderMdx(source: string): Promise<{ Content: MdxContent }> {

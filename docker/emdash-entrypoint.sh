@@ -23,6 +23,8 @@ else
   # redeploy. Only the content model is brought in step with this build, which
   # is how a field added in scripts/build-emdash-seed.ts reaches a live site.
   echo "Updating the content model in $DB"
+  # Changes the seed cannot make on its own, such as a field changing type.
+  node scripts/emdash-migrate.mjs "$DB"
   $EMDASH seed seed/seed.json --database "$DB" --no-content --on-conflict update
 fi
 

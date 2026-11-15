@@ -145,6 +145,12 @@ function getAuthorSlackId(author: string | undefined): string | undefined {
     return undefined;
   }
 
+  // Articles brought over from Slack name their author by Slack ID.
+  const slackId = author
+    .trim()
+    .match(/^<?@?([UW][A-Z0-9]{6,})(?:\|[^>]*)?>?$/)?.[1];
+  if (slackId) return slackId;
+
   const normalizedAuthor = normalizeHandle(author);
   const matchingAcknowledgement = acknowledgementsData.find(
     (person) => normalizeHandle(person.name) === normalizedAuthor,
