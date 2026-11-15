@@ -150,9 +150,12 @@ The first visit to `/_emdash/admin` creates the administrator account.
 
 #### Signing in with Hack Club
 
-The admin login page has a **Hack Club** button next to EmDash's passkey
-sign-in. It uses [Hack Club Auth](https://auth.hackclub.com), through the
-provider in `src/cms/hackclub-auth`.
+[Hack Club Auth](https://auth.hackclub.com) is the only way to sign in to the
+admin, through the provider in `src/cms/hackclub-auth`. EmDash's passkey and
+email-link sign-in are switched off: the site refuses their endpoints
+(`src/cms/hackclub-auth/only.ts`), and the login page goes straight to Hack
+Club. EmDash still draws its passkey button on the setup and error screens; it
+does nothing.
 
 Add this redirect URI to the Hack Club Auth app, replacing the origin with the
 site's own:
@@ -175,8 +178,7 @@ enough to get into the CMS. A person is let in when:
 
 Until the site has an administrator, the first person to sign in becomes one.
 Set `EMDASH_HACKCLUB_ADMINS` before deploying to a public address, so that
-only the people it lists can. It does not cover passkey setup, which stays
-open to the first visitor until an administrator exists.
+only the people it lists can.
 
 `scripts/build-emdash-seed.ts` is the migration. It turns every MDX file into a
 published entry in one of three collections (Posts, Changelogs, Pages) and
