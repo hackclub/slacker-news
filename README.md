@@ -166,7 +166,8 @@ come from `src/data`.
 
 To deploy, build `Dockerfile.emdash` and mount a volume at `/app/data`. The
 container listens on port 8080 and fills a new volume from the seed when it
-first starts. It reads its configuration when it starts, not when it is built:
+first starts. Give it about 1 GB of memory; with less, the first request can
+run it out. It reads its configuration when it starts, not when it is built:
 
 | Variable                                                           | Purpose                                                                           |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
