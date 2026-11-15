@@ -1,3 +1,4 @@
+import * as React from "react";
 import { LinkButton } from "@cloudflare/kumo";
 
 /** Shown on the admin login page, the setup wizard and invite pages. */
