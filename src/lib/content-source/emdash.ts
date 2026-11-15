@@ -113,6 +113,8 @@ export async function loadPage(
   const { entry: found, error } = await getEmDashEntry("pages", slug);
   if (error) throw error;
   if (!found) return undefined;
-  const data = found.data as Fields;
+  // `emdash dev` generates types for the collections; the fields are read by
+  // name here, so the generated shape is deliberately not relied on.
+  const data = found.data as unknown as Fields;
   return entry<PageData>(slug, { title: text(data.title) }, data);
 }

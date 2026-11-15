@@ -39,6 +39,27 @@ const runtimeEnv = Object.fromEntries(
 // ...which means `astro dev` no longer gets them from .env through Vite.
 if (useEmDash && existsSync(".env")) process.loadEnvFile(".env");
 
+// Sign in to the EmDash admin with Hack Club Auth. The routes decide who is let
+// in; see src/cms/hackclub-auth/routes/callback.ts.
+const hackClubAuthFile = (name) =>
+  fileURLToPath(new URL(`./src/cms/hackclub-auth/${name}`, import.meta.url));
+const hackClubAuth = {
+  id: "hackclub",
+  label: "Hack Club",
+  adminEntry: hackClubAuthFile("admin.tsx"),
+  routes: [
+    {
+      pattern: "/_emdash/api/auth/hackclub/login",
+      entrypoint: hackClubAuthFile("routes/login.ts"),
+    },
+    {
+      pattern: "/_emdash/api/auth/hackclub/callback",
+      entrypoint: hackClubAuthFile("routes/callback.ts"),
+    },
+  ],
+  publicRoutes: ["/_emdash/api/auth/hackclub/"],
+};
+
 const contentSource = (name) =>
   fileURLToPath(
     new URL(`./src/lib/content-source/${name}.ts`, import.meta.url),
@@ -65,6 +86,7 @@ async function emdashIntegrations() {
       // Sandboxed plugins run in a local workerd child process, the
       // open-source Workers runtime. Nothing is hosted on Cloudflare.
       sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox",
+      authProviders: [hackClubAuth],
     }),
     {
       name: "slacker-news:cms-routes",
