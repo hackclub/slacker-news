@@ -18,6 +18,13 @@ As of now, some of the cool things Slacker News has include:
 - Slack-backed columns with optional Hack Club Auth-gating (Better Auth)
 - Privacy-concious analytics (Plausible)
 
+### Sources and Clients
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/sources-and-clients-dark.svg">
+  <img alt="Sources and clients: markdown files, Slack through Indigest and other services feed Slacker News, which serves rss feeds, a Slack bot and news.hackclub.com" src="docs/sources-and-clients-light.svg">
+</picture>
+
 ## Contributing
 
 ### Technical Contributions
