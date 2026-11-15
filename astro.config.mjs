@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "astro/config";
 import node from "@astrojs/node";
 import vercel from "@astrojs/vercel";
@@ -5,6 +7,79 @@ import mdx from "@astrojs/mdx";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { legacyRedirects } from "./src/data/legacy-redirects.mjs";
+
+// CMS=emdash swaps the MDX files in src/content for EmDash as the source of
+// posts, changelogs and pages. It needs a long-running Node server with a
+// writable disk, so the Vercel build keeps reading the files.
+const useEmDash = process.env.CMS === "emdash";
+if (useEmDash && process.env.VERCEL) {
+  throw new Error(
+    "CMS=emdash needs the Node adapter; it cannot run on Vercel.",
+  );
+}
+
+// Vite inlines `import.meta.env.X` while building. A Docker image is built
+// once and configured when it starts, so there these are read from the
+// process environment instead, which also keeps secrets out of the image.
+const RUNTIME_ENV = [
+  "AUTH_SECRET",
+  "BETTER_AUTH_SECRET",
+  "BETTER_AUTH_URL",
+  "HACKCLUB_CLIENT_ID",
+  "HACKCLUB_CLIENT_SECRET",
+  "INDIGEST_API_KEY",
+  "INDIGEST_API_URL",
+  "INDIGEST_CACHE_TTL_MS",
+  "RSS_ACCESS_TOKEN",
+];
+const runtimeEnv = Object.fromEntries(
+  RUNTIME_ENV.map((name) => [`import.meta.env.${name}`, `process.env.${name}`]),
+);
+
+// ...which means `astro dev` no longer gets them from .env through Vite.
+if (useEmDash && existsSync(".env")) process.loadEnvFile(".env");
+
+const contentSource = (name) =>
+  fileURLToPath(
+    new URL(`./src/lib/content-source/${name}.ts`, import.meta.url),
+  );
+
+async function emdashIntegrations() {
+  const [{ default: react }, { default: emdash, local }, { sqlite }] =
+    await Promise.all([
+      import("@astrojs/react"),
+      import("emdash/astro"),
+      import("emdash/db"),
+    ]);
+  // Relative to the directory the server starts in. The Docker image mounts a
+  // volume here.
+  const dataDir = "./data";
+  return [
+    react(),
+    emdash({
+      database: sqlite({ url: `file:${dataDir}/emdash.db` }),
+      storage: local({
+        directory: `${dataDir}/uploads`,
+        baseUrl: "/_emdash/api/media/file",
+      }),
+      // Sandboxed plugins run in a local workerd child process, the
+      // open-source Workers runtime. Nothing is hosted on Cloudflare.
+      sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox",
+    }),
+    {
+      name: "slacker-news:cms-routes",
+      hooks: {
+        "astro:route:setup": ({ route }) => {
+          // Content lives in the database, so nothing that reads it can be
+          // rendered at build time.
+          if (route.component.endsWith("src/pages/changelogs/[slug].astro")) {
+            route.prerender = false;
+          }
+        },
+      },
+    },
+  ];
+}
 
 export default defineConfig({
   site: "https://news.hackclub.com",
@@ -15,9 +90,18 @@ export default defineConfig({
     remarkPlugins: [[remarkMath, { singleDollarTextMath: false }]],
     rehypePlugins: [rehypeKatex],
   },
-  integrations: [mdx()],
+  integrations: [mdx(), ...(useEmDash ? await emdashIntegrations() : [])],
   image: {
     domains: ["cdn.hackclub.com", "user-cdn.hackclub-assets.com"],
   },
   redirects: legacyRedirects,
+  vite: {
+    define: useEmDash ? runtimeEnv : {},
+    resolve: {
+      alias: {
+        "#content-source": contentSource(useEmDash ? "emdash" : "file"),
+        "#live-loader": contentSource(useEmDash ? "live-emdash" : "live-none"),
+      },
+    },
+  },
 });

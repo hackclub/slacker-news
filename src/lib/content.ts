@@ -1,4 +1,10 @@
-import { getCollection, getEntry, type CollectionEntry } from "astro:content";
+import { loadChangelogs, loadPage, loadPosts } from "#content-source";
+import type {
+  ChangelogData,
+  PageData,
+  PostData,
+  SourceEntry,
+} from "./content-source/types";
 import siteData from "../data/site.json";
 import changelogData from "../data/changelog.json";
 import acknowledgementsData from "../data/acknowledgements.json";
@@ -32,7 +38,7 @@ export type Post = {
     src: string;
     alt: string;
   };
-  entry: CollectionEntry<"posts">;
+  entry: SourceEntry<PostData>;
   responseTo?: string[];
   followUpTo?: string[];
   responses?: PostReference[];
@@ -62,7 +68,7 @@ export type LongChangelogEntry = ChangelogBase & {
     src: string;
     alt: string;
   };
-  entry: CollectionEntry<"changelogs">;
+  entry: SourceEntry<ChangelogData>;
   responseTo?: PostReference[];
   followUpTo?: PostReference[];
 };
@@ -297,7 +303,7 @@ export async function getSiteConfig(): Promise<SiteConfig> {
 }
 
 export async function getPosts(): Promise<Post[]> {
-  const posts = await getCollection("posts");
+  const posts = await loadPosts();
 
   const processedPosts: Post[] = posts
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
@@ -335,7 +341,10 @@ export async function getPosts(): Promise<Post[]> {
         date: entry.data.date,
         excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
         frontPagePreview: entry.data.frontPagePreview
-          ? entry.data.frontPagePreview.split(/\n{2,}/).map((p: string) => stripMarkdown(p)).filter(Boolean)
+          ? entry.data.frontPagePreview
+              .split(/\n{2,}/)
+              .map((p: string) => stripMarkdown(p))
+              .filter(Boolean)
           : undefined,
         paragraphs,
         readingTime: Math.max(1, Math.ceil(wordCount / 200)),
@@ -385,7 +394,7 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
     slackIds: getAuthorSlackIds(entry.author),
   }));
 
-  const longCollection = await getCollection("changelogs");
+  const longCollection = await loadChangelogs();
   const posts = await getPosts();
   const resolveSlugs = (
     raw: string | string[] | undefined,
@@ -534,8 +543,8 @@ export function formatStoryDate(date: Date): string {
 
 export async function getPageEntry(
   slug: string,
-): Promise<CollectionEntry<"pages">> {
-  const entry = await getEntry("pages", slug);
+): Promise<SourceEntry<PageData>> {
+  const entry = await loadPage(slug);
   if (!entry) {
     throw new Error(`Missing required content entry pages/${slug}`);
   }

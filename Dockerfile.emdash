@@ -1,0 +1,43 @@
+# Slacker News with EmDash as the CMS, fully self-hosted: a Node server, a
+# SQLite database and uploads on a volume, and a local workerd process for
+# sandboxed plugins. See README.md, "EmDash CMS".
+#
+#   docker build -f Dockerfile.emdash -t slacker-news-emdash .
+#   docker run -p 8080:8080 -v sn-emdash:/app/data \
+#     -e EMDASH_ENCRYPTION_KEY=... -e EMDASH_SITE_URL=https://... \
+#     -e BETTER_AUTH_SECRET=... -e BETTER_AUTH_URL=https://... slacker-news-emdash
+
+# Every stage is Debian-based: the workerd binary that bun installs is built
+# for glibc, so it has to be installed on the same kind of system it runs on.
+FROM node:22-slim AS base
+COPY --from=oven/bun:1 /usr/local/bin/bun /usr/local/bin/bun
+WORKDIR /app
+
+FROM base AS build
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+COPY . .
+# The public origin lets the build enable image optimization for uploads.
+ARG EMDASH_SITE_URL
+ENV CMS=emdash EMDASH_SITE_URL=$EMDASH_SITE_URL
+# seed.json is the migration: the content model plus every MDX article.
+RUN bun scripts/build-emdash-seed.ts seed/seed.json && bun run build
+
+FROM base AS deps
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
+FROM node:22-slim
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/seed ./seed
+COPY package.json ./
+COPY docker/emdash-entrypoint.sh /usr/local/bin/emdash-entrypoint
+RUN chmod +x /usr/local/bin/emdash-entrypoint && mkdir -p /app/data
+
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080
+EXPOSE 8080
+VOLUME /app/data
+ENTRYPOINT ["emdash-entrypoint"]
+CMD ["node", "./dist/server/entry.mjs"]

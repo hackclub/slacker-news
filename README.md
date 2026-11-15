@@ -126,6 +126,55 @@ For protected Slack columns, configure these environment variables in the Vercel
 - `INDIGEST_API_KEY` - an Indigest API key scoped to every Slack column's channel. For private RSS links it must also be a delegating key (see below)
 - `RSS_ACCESS_TOKEN` - optional legacy shared token that unlocks every protected column in `/feed.xml`
 
+### EmDash CMS
+
+The site can read its articles from [EmDash](https://emdashcms.com) instead of
+the MDX files, so they can be written and edited in a browser at
+`/_emdash/admin`. This is opt-in: set `CMS=emdash` when building. Without it
+the site reads `src/content` as before, which is what the Vercel deployment
+does.
+
+EmDash mode is fully self-hosted. It needs a long-running Node server and a
+writable disk, and runs nothing on Cloudflare: content is a SQLite file,
+uploads are local files, and sandboxed plugins run in a local
+[workerd](https://github.com/cloudflare/workerd) process.
+
+```bash
+bun run emdash:seed                                # src/content -> seed/seed.json
+bunx emdash seed seed/seed.json -d data/emdash.db  # create and fill the database
+bunx emdash secrets generate --write .env          # EMDASH_ENCRYPTION_KEY
+bun run dev:emdash
+```
+
+The first visit to `/_emdash/admin` creates the administrator account.
+
+`scripts/build-emdash-seed.ts` is the migration. It turns every MDX file into a
+published entry in one of three collections (Posts, Changelogs, Pages) and
+keeps the same URLs. Applying the seed again skips entries that already exist.
+
+An article's body is stored as MDX in a text field and compiled when the page
+is requested, so migrated articles render the same as before, components
+included. Two consequences:
+
+- The body is edited as MDX source, not in a rich text editor.
+- MDX is code. Anyone who can edit an article can run JavaScript on the
+  server, so give CMS accounts only to people who could commit to this
+  repository.
+
+The front page settings, short changelog entries and acknowledgements still
+come from `src/data`.
+
+To deploy, build `Dockerfile.emdash` and mount a volume at `/app/data`. The
+container listens on port 8080 and fills a new volume from the seed when it
+first starts. It reads its configuration when it starts, not when it is built:
+
+| Variable                                                           | Purpose                                                                           |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `EMDASH_ENCRYPTION_KEY`                                            | Required. Losing it makes stored plugin secrets unreadable.                       |
+| `EMDASH_SITE_URL`                                                  | Public origin, such as `https://news.example.com`. Passkey sign-in depends on it. |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`                            | Required, as for any production build.                                            |
+| `HACKCLUB_CLIENT_ID`, `HACKCLUB_CLIENT_SECRET`, `INDIGEST_API_KEY` | Optional. Reader sign-in and the Slack columns are off without them.              |
+
 ### Private RSS links
 
 Slacker News has no database, so Indigest stores the per-reader feed tokens. `INDIGEST_API_KEY` is a delegating Indigest key: when a logged-in reader creates a link on `/rss/`, the site asks Indigest to mint a child key for that reader. The child can only read channels within the parent key's scope, cannot mint keys of its own, and stops working when it is revoked or when the parent key is revoked. A reader can hold any number of links; making a new one leaves the others working, and "Revoke all my links" on `/rss/` kills every one of theirs. `/feed.xml?token=` accepts only children of the site's own key. Anyone logged in can revoke a link they have by pasting it on `/rss/`. A revoked link keeps working as a public feed, plus a "Your key is revoked" item that appears again every week.
