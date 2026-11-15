@@ -4,8 +4,8 @@
  *
  *   node scripts/emdash-migrate.mjs [database]
  *
- * The container runs this before it brings the content model in step with the
- * build. Each step checks whether it still has work to do, so running it again
+ * The container runs this on every start, before it brings the content model
+ * in step with the build. Each step checks whether it still has work to do, so running it again
  * is harmless. It is plain Node so it can run in the container, which has no
  * Bun.
  */
@@ -51,5 +51,32 @@ function dateFieldsToDatetime() {
   }
 }
 
+/**
+ * Migrated articles were all "published" at the moment they were imported,
+ * which is where EmDash's calendar put them. Their publish time becomes the
+ * article's date. This runs once: entries published in the CMS afterwards keep
+ * the time they were really published.
+ */
+function publishedAtFromDate() {
+  const marker = "slacker-news:published-at-from-date";
+  if (db.prepare("select 1 from options where name = ?").get(marker)) return;
+
+  for (const collection of ["posts", "changelogs"]) {
+    const { changes } = db
+      .prepare(
+        `update "ec_${collection}" set published_at = date
+         where status = 'published' and date glob '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T*Z'`,
+      )
+      .run();
+    console.log(
+      `${collection}: publish time taken from the date of ${changes} entries`,
+    );
+  }
+  db.prepare("insert into options (name, value) values (?, 'true')").run(
+    marker,
+  );
+}
+
 dateFieldsToDatetime();
+publishedAtFromDate();
 db.close();

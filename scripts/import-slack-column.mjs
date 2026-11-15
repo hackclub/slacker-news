@@ -185,5 +185,14 @@ try {
   rmSync(directory, { recursive: true, force: true });
 }
 
-for (const post of posts)
+// EmDash stamps new entries as published now. An imported article was
+// published on its date, which is also where the admin calendar should show it.
+const writable = new DatabaseSync(database);
+const setPublished = writable.prepare(
+  "update ec_posts set published_at = date where slug = ?",
+);
+for (const post of posts) {
+  setPublished.run(post.slug);
   console.log(`Imported /${post.data.category}/${post.slug}/`);
+}
+writable.close();
