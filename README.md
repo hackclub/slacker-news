@@ -148,6 +148,36 @@ bun run dev:emdash
 
 The first visit to `/_emdash/admin` creates the administrator account.
 
+#### Signing in with Hack Club
+
+The admin login page has a **Hack Club** button next to EmDash's passkey
+sign-in. It uses [Hack Club Auth](https://auth.hackclub.com), through the
+provider in `src/cms/hackclub-auth`.
+
+Add this redirect URI to the Hack Club Auth app, replacing the origin with the
+site's own:
+
+```
+https://news.example.com/_emdash/api/auth/hackclub/callback
+```
+
+The CMS uses `HACKCLUB_CLIENT_ID` and `HACKCLUB_CLIENT_SECRET`, the same app as
+reader sign-in. To give it an app of its own, set
+`EMDASH_OAUTH_HACKCLUB_CLIENT_ID` and `EMDASH_OAUTH_HACKCLUB_CLIENT_SECRET`.
+
+Every Hack Club member can sign in to Hack Club Auth, so signing in is not
+enough to get into the CMS. A person is let in when:
+
+- their Hack Club account is already linked to a CMS user;
+- their verified email matches a CMS user, or the invite link they followed;
+- they are listed in `EMDASH_HACKCLUB_ADMINS`, which makes them an
+  administrator. It takes Slack IDs or email addresses, separated by commas.
+
+Until the site has an administrator, the first person to sign in becomes one.
+Set `EMDASH_HACKCLUB_ADMINS` before deploying to a public address, so that
+only the people it lists can. It does not cover passkey setup, which stays
+open to the first visitor until an administrator exists.
+
 `scripts/build-emdash-seed.ts` is the migration. It turns every MDX file into a
 published entry in one of three collections (Posts, Changelogs, Pages) and
 keeps the same URLs. Applying the seed again skips entries that already exist.
@@ -169,12 +199,14 @@ container listens on port 8080 and fills a new volume from the seed when it
 first starts. Give it about 1 GB of memory; with less, the first request can
 run it out. It reads its configuration when it starts, not when it is built:
 
-| Variable                                                           | Purpose                                                                           |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| `EMDASH_ENCRYPTION_KEY`                                            | Required. Losing it makes stored plugin secrets unreadable.                       |
-| `EMDASH_SITE_URL`                                                  | Public origin, such as `https://news.example.com`. Passkey sign-in depends on it. |
-| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`                            | Required, as for any production build.                                            |
-| `HACKCLUB_CLIENT_ID`, `HACKCLUB_CLIENT_SECRET`, `INDIGEST_API_KEY` | Optional. Reader sign-in and the Slack columns are off without them.              |
+| Variable                                       | Purpose                                                                           |
+| ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| `EMDASH_ENCRYPTION_KEY`                        | Required. Losing it makes stored plugin secrets unreadable.                       |
+| `EMDASH_SITE_URL`                              | Public origin, such as `https://news.example.com`. Passkey sign-in depends on it. |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`        | Required, as for any production build.                                            |
+| `HACKCLUB_CLIENT_ID`, `HACKCLUB_CLIENT_SECRET` | Optional. Reader sign-in and the admin's Hack Club button are off without them.   |
+| `EMDASH_HACKCLUB_ADMINS`                       | Optional. Slack IDs or emails that sign in as administrators.                     |
+| `INDIGEST_API_KEY`                             | Optional. The Slack columns are off without it.                                   |
 
 ### Private RSS links
 
