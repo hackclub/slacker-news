@@ -10,7 +10,10 @@ interface Props {
 }
 
 const site = await getSiteConfig();
-const allPosts = await getPosts();
+// Members-only posts are loaded only for a signed-in reader, which also keeps
+// their titles out of the response and follow-up links on public posts. The
+// route has already turned away anyone who may not read this one.
+const allPosts = await getPosts({ includeProtected: Boolean(Astro.locals.user) });
 const allChangelogs = await getChangelogEntries();
 const longChangelogs = allChangelogs.filter((e): e is LongChangelogEntry => e.kind === "long");
 const { slug } = Astro.props;

@@ -243,6 +243,16 @@ const seed = {
           },
         },
         ...references,
+        {
+          slug: "members_only",
+          label: "Members only",
+          type: "boolean",
+          defaultValue: false,
+          options: {
+            helpText:
+              "Readers must sign in with Hack Club to read this. It is left out of the front page, archives, search and RSS for everyone else.",
+          },
+        },
         { slug: "legacy_id", label: "Legacy ID", type: "string" },
         body,
       ],

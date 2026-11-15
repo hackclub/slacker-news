@@ -8,10 +8,10 @@ import {
 } from "../lib/search";
 
 export const GET: APIRoute = async ({ locals }) => {
-  const posts = await getPosts();
+  const user = (locals as any)?.user;
+  const posts = await getPosts({ includeProtected: Boolean(user) });
 
   const columns = getSlackColumns();
-  const user = (locals as any)?.user;
   const slackDocs: SearchDocument[] = [];
 
   await Promise.all(

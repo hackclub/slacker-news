@@ -11,13 +11,19 @@ if [ -z "${EMDASH_ENCRYPTION_KEY:-}" ]; then
   exit 1
 fi
 
-# A new volume gets the content model and the articles migrated from the MDX
-# files. An existing database is left alone, so editors' changes survive a
-# redeploy. Set EMDASH_SEED=always to apply the seed on every start; entries
-# that already exist are skipped.
-if [ ! -f "$DB" ] || [ "${EMDASH_SEED:-}" = "always" ]; then
-  echo "Applying seed/seed.json to $DB"
-  node node_modules/emdash/dist/cli/index.mjs seed seed/seed.json --database "$DB" --uploads-dir "$DATA_DIR/uploads"
+EMDASH="node node_modules/emdash/dist/cli/index.mjs"
+
+if [ ! -f "$DB" ]; then
+  # A new volume gets the content model and the articles migrated from the
+  # MDX files.
+  echo "Creating $DB from seed/seed.json"
+  $EMDASH seed seed/seed.json --database "$DB" --uploads-dir "$DATA_DIR/uploads"
+else
+  # An existing database keeps its content, so editors' changes survive a
+  # redeploy. Only the content model is brought in step with this build, which
+  # is how a field added in scripts/build-emdash-seed.ts reaches a live site.
+  echo "Updating the content model in $DB"
+  $EMDASH seed seed/seed.json --database "$DB" --no-content --on-conflict update
 fi
 
 exec "$@"

@@ -83,6 +83,8 @@ export async function loadPosts(): Promise<SourceEntry<PostData>[]> {
         frontPagePreview: text(data.front_page_preview),
         responseTo: list(data.response_to),
         followUpTo: list(data.follow_up_to),
+        // SQLite hands booleans back as 0 or 1.
+        membersOnly: data.members_only === true || data.members_only === 1,
       },
       data,
     );

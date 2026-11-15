@@ -15,7 +15,16 @@ export const prerender = false;
 
 const path = `/${Astro.params.article ?? ""}/`;
 // With CMS=emdash no post is prerendered, so CMS posts reach this page too.
-const cmsPost = cmsEnabled ? (await getPosts()).find((post) => post.url === path) : undefined;
+const cmsPost = cmsEnabled
+  ? (await getPosts({ includeProtected: true })).find((post) => post.url === path)
+  : undefined;
+if (cmsPost?.membersOnly) {
+  if (!Astro.locals.user) {
+    return Astro.redirect(`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
+  }
+  // A protected article must never land in a shared cache.
+  Astro.response.headers.set("Cache-Control", "private, no-store");
+}
 // Every unmatched path lands here, so only ones shaped like an article
 // (/<markdown column>/<slug>/) are worth asking Indigest about.
 const segments = (Astro.params.article ?? "").split("/").filter(Boolean);

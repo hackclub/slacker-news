@@ -196,9 +196,20 @@ included. Two consequences:
 The front page settings, short changelog entries and acknowledgements still
 come from `src/data`.
 
+#### Members-only articles
+
+Each post has a **Members only** switch in the CMS. A post with it on can be
+read only by someone signed in to the site with Hack Club, the same sign-in the
+protected Slack columns use. Everyone else is sent to the login page, and the
+post is left out of the front page, archives, ticker, search and RSS.
+
+Signed-in readers do not get members-only posts in RSS either: the feed's
+private links cover the Slack columns only.
+
 To deploy, build `Dockerfile.emdash` and mount a volume at `/app/data`. The
 container listens on port 8080 and fills a new volume from the seed when it
-first starts. Give it about 1 GB of memory; with less, the first request can
+first starts, and brings the content model of an existing one in step with the
+build. Give it about 1 GB of memory; with less, the first request can
 run it out. It reads its configuration when it starts, not when it is built:
 
 | Variable                                       | Purpose                                                                           |

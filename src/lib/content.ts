@@ -38,6 +38,8 @@ export type Post = {
     src: string;
     alt: string;
   };
+  /** Only signed-in readers may see this post. */
+  membersOnly: boolean;
   entry: SourceEntry<PostData>;
   responseTo?: string[];
   followUpTo?: string[];
@@ -302,8 +304,17 @@ export async function getSiteConfig(): Promise<SiteConfig> {
   };
 }
 
-export async function getPosts(): Promise<Post[]> {
-  const posts = await loadPosts();
+/**
+ * Members-only posts are left out unless `includeProtected` is set, so a
+ * caller that does not think about them cannot leak one. Pass it only for a
+ * reader who is signed in.
+ */
+export async function getPosts({
+  includeProtected = false,
+}: { includeProtected?: boolean } = {}): Promise<Post[]> {
+  const posts = (await loadPosts()).filter(
+    (entry) => includeProtected || !entry.data.membersOnly,
+  );
 
   const processedPosts: Post[] = posts
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
@@ -349,6 +360,7 @@ export async function getPosts(): Promise<Post[]> {
         paragraphs,
         readingTime: Math.max(1, Math.ceil(wordCount / 200)),
         leadingImage,
+        membersOnly: Boolean(entry.data.membersOnly),
         entry,
         responseTo,
         followUpTo,

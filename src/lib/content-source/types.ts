@@ -20,6 +20,8 @@ export type PostData = {
   frontPagePreview?: string;
   responseTo?: string | string[];
   followUpTo?: string | string[];
+  /** Only readers who are signed in may see this post. Set in the CMS. */
+  membersOnly?: boolean;
 };
 
 export type ChangelogData = {

@@ -6,7 +6,7 @@ import { MAX_HEADLINES_PER_SOURCE } from "../lib/ticker-headlines";
 // Article headlines come from local content, so they render with the page.
 // Slack columns and figures stream in from the browser as each API answers.
 const postCounts = new Map<string, number>();
-const headlines = (await getPosts()).filter((post) => {
+const headlines = (await getPosts({ includeProtected: Boolean(Astro.locals.user) })).filter((post) => {
   const category = post.category ?? "post";
   const count = postCounts.get(category) ?? 0;
   if (count >= MAX_HEADLINES_PER_SOURCE) return false;
