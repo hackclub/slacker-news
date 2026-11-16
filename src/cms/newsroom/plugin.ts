@@ -192,8 +192,8 @@ async function panel(ctx: Ctx) {
         await ctx.storage.comments.put(crypto.randomUUID(), comment);
         say("Comment added.");
       }
-    } else if (input.action_id === "reply") {
-      const id = String(values.comment ?? "");
+    } else if (input.action_id?.startsWith("reply:")) {
+      const id = input.action_id.slice("reply:".length);
       const comment = (await ctx.storage.comments.get(id)) as ReviewComment;
       const body = String(values.body ?? "").trim();
       if (!comment || comment.entryId !== entry.id || !body)
@@ -246,10 +246,13 @@ async function panel(ctx: Ctx) {
     where: { entryId: entry.id },
     limit: 100,
   });
-  const comments = items.map((item: { id: string; data: ReviewComment }) => ({
-    id: item.id,
-    ...item.data,
-  }));
+  type CommentRow = ReviewComment & { id: string };
+  const comments: CommentRow[] = items.map(
+    (item: { id: string; data: ReviewComment }) => ({
+      id: item.id,
+      ...item.data,
+    }),
+  );
   comments.sort((a: ReviewComment, b: ReviewComment) =>
     a.at.localeCompare(b.at),
   );
@@ -289,49 +292,63 @@ async function panel(ctx: Ctx) {
         "Any edit sends this article back to review. It can now be published.",
     });
 
-  for (const comment of comments) {
+  const drawn = (comment: CommentRow) => {
     const place = comment.quote ? locate(text, comment.quote) : undefined;
-    const where = comment.quote
-      ? `“${comment.quote.slice(0, 160)}”${
-          text ? (place ? ` (line ${place.line})` : " (text has changed)") : ""
-        }`
-      : "";
-    const replies = comment.replies
-      .map(
-        (r: ReviewComment["replies"][number]) =>
-          `\n> **${r.authorName}:** ${r.body}`,
-      )
-      .join("");
-    blocks.push(
-      { type: "divider" },
+    const when = new Date(comment.at).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    const lines: unknown[] = [
       {
+        type: "context",
+        text: `${comment.authorName} · ${when}${place ? ` · line ${place.line}` : ""}`,
+      },
+    ];
+    if (comment.quote)
+      lines.push({
+        type: "context",
+        text: `“${comment.quote.slice(0, 160)}”${
+          text && !place ? " (text has changed)" : ""
+        }`,
+      });
+    lines.push({ type: "section", text: comment.body });
+    for (const reply of comment.replies)
+      lines.push({
         type: "section",
-        text: `${comment.resolved ? "~~" : ""}**${comment.authorName}**${
-          where ? `\n${where}` : ""
-        }\n${comment.body}${comment.resolved ? "~~" : ""}${replies}`,
-        accessory: {
+        text: `${reply.authorName}: ${reply.body}`,
+      });
+    lines.push({
+      type: "actions",
+      elements: [
+        {
           type: "button",
           action_id: "resolve",
           label: comment.resolved ? "Reopen" : "Resolve",
           value: comment.id,
         },
-      },
-    );
+      ],
+    });
     if (!comment.resolved)
-      blocks.push({
+      lines.push({
         type: "form",
-        fields: [
-          { type: "text_input", action_id: "body", label: "Reply" },
-          {
-            type: "text_input",
-            action_id: "comment",
-            label: "comment",
-            initial_value: comment.id,
-          },
-        ],
-        submit: { label: "Reply", action_id: "reply" },
+        fields: [{ type: "text_input", action_id: "body", label: "Reply" }],
+        submit: { label: "Reply", action_id: `reply:${comment.id}` },
       });
-  }
+    return lines;
+  };
+
+  for (const comment of open)
+    blocks.push({ type: "divider" }, ...drawn(comment));
+  const resolved = comments.filter((c: ReviewComment) => c.resolved);
+  if (resolved.length)
+    blocks.push({
+      type: "accordion",
+      label: `Resolved (${resolved.length})`,
+      blocks: resolved.flatMap((c: CommentRow) => [
+        { type: "divider" },
+        ...drawn(c),
+      ]),
+    });
 
   blocks.push(
     { type: "divider" },
@@ -369,18 +386,14 @@ async function panel(ctx: Ctx) {
       submit: { label: "Request changes", action_id: "request-changes" },
     });
 
+  // Each event is its own line: Block Kit text does not keep line breaks.
   if (review.history.length)
     blocks.push(
       { type: "divider" },
-      {
+      ...review.history.map((event) => ({
         type: "context",
-        text: review.history
-          .map(
-            (event) =>
-              `${event.at.slice(0, 16).replace("T", " ")} · ${pretty(event.action)}${event.note ? ` (${event.note})` : ""}`,
-          )
-          .join("\n"),
-      },
+        text: `${event.at.slice(0, 16).replace("T", " ")} · ${pretty(event.action)}${event.note ? ` (${event.note})` : ""}`,
+      })),
     );
 
   return notice ? { blocks, toast: notice } : { blocks };
