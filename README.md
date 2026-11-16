@@ -156,18 +156,26 @@ only been tried with a handful of test articles.
 
 - **Review.** An author sends a post for review with the **Submit for review**
   button. An editor then approves it, or requests changes with a note.
-- **Gate.** A post cannot be published or scheduled until an editor has approved
-  the text as it is. This is checked on the server for the admin, the API and
-  the scheduler alike. Editing an approved post sends it back to review.
+- **Gate.** A post cannot be published or scheduled until the approvals are in
+  for the text as it is. This is checked on the server for the admin, the API
+  and the scheduler alike. Editing a post sends it back to review.
 - **Permissions.** Who may do what follows EmDash's roles: authors and above
   submit, editors and above decide, and nobody decides on their own article
   (except an admin, who may be the only person there).
+- **Approvers.** In the plugin's settings, require one to five different
+  approvers, and optionally name who they are by email or user ID. Without a
+  list, any editor can approve. Settings apply at once.
 - **Comments.** The **Review** panel beside the editor holds comments on quoted
   passages, with replies and resolve. They are not highlighted inside the text.
-- **Pitches.** `POST /_emdash/api/plugins/newsroom/pitch` takes a title, a body,
-  a name and a contact from anyone, rate-limited per address. Editors see them
-  under **Pitches** and turn one into a draft. Nothing public is written to the
-  site's content.
+- **Queue, card and calendar.** A **Review queue** page, an "Awaiting review"
+  card on the dashboard, and an editorial **Calendar** of what goes live and
+  what expires.
+- **Expiry.** Set **Expires** on a post and the plugin takes it off the site
+  when that time passes, checked hourly.
+- **Email.** If the site has an email provider, approvers are told when a post
+  is sent for review, and its author when it is decided.
+- **Other collections.** Set "Collections that need review" to include
+  `changelogs` or `pages`.
 
 #### Signing in with Hack Club
 

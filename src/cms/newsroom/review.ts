@@ -10,10 +10,12 @@
  *                  changes_requested ────┘       ▼
  *                                              in_review
  *
- * Permissions come from EmDash's roles (see ROLE below). The plugin adds two
+ * Permissions come from EmDash's roles (see ROLE below). The plugin adds
  * rules on top: nobody approves an article they wrote or submitted (except an
- * admin, who may be the only person around), and an approval is for one exact
- * text, so any edit sends the article back to review.
+ * admin, who may be the only person around); an approval is for one exact
+ * text, so any edit sends the article back to review; an article may need
+ * several approvals from different people; and a site may name who the
+ * approvers are.
  */
 
 /** EmDash's role levels, from @emdash-cms/auth. */
@@ -37,6 +39,7 @@ export type ReviewEvent = {
   action:
     | "submitted"
     | "approved"
+    | "approval_recorded"
     | "changes_requested"
     | "invalidated"
     | "published";
@@ -49,18 +52,32 @@ export type Review = {
   collection: string;
   state: ReviewState;
   submittedBy?: string;
+  /** Where to send word of the decision. */
+  submitterEmail?: string;
+  /** Approvals given to the current text, one per person. */
+  approvals: { by: string; at: string; hash: string }[];
   /** Fingerprint of the text the approval covers. */
   approvedHash?: string;
   approvedBy?: string;
   history: ReviewEvent[];
 };
 
-export type Actor = { id: string; role: number };
+export type Actor = { id: string; role: number; email?: string };
+
+/** What a site asks of an approval. */
+export type Policy = {
+  /** How many different people must approve. */
+  required: number;
+  /** Ids or emails of the people who may approve. Empty means any editor. */
+  approvers: string[];
+};
+
+export const DEFAULT_POLICY: Policy = { required: 1, approvers: [] };
 
 export class RuleError extends Error {}
 
 export function newReview(entryId: string, collection: string): Review {
-  return { entryId, collection, state: "draft", history: [] };
+  return { entryId, collection, state: "draft", approvals: [], history: [] };
 }
 
 function record(
@@ -90,6 +107,8 @@ export function submit(review: Review, actor: Actor): Review {
     throw new RuleError("This article is already approved.");
   review.state = "in_review";
   review.submittedBy = actor.id;
+  review.submitterEmail = actor.email;
+  review.approvals = [];
   review.approvedHash = undefined;
   review.approvedBy = undefined;
   record(review, actor.id, "submitted");
@@ -114,8 +133,33 @@ export function approve(
   actor: Actor,
   hash: string,
   authorId?: string | null,
+  policy: Policy = DEFAULT_POLICY,
 ): Review {
   mayDecide(review, actor, authorId);
+  const named = policy.approvers.map((entry) => entry.toLowerCase());
+  const listed =
+    named.includes(actor.id.toLowerCase()) ||
+    (actor.email !== undefined && named.includes(actor.email.toLowerCase()));
+  if (named.length > 0 && !listed && actor.role < ROLE.ADMIN)
+    throw new RuleError("You are not one of the approvers.");
+
+  // Approvals of an older text no longer count.
+  review.approvals = (review.approvals ?? []).filter(
+    (entry) => entry.hash === hash,
+  );
+  if (review.approvals.some((entry) => entry.by === actor.id))
+    throw new RuleError("You already approved this article.");
+  review.approvals.push({ by: actor.id, at: new Date().toISOString(), hash });
+
+  if (review.approvals.length < policy.required) {
+    record(
+      review,
+      actor.id,
+      "approval_recorded",
+      `${review.approvals.length} of ${policy.required}`,
+    );
+    return review;
+  }
   review.state = "approved";
   review.approvedHash = hash;
   review.approvedBy = actor.id;
@@ -133,6 +177,7 @@ export function requestChanges(
   if (!note.trim())
     throw new RuleError("Say what should change when you request changes.");
   review.state = "changes_requested";
+  review.approvals = [];
   record(review, actor.id, "changes_requested", note.trim());
   return review;
 }
@@ -142,8 +187,19 @@ export function requestChanges(
  * Returns true when the review changed.
  */
 export function noteEdit(review: Review, actor: string, hash: string): boolean {
+  if (review.state === "in_review") {
+    // Approvals given so far were for other text.
+    const before = (review.approvals ?? []).length;
+    review.approvals = (review.approvals ?? []).filter(
+      (entry) => entry.hash === hash,
+    );
+    if (review.approvals.length === before) return false;
+    record(review, actor, "invalidated", "Edited after approvals were given.");
+    return true;
+  }
   if (review.state !== "approved" || review.approvedHash === hash) return false;
   review.state = "in_review";
+  review.approvals = [];
   review.approvedHash = undefined;
   review.approvedBy = undefined;
   record(review, actor, "invalidated", "Edited after approval.");
@@ -208,4 +264,47 @@ export function locate(
   const at = text.indexOf(quote);
   if (at < 0) return undefined;
   return { line: text.slice(0, at).split("\n").length };
+}
+
+/** Reads the comma-separated list of approvers from a setting. */
+export function parseApprovers(value: unknown): string[] {
+  return String(value ?? "")
+    .split(/[,\n]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+/** The policy a site's settings describe, with limits applied. */
+export function policyFrom(settings: {
+  requiredApprovals?: unknown;
+  approvers?: unknown;
+}): Policy {
+  const required = Math.round(Number(settings.requiredApprovals));
+  return {
+    required: Number.isFinite(required)
+      ? Math.min(5, Math.max(1, required))
+      : 1,
+    approvers: parseApprovers(settings.approvers),
+  };
+}
+
+/** The collections whose articles go through review. */
+export function reviewedCollections(value: unknown): string[] {
+  const names = String(value ?? "posts")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return names.length ? names : ["posts"];
+}
+
+/** True when an article's expiry time has come. */
+export function expired(expiresAt: unknown, now = new Date()): boolean {
+  if (typeof expiresAt !== "string" || !expiresAt) return false;
+  const time = new Date(expiresAt).getTime();
+  return Number.isFinite(time) && time <= now.getTime();
+}
+
+/** A day heading such as "2026-11-20" for the calendar. */
+export function dayOf(iso: string): string {
+  return iso.slice(0, 10);
 }

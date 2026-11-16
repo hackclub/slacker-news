@@ -267,6 +267,15 @@ const seed = {
         },
         ...references,
         {
+          slug: "expires_at",
+          label: "Expires",
+          type: "datetime",
+          options: {
+            helpText:
+              "Optional. When this time passes, the post is taken off the site. Needs the newsroom plugin and a running server.",
+          },
+        },
+        {
           slug: "members_only",
           label: "Members only",
           type: "boolean",

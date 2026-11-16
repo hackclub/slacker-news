@@ -1,12 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
   approve,
+  expired,
   fingerprint,
   locate,
   newReview,
   noteEdit,
+  parseApprovers,
+  policyFrom,
   publishBlock,
   requestChanges,
+  reviewedCollections,
   ROLE,
   RuleError,
   submit,
@@ -109,5 +113,87 @@ describe("locate", () => {
   });
   test("says nothing about a passage that is gone", () => {
     expect(locate("a\nb", "claim")).toBeUndefined();
+  });
+});
+
+describe("several approvals", () => {
+  const two = { required: 2, approvers: [] };
+  const second = { id: "e2", role: ROLE.EDITOR };
+
+  test("wait for enough different people", () => {
+    const review = approve(inReview(), editor, "h", null, two);
+    expect(review.state).toBe("in_review");
+    expect(publishBlock(review, "h")).toBeTruthy();
+    approve(review, second, "h", null, two);
+    expect(review.state).toBe("approved");
+    expect(publishBlock(review, "h")).toBeUndefined();
+  });
+  test("one person cannot approve twice", () => {
+    const review = approve(inReview(), editor, "h", null, two);
+    expect(() => approve(review, editor, "h", null, two)).toThrow(RuleError);
+  });
+  test("an edit between approvals drops the earlier one", () => {
+    const review = approve(inReview(), editor, "h", null, two);
+    expect(noteEdit(review, "w", "changed")).toBe(true);
+    expect(review.approvals).toHaveLength(0);
+    approve(review, second, "changed", null, two);
+    expect(review.state).toBe("in_review");
+  });
+  test("requesting changes clears approvals", () => {
+    const review = approve(inReview(), editor, "h", null, two);
+    requestChanges(review, second, "Fix it.");
+    expect(review.approvals).toHaveLength(0);
+  });
+});
+
+describe("named approvers", () => {
+  const named = { required: 1, approvers: ["Boss@Example.com", "id-7"] };
+  test("an editor not on the list is refused", () => {
+    expect(() => approve(inReview(), editor, "h", null, named)).toThrow(
+      RuleError,
+    );
+  });
+  test("matches by email, ignoring case, or by id", () => {
+    const byEmail = { id: "x", role: ROLE.EDITOR, email: "boss@example.com" };
+    expect(approve(inReview(), byEmail, "h", null, named).state).toBe(
+      "approved",
+    );
+    const byId = { id: "id-7", role: ROLE.EDITOR };
+    expect(approve(inReview(), byId, "h", null, named).state).toBe("approved");
+  });
+  test("an admin may always approve", () => {
+    expect(approve(inReview(), admin, "h", null, named).state).toBe("approved");
+  });
+});
+
+describe("settings", () => {
+  test("approvers are split on commas and lines", () => {
+    expect(parseApprovers("a@x.co, b@x.co\nc")).toEqual([
+      "a@x.co",
+      "b@x.co",
+      "c",
+    ]);
+  });
+  test("approvals needed stays between 1 and 5", () => {
+    expect(policyFrom({ requiredApprovals: 0 }).required).toBe(1);
+    expect(policyFrom({ requiredApprovals: 9 }).required).toBe(5);
+    expect(policyFrom({ requiredApprovals: "x" }).required).toBe(1);
+    expect(policyFrom({ requiredApprovals: 2 }).required).toBe(2);
+  });
+  test("posts are reviewed by default", () => {
+    expect(reviewedCollections(undefined)).toEqual(["posts"]);
+    expect(reviewedCollections("posts, pages")).toEqual(["posts", "pages"]);
+  });
+});
+
+describe("expiry", () => {
+  const now = new Date("2026-11-20T12:00:00Z");
+  test("an article expires once its time has passed", () => {
+    expect(expired("2026-11-20T11:00:00Z", now)).toBe(true);
+    expect(expired("2026-11-21T00:00:00Z", now)).toBe(false);
+  });
+  test("no date, or a bad one, never expires", () => {
+    expect(expired(undefined, now)).toBe(false);
+    expect(expired("not a date", now)).toBe(false);
   });
 });

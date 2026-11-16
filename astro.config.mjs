@@ -61,21 +61,27 @@ const hackClubAuth = {
   publicRoutes: ["/_emdash/api/auth/hackclub/"],
 };
 
-// Pitches, review requests, comments and an editor's approval before an
-// article can be published. See src/cms/newsroom/plugin.ts.
+// Review requests, comments, approvals by named editors, and a gate that keeps
+// an article from going live until the exact text was approved. See
+// src/cms/newsroom/plugin.ts.
+const reviewable = ["posts", "changelogs", "pages"];
 const newsroom = {
   id: "newsroom",
-  version: "0.1.0",
+  version: "0.2.0",
   entrypoint: fileURLToPath(
     new URL("./src/cms/newsroom/plugin.ts", import.meta.url),
   ),
-  adminPages: [{ path: "/pitches", label: "Pitches", icon: "inbox" }],
+  adminPages: [
+    { path: "/queue", label: "Review queue", icon: "inbox" },
+    { path: "/calendar", label: "Calendar", icon: "calendar" },
+  ],
+  adminWidgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
   editorPanels: [
     {
       id: "review",
       title: "Review",
       route: "panel",
-      collections: ["posts"],
+      collections: reviewable,
       draft: { read: { fields: ["body"] } },
     },
   ],
@@ -85,14 +91,14 @@ const newsroom = {
       label: "Submit for review",
       route: "submit",
       placement: "toolbar",
-      collections: ["posts"],
+      collections: reviewable,
     },
     {
       id: "approve",
       label: "Approve",
       route: "approve",
       placement: "toolbar",
-      collections: ["posts"],
+      collections: reviewable,
       confirm: {
         title: "Approve this article?",
         text: "You approve the text as it is now. Any edit sends it back to review.",
@@ -101,6 +107,38 @@ const newsroom = {
       },
     },
   ],
+  settingsSchema: {
+    collections: {
+      type: "string",
+      label: "Collections that need review",
+      description:
+        "Comma-separated collection slugs. Posts, changelogs and pages are supported.",
+      default: "posts",
+    },
+    requiredApprovals: {
+      type: "number",
+      label: "Approvals needed",
+      description:
+        "How many different editors must approve before publishing (1 to 5).",
+      default: 1,
+      min: 1,
+      max: 5,
+    },
+    approvers: {
+      type: "string",
+      label: "Approvers",
+      description:
+        "Emails or user IDs, separated by commas. Leave empty to let any editor approve. Administrators can always approve.",
+      multiline: true,
+    },
+    notify: {
+      type: "boolean",
+      label: "Send email",
+      description:
+        "Tell approvers when an article is sent for review, and the author when it is decided. Needs an email provider.",
+      default: true,
+    },
+  },
 };
 
 const contentSource = (name) =>
