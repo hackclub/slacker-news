@@ -169,6 +169,9 @@ async function emdashIntegrations() {
       sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox",
       authProviders: [hackClubAuth],
       plugins: [newsroom],
+      // Several people can edit one article at once. Needs the Node server,
+      // not a cluster of workers.
+      coEditing: true,
     }),
     {
       name: "slacker-news:cms-routes",

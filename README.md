@@ -177,6 +177,15 @@ only been tried with a handful of test articles.
 - **Other collections.** Set "Collections that need review" to include
   `changelogs` or `pages`.
 
+#### Co-editing
+
+Several people can edit the same article at once and see each other's cursors
+(`coEditing` in `astro.config.mjs`). Edits are saved to the article about two
+seconds after typing stops, through the normal save, so the newsroom plugin's
+rules still apply: any edit voids approvals. It needs the Node server run as a
+single process, as `Dockerfile.emdash` does. On a host that cannot run it, the
+editor falls back to one editor at a time with an edit lock.
+
 #### Signing in with Hack Club
 
 [Hack Club Auth](https://auth.hackclub.com) is the only way to sign in to the
