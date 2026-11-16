@@ -9,12 +9,13 @@ import rehypeKatex from "rehype-katex";
 import { legacyRedirects } from "./src/data/legacy-redirects.mjs";
 
 // CMS=emdash swaps the MDX files in src/content for EmDash as the source of
-// posts, changelogs and pages. It needs a long-running Node server with a
-// writable disk, so the Vercel build keeps reading the files.
+// posts, changelogs and pages. This setup uses SQLite on a local disk and a
+// long-running Node server, which Vercel does not offer, so the Vercel build
+// keeps reading the files.
 const useEmDash = process.env.CMS === "emdash";
 if (useEmDash && process.env.VERCEL) {
   throw new Error(
-    "CMS=emdash needs the Node adapter; it cannot run on Vercel.",
+    "CMS=emdash is set up for the Node adapter, with SQLite on a local disk. It has not been configured for Vercel.",
   );
 }
 
@@ -60,6 +61,48 @@ const hackClubAuth = {
   publicRoutes: ["/_emdash/api/auth/hackclub/"],
 };
 
+// Pitches, review requests, comments and an editor's approval before an
+// article can be published. See src/cms/newsroom/plugin.ts.
+const newsroom = {
+  id: "newsroom",
+  version: "0.1.0",
+  entrypoint: fileURLToPath(
+    new URL("./src/cms/newsroom/plugin.ts", import.meta.url),
+  ),
+  adminPages: [{ path: "/pitches", label: "Pitches", icon: "inbox" }],
+  editorPanels: [
+    {
+      id: "review",
+      title: "Review",
+      route: "panel",
+      collections: ["posts"],
+      draft: { read: { fields: ["body"] } },
+    },
+  ],
+  editorActions: [
+    {
+      id: "submit",
+      label: "Submit for review",
+      route: "submit",
+      placement: "toolbar",
+      collections: ["posts"],
+    },
+    {
+      id: "approve",
+      label: "Approve",
+      route: "approve",
+      placement: "toolbar",
+      collections: ["posts"],
+      confirm: {
+        title: "Approve this article?",
+        text: "You approve the text as it is now. Any edit sends it back to review.",
+        confirm: "Approve",
+        deny: "Cancel",
+      },
+    },
+  ],
+};
+
 const contentSource = (name) =>
   fileURLToPath(
     new URL(`./src/lib/content-source/${name}.ts`, import.meta.url),
@@ -87,6 +130,7 @@ async function emdashIntegrations() {
       // open-source Workers runtime. Nothing is hosted on Cloudflare.
       sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox",
       authProviders: [hackClubAuth],
+      plugins: [newsroom],
     }),
     {
       name: "slacker-news:cms-routes",

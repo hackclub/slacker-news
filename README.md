@@ -134,8 +134,8 @@ the MDX files, so they can be written and edited in a browser at
 the site reads `src/content` as before, which is what the Vercel deployment
 does.
 
-EmDash mode is fully self-hosted. It needs a long-running Node server and a
-writable disk, and runs nothing on Cloudflare: content is a SQLite file,
+EmDash mode is fully self-hosted. As configured here it needs a long-running
+Node server and a writable disk, and runs nothing on Cloudflare: content is a SQLite file,
 uploads are local files, and sandboxed plugins run in a local
 [workerd](https://github.com/cloudflare/workerd) process.
 
@@ -147,6 +147,27 @@ bun run dev:emdash
 ```
 
 The first visit to `/_emdash/admin` creates the administrator account.
+
+#### Newsroom workflow (prototype)
+
+The `newsroom` plugin (`src/cms/newsroom`) adds an editorial process to the
+Posts collection. It is a prototype: it works through the admin and API, but has
+only been tried with a handful of test articles.
+
+- **Review.** An author sends a post for review with the **Submit for review**
+  button. An editor then approves it, or requests changes with a note.
+- **Gate.** A post cannot be published or scheduled until an editor has approved
+  the text as it is. This is checked on the server for the admin, the API and
+  the scheduler alike. Editing an approved post sends it back to review.
+- **Permissions.** Who may do what follows EmDash's roles: authors and above
+  submit, editors and above decide, and nobody decides on their own article
+  (except an admin, who may be the only person there).
+- **Comments.** The **Review** panel beside the editor holds comments on quoted
+  passages, with replies and resolve. They are not highlighted inside the text.
+- **Pitches.** `POST /_emdash/api/plugins/newsroom/pitch` takes a title, a body,
+  a name and a contact from anyone, rate-limited per address. Editors see them
+  under **Pitches** and turn one into a draft. Nothing public is written to the
+  site's content.
 
 #### Signing in with Hack Club
 
