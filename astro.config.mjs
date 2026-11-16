@@ -71,6 +71,17 @@ const newsroom = {
   entrypoint: fileURLToPath(
     new URL("./src/cms/newsroom/plugin.ts", import.meta.url),
   ),
+  // The text editor with comments and suggestions on selected passages.
+  adminEntry: fileURLToPath(
+    new URL("./src/cms/newsroom/admin.tsx", import.meta.url),
+  ),
+  fieldWidgets: [
+    {
+      name: "review-text",
+      label: "Text with comments and suggestions",
+      fieldTypes: ["text"],
+    },
+  ],
   adminPages: [
     { path: "/queue", label: "Review queue", icon: "inbox" },
     { path: "/calendar", label: "Calendar", icon: "calendar" },

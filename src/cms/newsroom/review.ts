@@ -245,6 +245,16 @@ export type ReviewComment = {
   at: string;
   /** The passage the comment is about, copied from the article. */
   quote: string;
+  /** A comment is a note; a suggestion proposes new text for the passage. */
+  kind?: "comment" | "suggestion";
+  /** For a suggestion: the text that should replace the quote. May be empty. */
+  replacement?: string;
+  /** For a suggestion: where it stands. Comments have no status. */
+  status?: "open" | "accepted" | "rejected";
+  /** Text around the quote and where it began, to find it again. */
+  prefix?: string;
+  suffix?: string;
+  start?: number;
   body: string;
   resolved: boolean;
   resolvedBy?: string;

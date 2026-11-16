@@ -16,6 +16,7 @@
  *    plugin's settings and are read each time, so changes apply at once.
  */
 import { definePlugin } from "emdash";
+import { findAnchor, type Anchor } from "./anchors";
 import {
   approve,
   dayOf,
@@ -293,41 +294,65 @@ async function panel(ctx: Ctx) {
     });
 
   const drawn = (comment: CommentRow) => {
-    const place = comment.quote ? locate(text, comment.quote) : undefined;
+    const found = comment.quote
+      ? findAnchor(text, {
+          quote: comment.quote,
+          prefix: comment.prefix ?? "",
+          suffix: comment.suffix ?? "",
+          start: comment.start ?? 0,
+        })
+      : undefined;
+    const line = found ? text.slice(0, found.start).split("\n").length : 0;
     const when = new Date(comment.at).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     });
+    const suggestion = comment.kind === "suggestion";
+    const state =
+      suggestion && comment.status !== "open" ? ` · ${comment.status}` : "";
     const lines: unknown[] = [
       {
         type: "context",
-        text: `${comment.authorName} · ${when}${place ? ` · line ${place.line}` : ""}`,
+        text: `${suggestion ? "Suggestion" : "Comment"} by ${comment.authorName} · ${when}${line ? ` · line ${line}` : ""}${state}`,
       },
     ];
     if (comment.quote)
       lines.push({
         type: "context",
         text: `“${comment.quote.slice(0, 160)}”${
-          text && !place ? " (text has changed)" : ""
+          text && !found ? " (text has changed)" : ""
         }`,
       });
-    lines.push({ type: "section", text: comment.body });
+    if (suggestion)
+      lines.push({
+        type: "section",
+        text: comment.replacement
+          ? `Change to: “${comment.replacement.slice(0, 200)}”`
+          : "Delete this passage.",
+      });
+    if (comment.body) lines.push({ type: "section", text: comment.body });
     for (const reply of comment.replies)
       lines.push({
         type: "section",
         text: `${reply.authorName}: ${reply.body}`,
       });
-    lines.push({
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          action_id: "resolve",
-          label: comment.resolved ? "Reopen" : "Resolve",
-          value: comment.id,
-        },
-      ],
-    });
+    if (suggestion && comment.status === "open")
+      lines.push({
+        type: "context",
+        text: "Open the passage in the text to accept or reject it.",
+      });
+    else
+      lines.push({
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            action_id: "resolve",
+            label: comment.resolved ? "Reopen" : "Resolve",
+            value: comment.id,
+          },
+        ],
+      });
     if (!comment.resolved)
       lines.push({
         type: "form",
@@ -397,6 +422,131 @@ async function panel(ctx: Ctx) {
     );
 
   return notice ? { blocks, toast: notice } : { blocks };
+}
+
+// ---------------------------------------------------------------------------
+// Threads in the article's text
+// ---------------------------------------------------------------------------
+
+type ThreadInput = {
+  op: "list" | "create" | "reply" | "resolve" | "decide";
+  collection: string;
+  entryId: string;
+  id?: string;
+  kind?: "comment" | "suggestion";
+  anchor?: Anchor;
+  body?: string;
+  replacement?: string;
+  accept?: boolean;
+};
+
+const MAX_PASSAGE = 4000;
+const MAX_TEXT = 8000;
+
+/**
+ * The editor's side of comments and suggestions: the text editor lists the
+ * threads of an article and adds to them. The same threads show in the Review
+ * panel. Accepting a suggestion only records the decision; the editor makes
+ * the change in the text, which the author then saves.
+ */
+async function threads(ctx: Ctx) {
+  const input = ctx.input as ThreadInput;
+  const actor = who(ctx);
+  const { collections } = await rules(ctx);
+  if (!input.entryId || !collections.includes(input.collection))
+    return { error: "Review is not turned on for this collection." };
+
+  const fail = (error: string) => ({ error });
+  const view = async () => {
+    const { items } = await ctx.storage.comments.query({
+      where: { entryId: input.entryId },
+      limit: 200,
+    });
+    const rows = items
+      .map((item: { id: string; data: ReviewComment }) => ({
+        id: item.id,
+        ...item.data,
+      }))
+      .sort((a: ReviewComment, b: ReviewComment) => a.at.localeCompare(b.at));
+    return { threads: rows, you: { id: actor.id, role: actor.role } };
+  };
+
+  if (input.op === "list") return view();
+  if (actor.role < ROLE.AUTHOR)
+    return fail("You cannot comment on this article.");
+
+  const stored = async () => {
+    const row = (await ctx.storage.comments.get(
+      String(input.id ?? ""),
+    )) as ReviewComment | null;
+    return row && row.entryId === input.entryId ? row : null;
+  };
+  const body = String(input.body ?? "")
+    .trim()
+    .slice(0, MAX_TEXT);
+
+  if (input.op === "create") {
+    const anchor = input.anchor;
+    if (!anchor || !anchor.quote || anchor.quote.length > MAX_PASSAGE)
+      return fail("Select a passage first.");
+    const kind = input.kind === "suggestion" ? "suggestion" : "comment";
+    if (kind === "comment" && !body) return fail("Write a comment first.");
+    const row: ReviewComment = {
+      entryId: input.entryId,
+      author: actor.id,
+      authorName: actor.name,
+      at: new Date().toISOString(),
+      quote: anchor.quote,
+      prefix: String(anchor.prefix ?? "").slice(0, 200),
+      suffix: String(anchor.suffix ?? "").slice(0, 200),
+      start: Number.isFinite(anchor.start) ? anchor.start : 0,
+      kind,
+      body,
+      resolved: false,
+      replies: [],
+      ...(kind === "suggestion"
+        ? {
+            replacement: String(input.replacement ?? "").slice(0, MAX_TEXT),
+            status: "open" as const,
+          }
+        : {}),
+    };
+    await ctx.storage.comments.put(crypto.randomUUID(), row);
+    return view();
+  }
+
+  const row = await stored();
+  if (!row) return fail("That thread no longer exists.");
+  const id = String(input.id);
+
+  if (input.op === "reply") {
+    if (!body) return fail("Write a reply first.");
+    row.replies.push({
+      author: actor.id,
+      authorName: actor.name,
+      at: new Date().toISOString(),
+      body,
+    });
+  } else if (input.op === "resolve") {
+    if (row.kind === "suggestion" && row.status === "open")
+      return fail("Accept or reject the suggestion instead.");
+    row.resolved = !row.resolved;
+    row.resolvedBy = row.resolved ? actor.id : undefined;
+  } else if (input.op === "decide") {
+    if (row.kind !== "suggestion" || row.status !== "open")
+      return fail("This suggestion was already decided.");
+    // Editors decide, and so does the article's author on their own article.
+    const item = await ctx.content.get(input.collection, input.entryId);
+    const owner = item?.authorId === actor.id;
+    if (actor.role < ROLE.EDITOR && !owner)
+      return fail("Only an editor or the article's author can decide.");
+    row.status = input.accept ? "accepted" : "rejected";
+    row.resolved = true;
+    row.resolvedBy = actor.id;
+  } else return fail("Unknown request.");
+
+  await ctx.storage.comments.put(id, row);
+  return view();
 }
 
 // ---------------------------------------------------------------------------
@@ -713,6 +863,13 @@ export function createPlugin() {
         { path: "/calendar", label: "Calendar", icon: "calendar" },
       ],
       widgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
+      fieldWidgets: [
+        {
+          name: "review-text",
+          label: "Text with comments and suggestions",
+          fieldTypes: ["text"],
+        },
+      ],
       editorPanels: [
         {
           id: "review",
@@ -749,6 +906,8 @@ export function createPlugin() {
       // Authors and up may comment and submit. EmDash does not let
       // contributors use editor buttons on their drafts.
       panel: { permission: "content:read_drafts", handler: panel },
+      // The text editor's comments and suggestions (see admin.tsx).
+      threads: { permission: "content:edit_own", handler: threads },
       submit: { permission: "content:create", handler: submitAction },
       // Editors and up decide, and read the queue and calendar.
       approve: { permission: "content:publish_any", handler: approveAction },

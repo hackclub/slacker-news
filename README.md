@@ -152,7 +152,9 @@ The first visit to `/_emdash/admin` creates the administrator account.
 
 The `newsroom` plugin (`src/cms/newsroom`) adds an editorial process to the
 Posts collection. It is a prototype: it works through the admin and API, but has
-only been tried with a handful of test articles.
+only been tried with a handful of test articles. The body editor
+(`admin.tsx`) is a plain text box with a highlight layer, so it needs the
+plugin to run in the server process rather than a sandbox.
 
 - **Review.** An author sends a post for review with the **Submit for review**
   button. An editor then approves it, or requests changes with a note.
@@ -165,8 +167,16 @@ only been tried with a handful of test articles.
 - **Approvers.** In the plugin's settings, require one to five different
   approvers, and optionally name who they are by email or user ID. Without a
   list, any editor can approve. Settings apply at once.
-- **Comments.** The **Review** panel beside the editor holds comments on quoted
-  passages, with replies and resolve. They are not highlighted inside the text.
+- **Comments in the text.** Select text in the article body and choose
+  **Comment**. The passage is highlighted yellow; click it to open the thread,
+  reply, or resolve. The **Review** panel beside the editor lists the same
+  threads. A thread finds its passage again by its quoted text, so edits above
+  it do not lose it; if the passage itself is edited away, the thread says so.
+- **Suggesting.** Select text and choose **Suggest an edit**, then type the
+  replacement (empty deletes). The passage is highlighted blue. An editor, or
+  the article's author, accepts it: the new text goes into the body, unsaved,
+  and saving sends the article back to review like any edit. Rejecting leaves
+  the text alone.
 - **Queue, card and calendar.** A **Review queue** page, an "Awaiting review"
   card on the dashboard, and an editorial **Calendar** of what goes live and
   what expires.

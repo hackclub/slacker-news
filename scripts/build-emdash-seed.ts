@@ -216,6 +216,8 @@ const body = {
   label: "Body (MDX)",
   type: "text",
   searchable: true,
+  // The newsroom plugin's editor: comments and suggestions on selected text.
+  widget: "newsroom:review-text",
   options: {
     rows: 30,
     helpText:
