@@ -55,7 +55,7 @@ function commonHead(a: string, b: string) {
  */
 export function findAnchor(text: string, anchor: Anchor): Range | undefined {
   const { quote } = anchor;
-  if (!quote) return undefined;
+  if (!quote) return findPoint(text, anchor);
   let best: (Range & { score: number; distance: number }) | undefined;
   for (
     let at = text.indexOf(quote);
@@ -75,6 +75,45 @@ export function findAnchor(text: string, anchor: Anchor): Range | undefined {
       best = { start: at, end, score, distance };
   }
   return best && { start: best.start, end: best.end };
+}
+
+/**
+ * Finds the place of an anchor with no quoted passage, such as an insertion:
+ * the position whose surrounding text matches best. Returns undefined when
+ * the words around it were edited too much to be sure.
+ */
+function findPoint(text: string, anchor: Anchor): Range | undefined {
+  const { prefix, suffix } = anchor;
+  const needle = (value: string, from: "start" | "end") =>
+    from === "end" ? value.slice(-12) : value.slice(0, 12);
+  const candidates = new Set<number>();
+  if (prefix) {
+    const key = needle(prefix, "end");
+    for (let at = text.indexOf(key); at >= 0; at = text.indexOf(key, at + 1))
+      candidates.add(at + key.length);
+  }
+  if (suffix) {
+    const key = needle(suffix, "start");
+    for (let at = text.indexOf(key); at >= 0; at = text.indexOf(key, at + 1))
+      candidates.add(at);
+  }
+  if (!prefix && !suffix) candidates.add(0);
+  let best: { at: number; score: number; distance: number } | undefined;
+  for (const at of candidates) {
+    const score =
+      commonTail(text.slice(Math.max(0, at - CONTEXT), at), prefix) +
+      commonHead(text.slice(at, at + CONTEXT), suffix);
+    const distance = Math.abs(at - anchor.start);
+    if (
+      !best ||
+      score > best.score ||
+      (score === best.score && distance < best.distance)
+    )
+      best = { at, score, distance };
+  }
+  const needed = Math.min(8, prefix.length + suffix.length);
+  if (!best || best.score < needed) return undefined;
+  return { start: best.at, end: best.at };
 }
 
 /** The text with a suggestion applied, or undefined when its passage is gone. */

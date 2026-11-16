@@ -167,16 +167,24 @@ plugin to run in the server process rather than a sandbox.
 - **Approvers.** In the plugin's settings, require one to five different
   approvers, and optionally name who they are by email or user ID. Without a
   list, any editor can approve. Settings apply at once.
-- **Comments in the text.** Select text in the article body and choose
-  **Comment**. The passage is highlighted yellow; click it to open the thread,
-  reply, or resolve. The **Review** panel beside the editor lists the same
-  threads. A thread finds its passage again by its quoted text, so edits above
-  it do not lose it; if the passage itself is edited away, the thread says so.
-- **Suggesting.** Select text and choose **Suggest an edit**, then type the
-  replacement (empty deletes). The passage is highlighted blue. An editor, or
-  the article's author, accepts it: the new text goes into the body, unsaved,
-  and saving sends the article back to review like any edit. Rejecting leaves
-  the text alone.
+- **Comments in the text.** Select text in the article body and a pair of
+  buttons appears beside the selection: **Comment** and **Suggest an edit**.
+  The passage is highlighted yellow; click it to open the thread, reply, or
+  resolve. The **Review** panel beside the editor lists the same threads. A
+  thread finds its passage again by its quoted text, so edits above it do not
+  lose them; if the passage itself is edited away, the thread says so.
+- **Suggesting mode.** Switch the body from **Editing** to **Suggesting** and
+  just type. The article does not change: text you delete stays, struck
+  through in red, and text you add is marked in green. Each change is stored
+  as a suggestion a moment after you stop typing. An editor, or the article's
+  author, accepts one: the new text goes into the body, unsaved, and saving
+  sends the article back to review like any edit. Rejecting leaves the text
+  alone. Suggestions you pick out by hand with **Suggest an edit** work the
+  same way. You cannot type inside someone else's suggestion; accept or
+  reject it first.
+- **Comments beside the text.** In EmDash's distraction-free mode, which hides
+  its sidebar, the threads show in a column beside the text. **Comments
+  beside** in the bar above the body does the same without full screen.
 - **Queue, card and calendar.** A **Review queue** page, an "Awaiting review"
   card on the dashboard, and an editorial **Calendar** of what goes live and
   what expires.

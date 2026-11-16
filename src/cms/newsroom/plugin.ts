@@ -294,14 +294,15 @@ async function panel(ctx: Ctx) {
     });
 
   const drawn = (comment: CommentRow) => {
-    const found = comment.quote
-      ? findAnchor(text, {
-          quote: comment.quote,
-          prefix: comment.prefix ?? "",
-          suffix: comment.suffix ?? "",
-          start: comment.start ?? 0,
-        })
-      : undefined;
+    const found =
+      comment.quote || comment.kind === "suggestion"
+        ? findAnchor(text, {
+            quote: comment.quote,
+            prefix: comment.prefix ?? "",
+            suffix: comment.suffix ?? "",
+            start: comment.start ?? 0,
+          })
+        : undefined;
     const line = found ? text.slice(0, found.start).split("\n").length : 0;
     const when = new Date(comment.at).toLocaleDateString("en-US", {
       month: "short",
@@ -326,9 +327,11 @@ async function panel(ctx: Ctx) {
     if (suggestion)
       lines.push({
         type: "section",
-        text: comment.replacement
-          ? `Change to: “${comment.replacement.slice(0, 200)}”`
-          : "Delete this passage.",
+        text: !comment.quote
+          ? `Add: “${(comment.replacement ?? "").slice(0, 200)}”`
+          : comment.replacement
+            ? `Change to: “${comment.replacement.slice(0, 200)}”`
+            : "Delete this passage.",
       });
     if (comment.body) lines.push({ type: "section", text: comment.body });
     for (const reply of comment.replies)
@@ -429,7 +432,7 @@ async function panel(ctx: Ctx) {
 // ---------------------------------------------------------------------------
 
 type ThreadInput = {
-  op: "list" | "create" | "reply" | "resolve" | "decide";
+  op: "list" | "create" | "reply" | "resolve" | "decide" | "sync";
   collection: string;
   entryId: string;
   id?: string;
@@ -438,6 +441,8 @@ type ThreadInput = {
   body?: string;
   replacement?: string;
   accept?: boolean;
+  /** For sync: every change the writer has made in suggesting mode. */
+  changes?: (Anchor & { replacement: string })[];
 };
 
 const MAX_PASSAGE = 4000;
@@ -457,19 +462,22 @@ async function threads(ctx: Ctx) {
     return { error: "Review is not turned on for this collection." };
 
   const fail = (error: string) => ({ error });
-  const view = async () => {
+  const all = async () => {
     const { items } = await ctx.storage.comments.query({
       where: { entryId: input.entryId },
-      limit: 200,
+      limit: 500,
     });
-    const rows = items
+    return items
       .map((item: { id: string; data: ReviewComment }) => ({
         id: item.id,
         ...item.data,
       }))
       .sort((a: ReviewComment, b: ReviewComment) => a.at.localeCompare(b.at));
-    return { threads: rows, you: { id: actor.id, role: actor.role } };
   };
+  const view = async () => ({
+    threads: await all(),
+    you: { id: actor.id, role: actor.role },
+  });
 
   if (input.op === "list") return view();
   if (actor.role < ROLE.AUTHOR)
@@ -487,9 +495,16 @@ async function threads(ctx: Ctx) {
 
   if (input.op === "create") {
     const anchor = input.anchor;
-    if (!anchor || !anchor.quote || anchor.quote.length > MAX_PASSAGE)
-      return fail("Select a passage first.");
     const kind = input.kind === "suggestion" ? "suggestion" : "comment";
+    // A suggestion may add text without quoting any; a comment needs a passage.
+    const insertion =
+      kind === "suggestion" && !anchor?.quote && Boolean(input.replacement);
+    if (
+      !anchor ||
+      (!anchor.quote && !insertion) ||
+      anchor.quote.length > MAX_PASSAGE
+    )
+      return fail("Select a passage first.");
     if (kind === "comment" && !body) return fail("Write a comment first.");
     const row: ReviewComment = {
       entryId: input.entryId,
@@ -512,6 +527,60 @@ async function threads(ctx: Ctx) {
         : {}),
     };
     await ctx.storage.comments.put(crypto.randomUUID(), row);
+    return view();
+  }
+
+  if (input.op === "sync") {
+    // Suggesting mode: the writer's changes become the open suggestions
+    // they made by typing. Unchanged ones keep their thread; ones the writer
+    // took back are removed.
+    const wanted = (Array.isArray(input.changes) ? input.changes : [])
+      .slice(0, 200)
+      .filter(
+        (c) =>
+          c &&
+          (c.quote || c.replacement) &&
+          String(c.quote ?? "").length <= MAX_PASSAGE &&
+          String(c.replacement ?? "").length <= MAX_TEXT,
+      );
+    const mine = (await all()).filter(
+      (r: ReviewComment & { id: string }) =>
+        r.auto && r.author === actor.id && r.status === "open",
+    );
+    for (const change of wanted) {
+      const quote = String(change.quote ?? "");
+      const replacement = String(change.replacement ?? "");
+      const at = mine.findIndex(
+        (r: ReviewComment) =>
+          r.quote === quote && r.replacement === replacement,
+      );
+      const fields = {
+        prefix: String(change.prefix ?? "").slice(0, 200),
+        suffix: String(change.suffix ?? "").slice(0, 200),
+        start: Number.isFinite(change.start) ? change.start : 0,
+      };
+      if (at >= 0) {
+        const [kept] = mine.splice(at, 1);
+        const { id, ...data } = kept;
+        await ctx.storage.comments.put(id, { ...data, ...fields });
+      } else
+        await ctx.storage.comments.put(crypto.randomUUID(), {
+          entryId: input.entryId,
+          author: actor.id,
+          authorName: actor.name,
+          at: new Date().toISOString(),
+          quote,
+          replacement,
+          ...fields,
+          kind: "suggestion",
+          auto: true,
+          status: "open",
+          body: "",
+          resolved: false,
+          replies: [],
+        } satisfies ReviewComment);
+    }
+    for (const gone of mine) await ctx.storage.comments.delete(gone.id);
     return view();
   }
 

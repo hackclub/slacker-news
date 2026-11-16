@@ -76,3 +76,36 @@ describe("anchors", () => {
     expect(marksAt(ranges, 9)).toEqual([]);
   });
 });
+
+describe("anchors without a quoted passage", () => {
+  const text = "The cat sat. The cat ran. A dog ran.";
+
+  test("finds an insertion point where it was made", () => {
+    const at = text.indexOf("A dog");
+    const anchor = anchorFor(text, at, at);
+    expect(findAnchor(text, anchor)).toEqual({ start: at, end: at });
+  });
+
+  test("follows an insertion point when text above it changed", () => {
+    const at = text.indexOf("A dog");
+    const anchor = anchorFor(text, at, at);
+    const edited = "New opening. " + text;
+    const found = findAnchor(edited, anchor);
+    expect(found?.start).toBe(edited.indexOf("A dog"));
+  });
+
+  test("gives up when the words around it are gone", () => {
+    const anchor = anchorFor(text, 13, 13);
+    expect(
+      findAnchor("Entirely different words here.", anchor),
+    ).toBeUndefined();
+  });
+
+  test("an insertion is applied at its point", () => {
+    const at = text.indexOf("A dog");
+    const anchor = anchorFor(text, at, at);
+    expect(applyReplacement(text, anchor, "Then ")).toBe(
+      "The cat sat. The cat ran. Then A dog ran.",
+    );
+  });
+});

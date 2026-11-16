@@ -249,6 +249,8 @@ export type ReviewComment = {
   kind?: "comment" | "suggestion";
   /** For a suggestion: the text that should replace the quote. May be empty. */
   replacement?: string;
+  /** True for a suggestion made by typing in suggesting mode. The editor keeps these in step with the writer's changes. */
+  auto?: boolean;
   /** For a suggestion: where it stands. Comments have no status. */
   status?: "open" | "accepted" | "rejected";
   /** Text around the quote and where it began, to find it again. */
