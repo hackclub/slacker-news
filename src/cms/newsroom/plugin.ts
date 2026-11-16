@@ -655,6 +655,8 @@ export function createPlugin() {
       "content:publish",
       "email:send",
       "hooks.content-policy:register",
+      // The review panel reads the unsaved text, to find quoted passages.
+      "admin.editor-draft:read",
     ],
     storage: {
       reviews: { indexes: ["state", "collection"] },
