@@ -1,3 +1,5 @@
+/** @jsxRuntime automatic */
+/** @jsxImportSource react */
 /**
  * The article text editor with comments and suggestions on selected passages.
  *
