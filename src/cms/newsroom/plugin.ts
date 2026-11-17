@@ -17,6 +17,8 @@
  */
 import { definePlugin } from "emdash";
 import { portableTextBlocks } from "../rich/blocks.mjs";
+import { readHits, searchUrl } from "../rich/slack-search";
+import type { SlackKind } from "../rich/slack-search";
 import { findAnchor, type Anchor } from "./anchors";
 import {
   approve,
@@ -448,6 +450,27 @@ type ThreadInput = {
 
 const MAX_PASSAGE = 4000;
 const MAX_TEXT = 8000;
+
+/** Search Slack people or channels by name, for the insert forms. */
+async function slackSearch(ctx: Ctx) {
+  const input = ctx.input as { kind?: string; q?: string };
+  const kind: SlackKind | undefined =
+    input.kind === "users" || input.kind === "channels"
+      ? input.kind
+      : undefined;
+  const query = (input.q ?? "").trim().slice(0, 60);
+  if (!kind || !query) return { hits: [] };
+  try {
+    const response = await ctx.http.fetch(searchUrl(kind, query), {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok)
+      return { hits: [], error: "Slack search is unavailable." };
+    return { hits: readHits(kind, await response.json()) };
+  } catch {
+    return { hits: [], error: "Slack search is unavailable." };
+  }
+}
 
 /**
  * The editor's side of comments and suggestions: the text editor lists the
@@ -882,12 +905,15 @@ export function createPlugin() {
   return definePlugin({
     id: "newsroom",
     version: "0.2.0",
+    allowedHosts: ["flaron.halceon.dev"],
     capabilities: [
       "content:read",
       "content:write",
       "content:publish",
       "email:send",
       "hooks.content-policy:register",
+      // Slack people and channels are looked up on Flaron for the insert forms.
+      "network:request",
       // The review panel reads the unsaved text, to find quoted passages.
       "admin.editor-draft:read",
     ],
@@ -980,6 +1006,8 @@ export function createPlugin() {
       panel: { permission: "content:read_drafts", handler: panel },
       // The text editor's comments and suggestions (see admin.tsx).
       threads: { permission: "content:edit_own", handler: threads },
+      // Lookups for the Slack user and channel insert forms.
+      slack: { permission: "content:edit_own", handler: slackSearch },
       submit: { permission: "content:create", handler: submitAction },
       // Editors and up decide, and read the queue and calendar.
       approve: { permission: "content:publish_any", handler: approveAction },

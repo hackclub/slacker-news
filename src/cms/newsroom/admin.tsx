@@ -39,6 +39,7 @@ import {
 } from "./anchors";
 import type { Anchor } from "./anchors";
 import type { ReviewComment } from "./review";
+import "./slack-picker";
 import {
   applyEdit,
   changesOf,

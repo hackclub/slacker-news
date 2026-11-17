@@ -69,7 +69,10 @@ export const COMPONENT_BLOCKS = [
     description: "A mention of someone on Slack",
     category: "Slack",
     fields: [
-      text("id", "Slack ID", { placeholder: "U09Q8MLTE58" }),
+      // The insert form searches Slack as this is typed (slack-picker.ts).
+      text("id", "Slack user", {
+        placeholder: "Search by name, or paste an ID",
+      }),
       text("name", "Name"),
     ],
   },
@@ -80,7 +83,9 @@ export const COMPONENT_BLOCKS = [
     description: "A link to a Slack channel",
     category: "Slack",
     fields: [
-      text("id", "Channel name or ID"),
+      text("id", "Slack channel", {
+        placeholder: "Search by name, or paste an ID",
+      }),
       text("label", "Label (optional)"),
     ],
   },
