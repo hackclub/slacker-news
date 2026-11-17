@@ -10,20 +10,23 @@
  *
  *  - A passage with an open thread is highlighted, with a small icon at its
  *    end. Click either to open the thread.
- *  - Select text and a pair of buttons appears by the selection: Comment, and
- *    Suggest an edit. A suggestion shows the passage struck and the new text
- *    beside it; an editor, or the article's author, accepts it (the text
- *    changes in the editor, like any edit) or rejects it.
+ *  - Select text and a Comment button appears by the selection.
+ *  - A Suggest switch at the end of the editor's toolbar turns on suggesting
+ *    mode. In it, typing, deleting and pasting never change the text: each
+ *    edit is kept as a suggestion, drawn as struck text with the new text
+ *    beside it. An editor, or the article's author, accepts one (the text
+ *    then changes, like any edit) or rejects it.
  *
  * Threads are stored by the newsroom plugin, the same ones its Review panel
  * lists. A thread finds its passage again by its quoted text (anchors.ts), so
  * edits above it, or by someone else editing at the same time, do not lose it.
  */
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import type { EditorState } from "@tiptap/pm/state";
+import type { EditorView } from "@tiptap/pm/view";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { anchorFor, findAnchor } from "./anchors";
 import type { Anchor } from "./anchors";
@@ -58,7 +61,10 @@ type EditorLike = {
   isDestroyed: boolean;
   on(event: string, handler: () => void): void;
   off(event: string, handler: () => void): void;
-  registerPlugin(plugin: Plugin): void;
+  registerPlugin(
+    plugin: Plugin,
+    place?: (plugin: Plugin, plugins: Plugin[]) => Plugin[],
+  ): void;
 };
 
 function entryFromLocation(): Entry | null {
@@ -71,9 +77,11 @@ function entryFromLocation(): Entry | null {
 }
 
 const key = new PluginKey<DecorationSet>("newsroomReview");
+/** Marks a change to the text that suggesting mode lets through. */
+const ALLOW = "newsroomAllow";
 
 type Composer = {
-  kind: "comment" | "suggestion";
+  kind: "comment";
   anchor: Anchor;
   /** Where to draw it, from the selection. */
   from: number;
@@ -89,9 +97,20 @@ class Store {
   dt: DocText = { text: "", runs: [] };
   /** Where each open thread's passage is in the document now. */
   ranges = new Map<string, { from: number; to: number }>();
+  /** Suggesting mode: edits do not change the text; they become suggestions. */
+  suggesting = false;
+  /** The suggestions made by typing here. While suggesting, these are the truth and the server follows. */
+  mine: Thread[] = [];
+  notice = "";
   private version = 0;
   private listeners = new Set<() => void>();
   private timer: ReturnType<typeof setInterval> | undefined;
+  private edits = 0;
+  private sentEdits = 0;
+  private syncTimer: ReturnType<typeof setTimeout> | undefined;
+  private syncing = 0;
+  private noticeTimer: ReturnType<typeof setTimeout> | undefined;
+  private localIds = 0;
 
   constructor(
     readonly editor: EditorLike,
@@ -141,9 +160,217 @@ class Store {
     this.error = answer.error ?? "";
     if (answer.threads) this.threads = answer.threads;
     if (answer.you) this.you = answer.you;
+    // Take the server's copy of my typed suggestions, unless newer edits are
+    // still on their way to it.
+    const settled =
+      this.syncTimer === undefined &&
+      this.edits === this.sentEdits &&
+      (body.op === "sync" || this.syncing === 0);
+    if (answer.threads && settled)
+      this.mine = this.threads.filter((thread) => this.isMine(thread));
     this.repaint();
     this.emit();
     return answer;
+  }
+
+  /** A suggestion I made by typing, still open. */
+  isMine(thread: Thread): boolean {
+    return (
+      thread.kind === "suggestion" &&
+      Boolean(thread.auto) &&
+      thread.status === "open" &&
+      thread.author === this.you?.id
+    );
+  }
+
+  /** The threads to draw: while suggesting, my typed ones come from here, not the server. */
+  shown(): Thread[] {
+    return this.suggesting
+      ? [...this.threads.filter((thread) => !this.isMine(thread)), ...this.mine]
+      : this.threads;
+  }
+
+  say(text: string) {
+    this.notice = text;
+    clearTimeout(this.noticeTimer);
+    this.noticeTimer = setTimeout(() => {
+      this.notice = "";
+      this.emit();
+    }, 3200);
+    this.emit();
+  }
+
+  setSuggesting(on: boolean) {
+    if (on === this.suggesting) return;
+    if (on) this.mine = this.threads.filter((thread) => this.isMine(thread));
+    else void this.flush();
+    this.suggesting = on;
+    this.active = null;
+    this.composer = null;
+    this.repaint();
+    this.emit();
+  }
+
+  /** Sends my typed suggestions to the server, which keeps, adds and removes threads to match. */
+  async flush() {
+    clearTimeout(this.syncTimer);
+    this.syncTimer = undefined;
+    if (this.edits === this.sentEdits) return;
+    this.sentEdits = this.edits;
+    this.syncing += 1;
+    await this.call({
+      op: "sync",
+      changes: this.mine.map((thread) => ({
+        quote: thread.quote,
+        prefix: thread.prefix ?? "",
+        suffix: thread.suffix ?? "",
+        start: thread.start ?? 0,
+        replacement: thread.replacement ?? "",
+      })),
+    });
+    this.syncing -= 1;
+    if (this.edits !== this.sentEdits) this.touch();
+  }
+
+  /** My typed suggestions changed: draw them now, save them shortly. */
+  private touch() {
+    this.edits += 1;
+    clearTimeout(this.syncTimer);
+    this.syncTimer = setTimeout(() => void this.flush(), 900);
+    this.repaint();
+    this.emit();
+  }
+
+  private where(thread: Thread, dt: DocText) {
+    return findAnchor(dt.text, {
+      quote: thread.quote,
+      prefix: thread.prefix ?? "",
+      suffix: thread.suffix ?? "",
+      start: thread.start ?? 0,
+    });
+  }
+
+  private add(dt: DocText, start: number, end: number, replacement: string) {
+    this.mine.push({
+      id: `local-${(this.localIds += 1)}`,
+      entryId: this.entry.id,
+      author: this.you?.id ?? "",
+      authorName: "You",
+      at: new Date().toISOString(),
+      kind: "suggestion",
+      auto: true,
+      status: "open",
+      body: "",
+      resolved: false,
+      replies: [],
+      ...anchorFor(dt.text, start, end),
+      replacement,
+    });
+  }
+
+  private move(thread: Thread, dt: DocText, start: number, end: number) {
+    Object.assign(thread, anchorFor(dt.text, start, end));
+  }
+
+  private caretTo(view: EditorView, pos: number) {
+    view.dispatch(
+      view.state.tr.setSelection(TextSelection.create(view.state.doc, pos)),
+    );
+  }
+
+  /** Suggesting mode: text typed or pasted over a selection, or at the caret. */
+  typed(view: EditorView, from: number, to: number, text: string) {
+    if (!text) return;
+    const { doc } = view.state;
+    const $from = doc.resolve(from);
+    if (!$from.parent.isTextblock || !$from.sameParent(doc.resolve(to)))
+      return this.say("Suggest within one paragraph at a time.");
+    if ($from.parent.textContent === "")
+      return this.say(
+        "Suggestions need some text around them. Switch to Editing to write a new paragraph.",
+      );
+    const dt = docText(doc);
+    const start = offsetAt(dt, from);
+    const end = offsetAt(dt, to);
+    if (start === end) {
+      // Keep typing into the suggestion that ends at the caret.
+      const open = this.mine.find(
+        (thread) => this.where(thread, dt)?.end === start,
+      );
+      if (open) open.replacement = (open.replacement ?? "") + text;
+      else this.add(dt, start, start, text);
+    } else {
+      this.add(dt, start, end, text);
+      this.caretTo(view, to);
+    }
+    this.touch();
+  }
+
+  /** Suggesting mode: Backspace or Delete. */
+  erase(view: EditorView, forward: boolean) {
+    const { doc, selection } = view.state;
+    const { from, to, empty, $from } = selection;
+    if (!$from.parent.isTextblock) return;
+    const dt = docText(doc);
+    if (!empty) {
+      if (!$from.sameParent(doc.resolve(to)))
+        return this.say("Suggest within one paragraph at a time.");
+      this.add(dt, offsetAt(dt, from), offsetAt(dt, to), "");
+      this.caretTo(view, from);
+      return this.touch();
+    }
+    const at = offsetAt(dt, from);
+    const found = this.mine.map((thread) => ({
+      thread,
+      range: this.where(thread, dt),
+    }));
+    if (!forward) {
+      // First take back text I suggested adding here.
+      const typing = found.find(
+        ({ thread, range }) => range?.end === at && thread.replacement,
+      );
+      if (typing) {
+        const { thread, range } = typing;
+        thread.replacement = (thread.replacement ?? "").slice(0, -1);
+        if (!thread.replacement && range && range.start === range.end)
+          this.mine = this.mine.filter((other) => other !== thread);
+        return this.touch();
+      }
+      if ($from.parentOffset === 0 || !$from.nodeBefore?.isText) return;
+      const growing = found.find(
+        ({ thread, range }) =>
+          range && range.start === at && range.end > at && !thread.replacement,
+      );
+      if (growing?.range)
+        this.move(growing.thread, dt, at - 1, growing.range.end);
+      else this.add(dt, at - 1, at, "");
+      this.caretTo(view, from - 1);
+    } else {
+      if (
+        $from.parentOffset === $from.parent.content.size ||
+        !$from.nodeAfter?.isText
+      )
+        return;
+      const growing = found.find(
+        ({ thread, range }) =>
+          range && range.end === at && range.start < at && !thread.replacement,
+      );
+      if (growing?.range)
+        this.move(growing.thread, dt, growing.range.start, at + 1);
+      else this.add(dt, at, at + 1, "");
+      this.caretTo(view, from + 1);
+    }
+    this.touch();
+  }
+
+  /** Takes back a suggestion I made by typing. */
+  async discard(id: string) {
+    if (!this.suggesting)
+      this.mine = this.threads.filter((thread) => this.isMine(thread));
+    this.mine = this.mine.filter((thread) => thread.id !== id);
+    this.active = null;
+    this.touch();
+    await this.flush();
   }
 
   open(id: string | null) {
@@ -164,6 +391,7 @@ class Store {
 
   stop() {
     clearInterval(this.timer);
+    void this.flush();
   }
 }
 
@@ -219,7 +447,7 @@ function build(store: Store, state: EditorState): DecorationSet {
   store.dt = dt;
   store.ranges.clear();
   const decorations: Decoration[] = [];
-  for (const thread of store.threads) {
+  for (const thread of store.shown()) {
     const suggestion = thread.kind === "suggestion";
     if (suggestion ? thread.status !== "open" : thread.resolved) continue;
     // A general comment, made in the Review panel, is about no passage.
@@ -245,8 +473,9 @@ function build(store: Store, state: EditorState): DecorationSet {
     }
     if (suggestion && thread.replacement) {
       decorations.push(
+        // Before the caret, so typing continues after the suggested text.
         Decoration.widget(to, () => insertion(thread), {
-          side: 1,
+          side: -1,
           key: `ins-${thread.id}-${thread.replacement}`,
         }),
       );
@@ -269,8 +498,54 @@ function reviewPlugin(store: Store): Plugin {
       apply: (tr, old, _before, state) =>
         tr.docChanged || tr.getMeta(key) ? build(store, state) : old,
     },
+    // Suggesting mode leaves the text alone: only an accepted suggestion, or
+    // another person's edit arriving through co-editing, may change it.
+    filterTransaction: (tr) =>
+      !(
+        store.suggesting &&
+        tr.docChanged &&
+        !tr.getMeta(ALLOW) &&
+        !tr.getMeta("y-sync$")
+      ),
     props: {
       decorations: (state) => key.getState(state),
+      handleTextInput: (view, from, to, text) => {
+        if (!store.suggesting) return false;
+        store.typed(view, from, to, text);
+        return true;
+      },
+      handleKeyDown: (view, event) => {
+        if (!store.suggesting) return false;
+        if (event.ctrlKey || event.metaKey || event.altKey) return false;
+        if (event.key === "Backspace" || event.key === "Delete") {
+          store.erase(view, event.key === "Delete");
+          return true;
+        }
+        // A plain character: taken here, before the browser puts it in the
+        // page. (Text from an input method still arrives by handleTextInput.)
+        if (event.key.length === 1 && !event.isComposing) {
+          const { from, to } = view.state.selection;
+          store.typed(view, from, to, event.key);
+          return true;
+        }
+        if (event.key === "Enter") {
+          store.say(
+            "A new paragraph can't be suggested. Switch to Editing for that.",
+          );
+          return true;
+        }
+        return false;
+      },
+      handlePaste: (view, event) => {
+        if (!store.suggesting) return false;
+        const text = (event.clipboardData?.getData("text/plain") ?? "")
+          .replace(/\s*\n+\s*/g, " ")
+          .trim();
+        const { from, to } = view.state.selection;
+        store.typed(view, from, to, text);
+        return true;
+      },
+      handleDrop: () => store.suggesting,
       handleClick: (_view, pos) => {
         for (const [id, range] of store.ranges) {
           if (pos >= range.from && pos <= range.to) {
@@ -364,20 +639,16 @@ function Near(props: { pos: number; store: Store; children: ReactNode }) {
 
 function Composer(props: { store: Store; composer: Composer }) {
   const { store, composer } = props;
-  const [text, setText] = useState(
-    composer.kind === "suggestion" ? composer.anchor.quote : "",
-  );
-  const [note, setNote] = useState("");
+  const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const suggestion = composer.kind === "suggestion";
 
   const post = async () => {
     setBusy(true);
     const answer = await store.call({
       op: "create",
-      kind: composer.kind,
+      kind: "comment",
       anchor: composer.anchor,
-      ...(suggestion ? { replacement: text, body: note } : { body: text }),
+      body: text,
     });
     setBusy(false);
     if (!answer.error) {
@@ -385,11 +656,10 @@ function Composer(props: { store: Store; composer: Composer }) {
       store.emit();
     }
   };
-  const unchanged = suggestion && text === composer.anchor.quote;
 
   return (
     <Near pos={composer.from} store={store}>
-      <strong>{suggestion ? "Suggest an edit" : "Comment"}</strong>
+      <strong>Comment</strong>
       <div
         style={{
           ...quiet,
@@ -402,22 +672,12 @@ function Composer(props: { store: Store; composer: Composer }) {
       </div>
       <textarea
         autoFocus
-        rows={suggestion ? 3 : 3}
+        rows={3}
         value={text}
         onChange={(event) => setText(event.target.value)}
-        placeholder={
-          suggestion ? "The text it should be instead" : "Write a comment"
-        }
+        placeholder="Write a comment"
         style={input}
       />
-      {suggestion && (
-        <input
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Why? (optional)"
-          style={input}
-        />
-      )}
       {store.error && <div style={{ color: "#ef4444" }}>{store.error}</div>}
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button
@@ -434,10 +694,10 @@ function Composer(props: { store: Store; composer: Composer }) {
         <button
           type="button"
           style={primary}
-          disabled={busy || unchanged || (!suggestion && !text.trim())}
+          disabled={busy || !text.trim()}
           onClick={post}
         >
-          {suggestion ? "Suggest" : "Comment"}
+          Comment
         </button>
       </div>
     </Near>
@@ -450,6 +710,9 @@ function ThreadCard(props: { store: Store; thread: Thread }) {
   const [reply, setReply] = useState("");
   const suggestion = thread.kind === "suggestion";
   if (!range) return null;
+  // A suggestion typed a moment ago, not yet stored.
+  const unsaved = thread.id.startsWith("local-");
+  const mine = store.isMine(thread);
 
   const decide = async (accept: boolean) => {
     const here = store.ranges.get(thread.id);
@@ -465,7 +728,7 @@ function ThreadCard(props: { store: Store; thread: Thread }) {
         : text
           ? view.state.tr.insertText(text, here.from, here.to)
           : view.state.tr.delete(here.from, here.to);
-    view.dispatch(tr);
+    view.dispatch(tr.setMeta(ALLOW, true));
   };
 
   return (
@@ -509,13 +772,13 @@ function ThreadCard(props: { store: Store; thread: Thread }) {
           {thread.body}
         </div>
       )}
-      {suggestion && thread.body && (
-        <div style={{ whiteSpace: "pre-wrap" }}>{thread.body}</div>
-      )}
       {thread.replies.map((item, index) => (
         <div
           key={index}
-          style={{ borderTop: "1px solid rgba(128,128,128,.3)", paddingTop: 6 }}
+          style={{
+            borderTop: "1px solid rgba(128,128,128,.3)",
+            paddingTop: 6,
+          }}
         >
           <strong>{item.authorName}</strong>{" "}
           <span style={quiet}>{when(item.at)}</span>
@@ -524,13 +787,17 @@ function ThreadCard(props: { store: Store; thread: Thread }) {
           </div>
         </div>
       ))}
-      <textarea
-        rows={2}
-        value={reply}
-        onChange={(event) => setReply(event.target.value)}
-        placeholder="Reply"
-        style={input}
-      />
+      {unsaved ? (
+        <div style={quiet}>Saving…</div>
+      ) : (
+        <textarea
+          rows={2}
+          value={reply}
+          onChange={(event) => setReply(event.target.value)}
+          placeholder="Reply"
+          style={input}
+        />
+      )}
       {store.error && <div style={{ color: "#ef4444" }}>{store.error}</div>}
       <div
         style={{
@@ -540,22 +807,33 @@ function ThreadCard(props: { store: Store; thread: Thread }) {
           flexWrap: "wrap",
         }}
       >
-        <button
-          type="button"
-          style={button}
-          disabled={!reply.trim()}
-          onClick={async () => {
-            const answer = await store.call({
-              op: "reply",
-              id: thread.id,
-              body: reply,
-            });
-            if (!answer.error) setReply("");
-          }}
-        >
-          Reply
-        </button>
-        {suggestion ? (
+        {mine && (
+          <button
+            type="button"
+            style={button}
+            onClick={() => store.discard(thread.id)}
+          >
+            Discard
+          </button>
+        )}
+        {!unsaved && (
+          <button
+            type="button"
+            style={button}
+            disabled={!reply.trim()}
+            onClick={async () => {
+              const answer = await store.call({
+                op: "reply",
+                id: thread.id,
+                body: reply,
+              });
+              if (!answer.error) setReply("");
+            }}
+          >
+            Reply
+          </button>
+        )}
+        {suggestion && !unsaved && (
           <>
             <button type="button" style={button} onClick={() => decide(false)}>
               Reject
@@ -564,7 +842,8 @@ function ThreadCard(props: { store: Store; thread: Thread }) {
               Accept
             </button>
           </>
-        ) : (
+        )}
+        {!suggestion && (
           <button
             type="button"
             style={primary}
@@ -589,7 +868,6 @@ function Overlay(props: { store: Store }) {
     to: number;
   } | null>(null);
   const [, redraw] = useState(0);
-  const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const read = () => {
@@ -617,32 +895,26 @@ function Overlay(props: { store: Store }) {
   }, [store]);
 
   const allowed = (store.you?.role ?? 0) >= AUTHOR_ROLE;
-  const active = store.threads.find((thread) => thread.id === store.active);
+  const active = store.shown().find((thread) => thread.id === store.active);
 
   let toolbar: ReactNode = null;
   if (allowed && selection && !store.composer) {
     try {
       const at = store.editor.view.coordsAtPos(selection.from);
       const top = at.top - 40 < 8 ? at.bottom + 8 : at.top - 40;
-      const begin = (kind: Composer["kind"]) => {
+      const begin = () => {
         const dt = docText(store.editor.state.doc);
         const start = offsetAt(dt, selection.from);
         const end = offsetAt(dt, selection.to);
         if (end <= start) return;
         store.active = null;
         store.composer = {
-          kind,
+          kind: "comment",
           anchor: anchorFor(dt.text, start, end),
           from: selection.from,
         };
         store.error = "";
         store.emit();
-      };
-      const pill: CSSProperties = {
-        ...button,
-        background: "Canvas",
-        padding: "4px 8px",
-        boxShadow: "0 4px 14px rgba(0,0,0,.3)",
       };
       toolbar = (
         <div
@@ -651,22 +923,22 @@ function Overlay(props: { store: Store }) {
             zIndex: 2147481000,
             top,
             left: Math.max(8, at.left),
-            display: "flex",
-            gap: 4,
             pointerEvents: "auto",
           }}
-          // Pressing a button must not move the selection out of the text.
+          // Pressing the button must not move the selection out of the text.
           onMouseDown={(event) => event.preventDefault()}
         >
-          <button type="button" style={pill} onClick={() => begin("comment")}>
-            💬 Comment
-          </button>
           <button
             type="button"
-            style={pill}
-            onClick={() => begin("suggestion")}
+            style={{
+              ...button,
+              background: "Canvas",
+              padding: "4px 8px",
+              boxShadow: "0 4px 14px rgba(0,0,0,.3)",
+            }}
+            onClick={begin}
           >
-            ✏️ Suggest
+            💬 Comment
           </button>
         </div>
       );
@@ -676,17 +948,78 @@ function Overlay(props: { store: Store }) {
   }
 
   return (
-    <div
-      ref={root}
-      style={{ position: "fixed", inset: 0, pointerEvents: "none" }}
-    >
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none" }}>
       {toolbar}
       {store.composer && <Composer store={store} composer={store.composer} />}
       {active && !store.composer && (
         <ThreadCard store={store} thread={active} />
       )}
+      {store.notice && (
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: 32,
+            transform: "translateX(-50%)",
+            zIndex: 2147482500,
+            padding: "8px 14px",
+            borderRadius: 8,
+            background: "#111827",
+            color: "#fff",
+            fontSize: 13,
+            boxShadow: "0 8px 24px rgba(0,0,0,.35)",
+          }}
+        >
+          {store.notice}
+        </div>
+      )}
     </div>
   );
+}
+
+/**
+ * The Editing / Suggesting switch, put at the end of the editor's own toolbar.
+ * The toolbar is EmDash's, so the button is added to its row by hand, and put
+ * back if EmDash redraws the row without it.
+ */
+function mountToggle(store: Store, surface: Element): () => void {
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.dataset.newsroomSuggesting = "";
+  toggle.addEventListener("mousedown", (event) => event.preventDefault());
+  toggle.addEventListener("click", () =>
+    store.setSuggesting(!store.suggesting),
+  );
+  const paint = () => {
+    const on = store.suggesting;
+    toggle.textContent = on ? "✏️ Suggesting" : "✏️ Suggest";
+    toggle.title = on
+      ? "Suggesting: your edits are shown as suggestions and do not change the text. Click to go back to editing."
+      : "Switch to suggesting: your edits become suggestions for someone to accept.";
+    toggle.setAttribute("aria-pressed", String(on));
+    toggle.style.cssText = `flex:none;margin-left:6px;padding:0 10px;height:32px;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid ${
+      on ? "rgb(34,197,94)" : "rgba(128,128,128,.45)"
+    };background:${on ? "rgba(34,197,94,.22)" : "transparent"};color:inherit;`;
+    (surface as HTMLElement).style.boxShadow = on
+      ? "0 0 0 2px rgba(34,197,94,.55)"
+      : "";
+  };
+  const place = () => {
+    const row = surface.querySelector(".emdash-editor-toolbar");
+    if (row && toggle.parentElement !== row) row.appendChild(toggle);
+  };
+  paint();
+  place();
+  const unsubscribe = store.subscribe(paint);
+  const watcher = new MutationObserver(place);
+  watcher.observe(surface, { childList: true, subtree: true });
+  return () => {
+    unsubscribe();
+    watcher.disconnect();
+    toggle.remove();
+    (surface as HTMLElement).style.boxShadow = "";
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -695,7 +1028,7 @@ function Overlay(props: { store: Store }) {
 
 const attached = new WeakSet<object>();
 
-function attach(editor: EditorLike) {
+function attach(editor: EditorLike, element: HTMLElement) {
   if (attached.has(editor)) return;
   const entry = entryFromLocation();
   if (!entry) return;
@@ -703,20 +1036,28 @@ function attach(editor: EditorLike) {
   ensureStyle();
 
   const store = new Store(editor, entry);
-  editor.registerPlugin(reviewPlugin(store));
-  const element = document.createElement("div");
-  element.id = "newsroom-review-root";
-  document.body.appendChild(element);
-  const root = createRoot(element);
+  // First in line, so suggesting mode sees typing before the editor's own
+  // shortcuts and input rules do.
+  editor.registerPlugin(reviewPlugin(store), (plugin, plugins) => [
+    plugin,
+    ...plugins,
+  ]);
+  const host = document.createElement("div");
+  host.id = "newsroom-review-root";
+  document.body.appendChild(host);
+  const root = createRoot(host);
   root.render(<Overlay store={store} />);
+  const surface = element.closest("[data-emdash-editor-surface]");
+  const unmountToggle = surface ? mountToggle(store, surface) : () => {};
   store.start();
 
   editor.on("destroy", () => {
     store.stop();
+    unmountToggle();
     // Unmounting inside the editor's own teardown is not allowed.
     setTimeout(() => {
       root.unmount();
-      element.remove();
+      host.remove();
     }, 0);
   });
 }
@@ -725,7 +1066,7 @@ function scan() {
   for (const element of document.querySelectorAll<
     HTMLElement & { editor?: EditorLike }
   >('[data-co-editing-field="body_rich"] .ProseMirror')) {
-    if (element.editor) attach(element.editor);
+    if (element.editor) attach(element.editor, element);
   }
 }
 

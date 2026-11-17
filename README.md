@@ -168,18 +168,22 @@ plugin has to run in the server process rather than a sandbox.
   approvers, and optionally name who they are by email or user ID. Without a
   list, any editor can approve. Settings apply at once.
 - **Comments in the text.** In the **Body (rich text)** editor, select text and
-  a pair of buttons appears just above the selection: **Comment** and
-  **Suggest**. A commented passage is highlighted yellow with a small icon at
-  its end; click either to open the thread, reply, or resolve. The **Review**
-  panel in the sidebar lists the same threads, and also takes general comments
-  about no passage. A thread finds its passage again by its quoted text, so
-  edits above it, or by someone editing at the same time, do not lose it; if
-  the passage itself is edited away, the thread stays in the panel only.
-- **Suggested edits.** **Suggest** opens a box with the new text for the
-  selected passage (empty to delete it). The passage shows struck through in
-  red, the new text beside it in green. An editor, or the article's author,
-  accepts it: the text changes in the editor like any edit, and saving sends the
-  article back to review. Rejecting leaves the text alone.
+  a **Comment** button appears just above the selection. A commented passage is
+  highlighted yellow with a small icon at its end; click either to open the
+  thread, reply, or resolve. The **Review** panel in the sidebar lists the same
+  threads, and also takes general comments about no passage. A thread finds its
+  passage again by its quoted text, so edits above it, or by someone editing at
+  the same time, do not lose it; if the passage itself is edited away, the
+  thread stays in the panel only.
+- **Suggesting mode.** The **Suggest** switch at the end of the editor's
+  toolbar turns it on. While it is on, typing, deleting and pasting do not
+  change the article: text you remove stays, struck through in red, and text
+  you add shows in green. Each edit is stored as a suggestion a moment after
+  you stop. An editor, or the article's author, accepts one: the text then
+  changes like any edit, and saving sends the article back to review.
+  Rejecting leaves the text alone, and you can discard your own. Formatting,
+  new paragraphs and blocks cannot be suggested; switch back to editing for
+  those.
 - **Queue, card and calendar.** A **Review queue** page, an "Awaiting review"
   card on the dashboard, and an editorial **Calendar** of what goes live.
 - **Email.** If the site has an email provider, approvers are told when a post
