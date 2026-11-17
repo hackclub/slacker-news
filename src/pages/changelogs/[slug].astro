@@ -2,9 +2,10 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import AuthorList from "../../components/AuthorList.astro";
 import SubmitFollowUp from "../../components/SubmitFollowUp.astro";
+import { cmsEnabled } from "#content-source";
 import { formatStoryDate, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../../lib/content";
-import { render } from "astro:content";
 
+// astro.config.mjs turns prerendering off for this page when CMS=emdash.
 export const prerender = true;
 
 export async function getStaticPaths() {
@@ -25,10 +26,12 @@ const changelog = entries.find(
   (entry): entry is LongChangelogEntry => entry.kind === "long" && entry.slug === slug
 );
 if (!changelog) {
+  // With CMS=emdash this page renders on demand, so the slug can be anything.
+  if (cmsEnabled) return Astro.rewrite("/404");
   throw new Error(`No longform changelog found for slug "${slug}"`);
 }
 
-const { Content } = await render(changelog.entry);
+const { Content } = await changelog.entry.render();
 ---
 
 <BaseLayout

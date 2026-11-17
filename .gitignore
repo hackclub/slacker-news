@@ -26,3 +26,9 @@ review-import.json
 
 # Leftovers from the old monorepo layout
 apps/
+
+# EmDash (CMS=emdash): local database, uploads and the generated seed
+data/
+seed/
+emdash-env.d.ts
+.emdash/

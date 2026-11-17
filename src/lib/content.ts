@@ -1,4 +1,15 @@
-import { getCollection, getEntry, type CollectionEntry } from "astro:content";
+import {
+  loadChangelogs,
+  loadPage,
+  loadPeople,
+  loadPosts,
+} from "#content-source";
+import type {
+  ChangelogData,
+  PageData,
+  PostData,
+  SourceEntry,
+} from "./content-source/types";
 import siteData from "../data/site.json";
 import changelogData from "../data/changelog.json";
 import acknowledgementsData from "../data/acknowledgements.json";
@@ -32,7 +43,9 @@ export type Post = {
     src: string;
     alt: string;
   };
-  entry: CollectionEntry<"posts">;
+  /** Only signed-in readers may see this post. */
+  membersOnly: boolean;
+  entry: SourceEntry<PostData>;
   responseTo?: string[];
   followUpTo?: string[];
   responses?: PostReference[];
@@ -62,7 +75,7 @@ export type LongChangelogEntry = ChangelogBase & {
     src: string;
     alt: string;
   };
-  entry: CollectionEntry<"changelogs">;
+  entry: SourceEntry<ChangelogData>;
   responseTo?: PostReference[];
   followUpTo?: PostReference[];
 };
@@ -136,6 +149,12 @@ function getAuthorSlackId(author: string | undefined): string | undefined {
   if (!author) {
     return undefined;
   }
+
+  // Articles brought over from Slack name their author by Slack ID.
+  const slackId = author
+    .trim()
+    .match(/^<?@?([UW][A-Z0-9]{6,})(?:\|[^>]*)?>?$/)?.[1];
+  if (slackId) return slackId;
 
   const normalizedAuthor = normalizeHandle(author);
   const matchingAcknowledgement = acknowledgementsData.find(
@@ -296,8 +315,17 @@ export async function getSiteConfig(): Promise<SiteConfig> {
   };
 }
 
-export async function getPosts(): Promise<Post[]> {
-  const posts = await getCollection("posts");
+/**
+ * Members-only posts are left out unless `includeProtected` is set, so a
+ * caller that does not think about them cannot leak one. Pass it only for a
+ * reader who is signed in.
+ */
+export async function getPosts({
+  includeProtected = false,
+}: { includeProtected?: boolean } = {}): Promise<Post[]> {
+  const posts = (await loadPosts()).filter(
+    (entry) => includeProtected || !entry.data.membersOnly,
+  );
 
   const processedPosts: Post[] = posts
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
@@ -330,7 +358,8 @@ export async function getPosts(): Promise<Post[]> {
         url: `/${entry.id}/`,
         title: entry.data.title,
         author: entry.data.author,
-        authorSlackIds: getAuthorSlackIds(entry.data.author),
+        authorSlackIds:
+          entry.data.authorSlackIds ?? getAuthorSlackIds(entry.data.author),
         category,
         date: entry.data.date,
         excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
@@ -343,6 +372,7 @@ export async function getPosts(): Promise<Post[]> {
         paragraphs,
         readingTime: Math.max(1, Math.ceil(wordCount / 200)),
         leadingImage,
+        membersOnly: Boolean(entry.data.membersOnly),
         entry,
         responseTo,
         followUpTo,
@@ -388,7 +418,7 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
     slackIds: getAuthorSlackIds(entry.author),
   }));
 
-  const longCollection = await getCollection("changelogs");
+  const longCollection = await loadChangelogs();
   const posts = await getPosts();
   const resolveSlugs = (
     raw: string | string[] | undefined,
@@ -417,7 +447,8 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
       title: entry.data.title,
       date: dateString,
       author: entry.data.author,
-      slackIds: getAuthorSlackIds(entry.data.author),
+      slackIds:
+        entry.data.authorSlackIds ?? getAuthorSlackIds(entry.data.author),
       excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
       paragraphs,
       readingTime: Math.max(1, Math.ceil(wordCount / 200)),
@@ -436,7 +467,8 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
 }
 
 export async function getAcknowledgements(): Promise<Acknowledgement[]> {
-  return acknowledgementsData as Acknowledgement[];
+  // In the CMS the people are bylines; the file serves the rest.
+  return ((await loadPeople()) ?? acknowledgementsData) as Acknowledgement[];
 }
 
 function hasRole(person: Acknowledgement, role: AcknowledgementRole): boolean {
@@ -537,8 +569,8 @@ export function formatStoryDate(date: Date): string {
 
 export async function getPageEntry(
   slug: string,
-): Promise<CollectionEntry<"pages">> {
-  const entry = await getEntry("pages", slug);
+): Promise<SourceEntry<PageData>> {
+  const entry = await loadPage(slug);
   if (!entry) {
     throw new Error(`Missing required content entry pages/${slug}`);
   }

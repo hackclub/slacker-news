@@ -24,7 +24,7 @@ import { getSlackColumns } from "../lib/indigest";
 
 
 const site = await getSiteConfig();
-const posts = await getPosts();
+const posts = await getPosts({ includeProtected: Boolean(Astro.locals.user) });
 const allChangelogs = await getChangelogEntries();
 const longChangelogs = allChangelogs.filter((e) => e.kind === "long");
 

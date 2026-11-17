@@ -24,7 +24,7 @@ export async function getColumnFeedItems(
   columnId: string,
   authenticated: boolean,
 ): Promise<ColumnFeedItem[]> {
-  const posts = (await getPosts())
+  const posts = (await getPosts({ includeProtected: authenticated }))
     .filter((post) => post.category === columnId)
     .map((post) => ({ kind: "post" as const, post, date: post.date }));
 

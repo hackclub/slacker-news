@@ -133,6 +133,233 @@ For protected Slack columns, configure these environment variables in the Vercel
 - `INDIGEST_API_KEY` - an Indigest API key scoped to every Slack column's channel. For private RSS links it must also be a delegating key (see below)
 - `RSS_ACCESS_TOKEN` - optional legacy shared token that unlocks every protected column in `/feed.xml`
 
+### EmDash CMS
+
+The site can read its articles from [EmDash](https://emdashcms.com) instead of
+the MDX files, so they can be written and edited in a browser at
+`/_emdash/admin`. This is opt-in: set `CMS=emdash` when building. Without it
+the site reads `src/content` as before, which is what the Vercel deployment
+does.
+
+EmDash mode is fully self-hosted. As configured here it needs a long-running
+Node server and a writable disk, and runs nothing on Cloudflare: content is a SQLite file,
+uploads are local files, and sandboxed plugins run in a local
+[workerd](https://github.com/cloudflare/workerd) process.
+
+```bash
+bun run emdash:seed                                # src/content -> seed/seed.json
+bunx emdash seed seed/seed.json -d data/emdash.db  # create and fill the database
+bunx emdash secrets generate --write .env          # EMDASH_ENCRYPTION_KEY
+bun run dev:emdash
+```
+
+The first visit to `/_emdash/admin` creates the administrator account.
+
+#### Newsroom workflow (prototype)
+
+The `newsroom` plugin (`src/cms/newsroom`) adds an editorial process to the
+Posts collection. It is a prototype: it works through the admin and API, but has
+only been tried with a handful of test articles. The body editor
+(`admin.tsx`) is a plain text box with a highlight layer, so it needs the
+plugin to run in the server process rather than a sandbox.
+
+- **Review.** An author sends a post for review with the **Submit for review**
+  button. An editor then approves it, or requests changes with a note.
+- **Gate.** A post cannot be published or scheduled until the approvals are in
+  for the text as it is. This is checked on the server for the admin, the API
+  and the scheduler alike. Editing a post sends it back to review.
+- **Permissions.** Who may do what follows EmDash's roles: authors and above
+  submit, editors and above decide, and nobody decides on their own article
+  (except an admin, who may be the only person there).
+- **Approvers.** In the plugin's settings, require one to five different
+  approvers, and optionally name who they are by email or user ID. Without a
+  list, any editor can approve. Settings apply at once.
+- **Comments in the text.** Select text in the article body and a pair of
+  buttons appears beside the selection: **Comment** and **Suggest an edit**.
+  The passage is highlighted yellow; click it to open the thread, reply, or
+  resolve. The **Review** panel beside the editor lists the same threads. A
+  thread finds its passage again by its quoted text, so edits above it do not
+  lose them; if the passage itself is edited away, the thread says so.
+- **Suggesting mode.** Switch the body from **Editing** to **Suggesting** and
+  just type. The article does not change: text you delete stays, struck
+  through in red, and text you add is marked in green. Each change is stored
+  as a suggestion a moment after you stop typing. An editor, or the article's
+  author, accepts one: the new text goes into the body, unsaved, and saving
+  sends the article back to review like any edit. Rejecting leaves the text
+  alone. Suggestions you pick out by hand with **Suggest an edit** work the
+  same way. You cannot type inside someone else's suggestion; accept or
+  reject it first.
+- **Comments beside the text.** In EmDash's distraction-free mode, which hides
+  its sidebar, the threads show in a column beside the text. **Comments
+  beside** in the bar above the body does the same without full screen.
+- **Queue, card and calendar.** A **Review queue** page, an "Awaiting review"
+  card on the dashboard, and an editorial **Calendar** of what goes live and
+  what expires.
+- **Expiry.** Set **Expires** on a post and the plugin takes it off the site
+  when that time passes, checked hourly.
+- **Email.** If the site has an email provider, approvers are told when a post
+  is sent for review, and its author when it is decided.
+- **Other collections.** Set "Collections that need review" to include
+  `changelogs` or `pages`.
+
+##### Still to do
+
+- **Slack and email notifications, in full.** Today the plugin sends only two
+  emails: to approvers when a post is sent for review, and to its author when
+  it is decided. Planned: Slack messages (a direct message or a channel post)
+  and email for every event that needs someone's attention, each with a link
+  to the article. That covers a review request, an approval, a request for
+  changes, a new comment or reply, a mention, a suggestion made, accepted or
+  rejected, a post published, and an approval voided by an edit. Each person
+  chooses where they hear about what, and a digest can replace single
+  messages. Slack delivery would go through Indigest or a Slack app; the
+  plugin would need a Slack identity for each editor, which Hack Club Auth
+  already supplies.
+
+#### Rich-text body (prototype)
+
+Posts have a second body field, **Body (rich text)**, next to the MDX one. Set
+**Body format** to `rich` and the page is drawn from the rich-text field
+instead. Type `/` in it to add a YouTube video, caption, formula, Slack user or
+channel, emoji or raw HTML; these are the same components MDX posts use
+(`src/cms/rich/blocks.mjs`).
+
+The editor stores Portable Text, not MDX. When the page is requested,
+`src/cms/rich/to-mdx.ts` turns it into MDX and the usual pipeline draws it, so
+markdown rules and components behave the same in both. Existing posts are not
+converted, and nothing changes for them.
+
+Searching Slack: the Slack user and Slack channel forms look people and
+channels up by name on [Flaron](https://github.com/sadeshmukh/flaron) as you
+type, and fill in the ID and name of the one you pick. The editor asks the
+newsroom plugin, which asks Flaron from the server; only the text typed is
+sent. If it fails, the boxes still take an ID by hand.
+
+Known gaps: the Slack mention, channel, emoji and formula components are
+blocks here, not inline in a sentence; images need their media URL to be
+resolved; the review comments and suggestions of the newsroom plugin still
+only work on the MDX field.
+
+#### People, and the editor's sidebar
+
+The people the site credits are bylines in the CMS, each with two fields: a
+**Slack ID** and **Roles** (`editor`, `technical`, `content`, comma-separated).
+`scripts/emdash-people.mjs` fills them in on every start, only where something
+is missing: one byline for each person in `src/data/acknowledgements.json`, and
+the credited bylines of every article that only has the old `author` text.
+After that, the **Bylines** section of the editor's sidebar picks them, any
+number can be reused, and new ones are made in **Bylines** in the admin menu.
+The site reads authors, and the acknowledgements page, from the bylines; the
+old `author` text and the JSON file are the fallback for anything not yet
+credited. Names and Slack IDs are edited in **Bylines**, with **Byline Schema**
+holding the two fields.
+
+Some fields move to a **Links and visibility** section of the sidebar, drawn by
+`src/cms/newsroom/sidebar.tsx`: the body format, the members-only switch, and
+**Response to** and **Follow-up to** as pickers of other articles by title. They
+are still ordinary fields, so saving, drafts and co-editing work as before.
+Choosing a body format shows only that body in the editor; the other is kept.
+The author text field is hidden. EmDash gives a plugin no way to place a field
+in the sidebar, so the widgets draw their controls there and hide their place
+in the main column by the `data-co-editing-field` mark on each field; if
+EmDash stops marking fields that way, they stay in the main column.
+
+#### Co-editing
+
+Several people can edit the same article at once and see each other's cursors
+(`coEditing` in `astro.config.mjs`). Edits are saved to the article about two
+seconds after typing stops, through the normal save, so the newsroom plugin's
+rules still apply: any edit voids approvals. It needs the Node server run as a
+single process, as `Dockerfile.emdash` does. On a host that cannot run it, the
+editor falls back to one editor at a time with an edit lock.
+
+#### Signing in with Hack Club
+
+[Hack Club Auth](https://auth.hackclub.com) is the only way to sign in to the
+admin, through the provider in `src/cms/hackclub-auth`. EmDash's passkey and
+email-link sign-in are switched off: the site refuses their endpoints
+(`src/cms/hackclub-auth/only.ts`), and the login page goes straight to Hack
+Club. EmDash still draws its passkey button on the setup and error screens; it
+does nothing.
+
+Add this redirect URI to the Hack Club Auth app, replacing the origin with the
+site's own:
+
+```
+https://news.example.com/_emdash/api/auth/hackclub/callback
+```
+
+The CMS uses `HACKCLUB_CLIENT_ID` and `HACKCLUB_CLIENT_SECRET`, the same app as
+reader sign-in. To give it an app of its own, set
+`EMDASH_OAUTH_HACKCLUB_CLIENT_ID` and `EMDASH_OAUTH_HACKCLUB_CLIENT_SECRET`.
+
+Every Hack Club member can sign in to Hack Club Auth, so signing in is not
+enough to get into the CMS. A person is let in when:
+
+- their Hack Club account is already linked to a CMS user;
+- their verified email matches a CMS user, or the invite link they followed;
+- they are listed in `EMDASH_HACKCLUB_ADMINS`, which makes them an
+  administrator. It takes Slack IDs or email addresses, separated by commas.
+
+Until the site has an administrator, the first person to sign in becomes one.
+Set `EMDASH_HACKCLUB_ADMINS` before deploying to a public address, so that
+only the people it lists can.
+
+`scripts/build-emdash-seed.ts` is the migration. It turns every MDX file into a
+published entry in one of three collections (Posts, Changelogs, Pages) and
+keeps the same URLs. Applying the seed again skips entries that already exist.
+
+An article's body is stored as MDX in a text field and compiled when the page
+is requested, so migrated articles render the same as before, components
+included. Two consequences:
+
+- The body is edited as MDX source, not in a rich text editor.
+- MDX is code. Anyone who can edit an article can run JavaScript on the
+  server, so give CMS accounts only to people who could commit to this
+  repository.
+
+The front page settings, short changelog entries and acknowledgements still
+come from `src/data`.
+
+#### Members-only articles
+
+Each post has a **Members only** switch in the CMS. A post with it on can be
+read only by someone signed in to the site with Hack Club, the same sign-in the
+protected Slack columns use. Everyone else is sent to the login page, and the
+post is left out of the front page, archives, ticker, search and RSS.
+
+Signed-in readers do not get members-only posts in RSS either: the feed's
+private links cover the Slack columns only.
+
+Members-only articles can also come from a protected Slack column, read
+through Indigest. To retire such a column, `scripts/import-slack-column.mjs`
+copies its articles into the CMS as members-only posts, at the same URLs; then
+remove the column from `src/data/slack-columns.json`. Run it where the
+database is, so the articles never pass through the repository:
+
+```bash
+INDIGEST_API_KEY=... node scripts/import-slack-column.mjs <channel id> data/emdash.db
+```
+
+Those posts have their **Body format** set to `slack`: the body stays in
+Slack's formatting and is drawn the way Slack messages are elsewhere on the
+site.
+
+To deploy, build `Dockerfile.emdash` and mount a volume at `/app/data`. The
+container listens on port 8080 and fills a new volume from the seed when it
+first starts, and brings the content model of an existing one in step with the
+build. Give it about 1 GB of memory; with less, the first request can
+run it out. It reads its configuration when it starts, not when it is built:
+
+| Variable                                       | Purpose                                                                           |
+| ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| `EMDASH_ENCRYPTION_KEY`                        | Required. Losing it makes stored plugin secrets unreadable.                       |
+| `EMDASH_SITE_URL`                              | Public origin, such as `https://news.example.com`. Passkey sign-in depends on it. |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`        | Required, as for any production build.                                            |
+| `HACKCLUB_CLIENT_ID`, `HACKCLUB_CLIENT_SECRET` | Optional. Reader sign-in and the admin's Hack Club button are off without them.   |
+| `EMDASH_HACKCLUB_ADMINS`                       | Optional. Slack IDs or emails that sign in as administrators.                     |
+| `INDIGEST_API_KEY`                             | Optional. The Slack columns are off without it.                                   |
+
 ### Private RSS links
 
 Slacker News has no database, so Indigest stores the per-reader feed tokens. `INDIGEST_API_KEY` is a delegating Indigest key: when a logged-in reader creates a link on `/rss/`, the site asks Indigest to mint a child key for that reader. The child can only read channels within the parent key's scope, cannot mint keys of its own, and stops working when it is revoked or when the parent key is revoked. A reader can hold any number of links; making a new one leaves the others working, and "Revoke all my links" on `/rss/` kills every one of theirs. `/feed.xml?token=` accepts only children of the site's own key. Anyone logged in can revoke a link they have by pasting it on `/rss/`. A revoked link keeps working as a public feed, plus a "Your key is revoked" item that appears again every week.

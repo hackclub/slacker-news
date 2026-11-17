@@ -24,19 +24,6 @@
     "limit": 1000
   },
   {
-    "column": "protected",
-    "channelId": "C0BQ3M5QRQQ",
-    "title": "Protected",
-    "homepage": true,
-    "homepageMessagesPerRow": 4,
-    "homepageLimit": 12,
-    "showMetadata": false,
-    "authRequired": true,
-    "markdownColumns": true,
-    "rss": true,
-    "limit": 1000
-  },
-  {
     "column": "ship-of-the-week",
     "channelId": "C0BQ2CTMR25",
     "title": "Ship of the Week",
