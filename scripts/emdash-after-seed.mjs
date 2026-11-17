@@ -1,16 +1,22 @@
 #!/usr/bin/env node
 /**
- * Moves the people the site credits into the CMS.
+ * Brings an existing database in step with what the seed now describes, for
+ * the changes the seed cannot make itself.
  *
- *   node scripts/emdash-people.mjs [database] [acknowledgements.json]
+ *   node scripts/emdash-after-seed.mjs [database] [acknowledgements.json]
  *
- * Every person in src/data/acknowledgements.json becomes a byline with two
+ * People: every person in src/data/acknowledgements.json becomes a byline with two
  * fields, their Slack ID and their roles. Every article that names an author in
  * its old `author` text gets that person as a credited byline, which is what
  * the editor's Bylines section shows and edits. The container runs this on
  * every start, after the seed, so it only fills in what is missing: a byline
- * or credit an editor has changed is left alone. Plain Node, like
- * emdash-migrate.mjs, because the container has no Bun.
+ * or credit an editor has changed is left alone.
+ *
+ * Fields that went away: a post's category is now a taxonomy term (so the
+ * category it had becomes its term), the front page preview is merged into
+ * the summary (`excerpt`), and the expiry date is dropped.
+ *
+ * Plain Node, like emdash-migrate.mjs, because the container has no Bun.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -229,6 +235,80 @@ for (const collection of ["posts", "changelogs", "pages"]) {
     credited += 1;
   }
 }
+
+/** Does the table still have this column? */
+function hasColumn(table, column) {
+  return db
+    .prepare(`pragma table_info("${table}")`)
+    .all()
+    .some((row) => row.name === column);
+}
+
+/** Forgets a field: its definition, and its column in the collection's table. */
+function dropField(collection, slug) {
+  const table = `ec_${collection}`;
+  if (!hasColumn(table, slug)) return;
+  try {
+    db.exec(`alter table "${table}" drop column "${slug}"`);
+  } catch (error) {
+    console.warn(`Could not remove ${collection}.${slug}: ${error.message}`);
+    return;
+  }
+  db.prepare(
+    `delete from _emdash_fields where slug = ? and collection_id in
+       (select id from _emdash_collections where slug = ?)`,
+  ).run(slug, collection);
+  console.log(`Removed the ${slug} field of ${collection}.`);
+}
+
+// Category: the old select field becomes a term of the category taxonomy.
+if (hasColumn("ec_posts", "category")) {
+  const terms = new Map(
+    db
+      .prepare("select slug, id from taxonomies where name = 'category'")
+      .all()
+      .map((row) => [row.slug, row.id]),
+  );
+  const posts = db.prepare("select id, category from ec_posts").all();
+  // The seed leaves terms out of an existing database, so make the ones the
+  // posts use.
+  for (const slug of new Set(posts.map((post) => post.category))) {
+    if (!slug || terms.has(slug)) continue;
+    const id = randomUUID();
+    db.prepare(
+      `insert into taxonomies (id, name, slug, label, locale, translation_group)
+       values (?, 'category', ?, ?, 'en', ?)`,
+    ).run(id, slug, slug[0].toUpperCase() + slug.slice(1), id);
+    terms.set(slug, id);
+  }
+  let unplaced = 0;
+  for (const post of posts) {
+    const term = terms.get(post.category);
+    if (!term) {
+      unplaced += 1;
+      continue;
+    }
+    db.prepare(
+      `insert or ignore into content_taxonomies (collection, entry_id, taxonomy_id)
+       values ('posts', ?, ?)`,
+    ).run(post.id, term);
+  }
+  // Only forget the old field once every post has a term to stand in for it.
+  if (unplaced === 0) dropField("posts", "category");
+  else console.warn(`${unplaced} posts have no matching category term.`);
+}
+
+// Summary: a hand-picked front page preview was the more specific text, so it
+// becomes the summary, whose paragraphs the front page shows.
+if (hasColumn("ec_posts", "front_page_preview")) {
+  db.exec(
+    `update ec_posts set excerpt = front_page_preview
+      where front_page_preview is not null and front_page_preview != ''`,
+  );
+  dropField("posts", "front_page_preview");
+}
+
+dropField("posts", "expires_at");
 
 db.exec("commit");
 

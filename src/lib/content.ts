@@ -287,13 +287,23 @@ function extractTextBlocks(body: string): string[] {
     .filter(Boolean);
 }
 
+/** The paragraphs of an article's summary, blank-line separated. */
+function summaryParagraphs(summary: string | undefined): string[] {
+  return (summary ?? "")
+    .split(/\n{2,}/)
+    .map((paragraph) => stripMarkdown(paragraph))
+    .filter(Boolean);
+}
+
 function toExcerpt(entry: {
   body: string;
   data: { excerpt?: string };
 }): string {
-  const explicitExcerpt = entry.data.excerpt;
+  // The summary's first paragraph is the short description; the rest is for
+  // the front page (see summaryParagraphs).
+  const explicitExcerpt = summaryParagraphs(entry.data.excerpt)[0];
   if (explicitExcerpt) {
-    return stripMarkdown(explicitExcerpt);
+    return explicitExcerpt;
   }
 
   const blocks = extractTextBlocks(entry.body);
@@ -363,12 +373,12 @@ export async function getPosts({
         category,
         date: entry.data.date,
         excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
-        frontPagePreview: entry.data.frontPagePreview
-          ? entry.data.frontPagePreview
-              .split(/\n{2,}/)
-              .map((p: string) => stripMarkdown(p))
-              .filter(Boolean)
-          : undefined,
+        // A summary of several paragraphs is what the front page shows when
+        // this is the headline; a one-paragraph summary is only a description.
+        frontPagePreview:
+          summaryParagraphs(entry.data.excerpt).length > 1
+            ? summaryParagraphs(entry.data.excerpt)
+            : undefined,
         paragraphs,
         readingTime: Math.max(1, Math.ceil(wordCount / 200)),
         leadingImage,
@@ -381,7 +391,7 @@ export async function getPosts({
 
   for (const post of processedPosts) {
     for (const otherPost of processedPosts) {
-      if (otherPost.responseTo?.includes(post.slug)) {
+      if (otherPost.responseTo?.some((ref) => sameArticle(ref, post.slug))) {
         if (!post.responses) post.responses = [];
         const exists = post.responses.some((r) => r.slug === otherPost.slug);
         if (!exists) {
@@ -392,7 +402,7 @@ export async function getPosts({
           });
         }
       }
-      if (otherPost.followUpTo?.includes(post.slug)) {
+      if (otherPost.followUpTo?.some((ref) => sameArticle(ref, post.slug))) {
         if (!post.followUps) post.followUps = [];
         const exists = post.followUps.some((f) => f.slug === otherPost.slug);
         if (!exists) {
@@ -407,6 +417,16 @@ export async function getPosts({
   }
 
   return processedPosts;
+}
+
+/**
+ * Whether a reference ("response to", "follow-up to") names an article. The
+ * CMS picker stores the slug alone, which survives a change of category; the
+ * MDX files write `category/slug`. Either matches.
+ */
+function sameArticle(reference: string, slug: string): boolean {
+  const last = (text: string) => text.trim().split("/").pop();
+  return last(reference) === last(slug);
 }
 
 export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
@@ -426,7 +446,7 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
     if (!raw) return undefined;
     const slugs = Array.isArray(raw) ? raw : [raw];
     const refs = slugs
-      .map((slug) => posts.find((p) => p.slug === slug))
+      .map((slug) => posts.find((p) => sameArticle(p.slug, slug)))
       .filter((p): p is Post => Boolean(p))
       .map((p) => ({ slug: p.slug, url: p.url, title: p.title }));
     return refs.length ? refs : undefined;

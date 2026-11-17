@@ -39,6 +39,11 @@ export function SidebarSlots() {
       {slot("members_only")}
       {slot("response_to")}
       {slot("follow_up_to")}
+      <span style={note}>
+        An article's address starts with its category (picked under Taxonomies),
+        so changing the category moves it to a new address. Links to the old one
+        stop working.
+      </span>
     </div>
   );
 }
@@ -186,18 +191,14 @@ async function listAll(collection: string): Promise<Candidate[]> {
     const data = json?.data ?? json;
     for (const item of data?.items ?? []) {
       const fields = item.data ?? {};
-      // The id an article is known by on the site: posts live under their
-      // category, changelogs and pages do not.
-      const id =
-        collection === "posts"
-          ? `${fields.category ?? "news"}/${item.slug}`
-          : String(item.slug);
+      // The slug alone: the site matches it to an article whatever its
+      // category, so recategorising does not break the link.
+      const id = String(item.slug);
       found.push({
         id,
         entryId: String(item.id),
         title: String(fields.title ?? item.slug),
-        kind:
-          collection === "posts" ? String(fields.category ?? "") : "changelog",
+        kind: collection === "posts" ? "post" : "changelog",
         date: String(fields.date ?? ""),
       });
     }
@@ -253,7 +254,8 @@ export function ArticlesField(props: WidgetProps) {
     window.location.pathname,
   )?.[1];
   const unused = all.filter(
-    (item) => !chosen.includes(item.id) && item.entryId !== self,
+    (item) =>
+      !chosen.some((id) => key(id) === item.id) && item.entryId !== self,
   );
 
   return (
@@ -271,11 +273,11 @@ export function ArticlesField(props: WidgetProps) {
             }}
           >
             <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
-              {byId.get(id)?.title ?? id}
+              {byId.get(key(id))?.title ?? id}
             </span>
             <button
               type="button"
-              aria-label={`Remove ${byId.get(id)?.title ?? id}`}
+              aria-label={`Remove ${byId.get(key(id))?.title ?? id}`}
               onClick={() => set(chosen.filter((other) => other !== id))}
               style={{
                 border: 0,
@@ -303,7 +305,7 @@ export function ArticlesField(props: WidgetProps) {
           {unused.map((item) => (
             <option key={item.id} value={item.id}>
               {item.title}
-              {item.kind ? ` (${item.kind})` : ""}
+              {item.kind === "changelog" ? " (changelog)" : ""}
             </option>
           ))}
         </select>

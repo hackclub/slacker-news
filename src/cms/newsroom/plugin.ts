@@ -2,7 +2,7 @@
  * Newsroom workflow for the EmDash admin: review requests, comments on
  * passages, approvals by named editors, and a gate that keeps an article from
  * going live until the exact text was approved. It also gives editors a review
- * queue, a dashboard card, an editorial calendar and article expiry.
+ * queue, a dashboard card and an editorial calendar.
  *
  * The rules are in review.ts; this file connects them to EmDash.
  *
@@ -23,7 +23,6 @@ import { findAnchor, type Anchor } from "./anchors";
 import {
   approve,
   dayOf,
-  expired,
   fingerprint,
   locate,
   newReview,
@@ -807,13 +806,6 @@ async function calendar(ctx: Ctx) {
       const title = String(item.data.title ?? item.slug ?? "Untitled");
       if (item.scheduledAt && item.scheduledAt >= today)
         rows.push({ at: item.scheduledAt, what: "Goes live", title });
-      const expires = item.data.expires_at;
-      if (item.status === "published" && typeof expires === "string")
-        rows.push({
-          at: expires,
-          what: expired(expires) ? "Expired" : "Expires",
-          title,
-        });
       if (item.publishedAt && item.publishedAt >= today.slice(0, 10))
         rows.push({ at: item.publishedAt, what: "Published", title });
     }
@@ -825,7 +817,7 @@ async function calendar(ctx: Ctx) {
         { type: "header", text: "Editorial calendar" },
         {
           type: "context",
-          text: "Nothing is scheduled to go live or expire.",
+          text: "Nothing is scheduled to go live.",
         },
       ],
     };
@@ -851,7 +843,6 @@ async function calendar(ctx: Ctx) {
 }
 
 async function admin(ctx: Ctx) {
-  await ensureCron(ctx);
   const { page } = ctx.input as { page?: string };
   if (page === "widget:awaiting") return widget(ctx);
   if (page === "/calendar") return calendar(ctx);
@@ -859,43 +850,15 @@ async function admin(ctx: Ctx) {
 }
 
 // ---------------------------------------------------------------------------
-// Expiry: an article with an "Expires" date comes down when it passes
+// Articles used to have an "Expires" date, checked by an hourly task. The date
+// is gone; this takes the task off sites that still have it.
 // ---------------------------------------------------------------------------
 
-async function ensureCron(ctx: Ctx) {
+async function retireExpiry(ctx: Ctx) {
   try {
-    const tasks = await ctx.cron.list();
-    if (!tasks.some((task: { name: string }) => task.name === "expire"))
-      await ctx.cron.schedule("expire", { schedule: "0 * * * *" });
-  } catch (error) {
-    ctx.log.warn("Could not schedule expiry", { error: String(error) });
-  }
-}
-
-async function expireArticles(ctx: Ctx) {
-  const { collections } = await rules(ctx);
-  for (const collection of collections) {
-    const { items } = await ctx.content.list(collection, {
-      limit: 200,
-      orderBy: { updatedAt: "desc" },
-    });
-    for (const item of items as {
-      id: string;
-      status: string;
-      data: Record<string, unknown>;
-    }[]) {
-      if (item.status !== "published" || !expired(item.data.expires_at))
-        continue;
-      const versioned = await ctx.content.getVersioned(collection, item.id);
-      if (!versioned) continue;
-      await ctx.content.unpublish(collection, item.id, {
-        _rev: versioned._rev,
-      });
-      ctx.log.info("Unpublished an expired article", {
-        collection,
-        id: item.id,
-      });
-    }
+    await ctx.cron.cancel("expire");
+  } catch {
+    // Nothing was scheduled.
   }
 }
 
@@ -1035,10 +998,7 @@ export function createPlugin() {
     },
     hooks: {
       "plugin:activate": async (_event, ctx) => {
-        await ensureCron(ctx);
-      },
-      cron: async (event, ctx) => {
-        if (event.name === "expire") await expireArticles(ctx);
+        await retireExpiry(ctx);
       },
       "content:afterSave": {
         handler: async (event, ctx) => {

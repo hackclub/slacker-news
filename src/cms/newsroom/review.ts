@@ -309,13 +309,6 @@ export function reviewedCollections(value: unknown): string[] {
   return names.length ? names : ["posts"];
 }
 
-/** True when an article's expiry time has come. */
-export function expired(expiresAt: unknown, now = new Date()): boolean {
-  if (typeof expiresAt !== "string" || !expiresAt) return false;
-  const time = new Date(expiresAt).getTime();
-  return Number.isFinite(time) && time <= now.getTime();
-}
-
 /** A day heading such as "2026-11-20" for the calendar. */
 export function dayOf(iso: string): string {
   return iso.slice(0, 10);

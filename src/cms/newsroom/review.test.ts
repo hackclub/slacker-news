@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   approve,
-  expired,
   fingerprint,
   locate,
   newReview,
@@ -183,17 +182,5 @@ describe("settings", () => {
   test("posts are reviewed by default", () => {
     expect(reviewedCollections(undefined)).toEqual(["posts"]);
     expect(reviewedCollections("posts, pages")).toEqual(["posts", "pages"]);
-  });
-});
-
-describe("expiry", () => {
-  const now = new Date("2026-11-20T12:00:00Z");
-  test("an article expires once its time has passed", () => {
-    expect(expired("2026-11-20T11:00:00Z", now)).toBe(true);
-    expect(expired("2026-11-21T00:00:00Z", now)).toBe(false);
-  });
-  test("no date, or a bad one, never expires", () => {
-    expect(expired(undefined, now)).toBe(false);
-    expect(expired("not a date", now)).toBe(false);
   });
 });

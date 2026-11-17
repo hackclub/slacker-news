@@ -34,7 +34,7 @@ Create posts in `src/content/posts/` with the naming format: `slug.mdx`
 ---
 title: Post Title
 date: 2026-04-15
-excerpt: Brief description shown in listings
+excerpt: Brief description shown in listings; several paragraphs make the front page preview when this is the headline
 ---
 ```
 
@@ -186,10 +186,7 @@ plugin to run in the server process rather than a sandbox.
   its sidebar, the threads show in a column beside the text. **Comments
   beside** in the bar above the body does the same without full screen.
 - **Queue, card and calendar.** A **Review queue** page, an "Awaiting review"
-  card on the dashboard, and an editorial **Calendar** of what goes live and
-  what expires.
-- **Expiry.** Set **Expires** on a post and the plugin takes it off the site
-  when that time passes, checked hourly.
+  card on the dashboard, and an editorial **Calendar** of what goes live.
 - **Email.** If the site has an email provider, approvers are told when a post
   is sent for review, and its author when it is decided.
 - **Other collections.** Set "Collections that need review" to include
@@ -237,7 +234,7 @@ only work on the MDX field.
 
 The people the site credits are bylines in the CMS, each with two fields: a
 **Slack ID** and **Roles** (`editor`, `technical`, `content`, comma-separated).
-`scripts/emdash-people.mjs` fills them in on every start, only where something
+`scripts/emdash-after-seed.mjs` fills them in on every start, only where something
 is missing: one byline for each person in `src/data/acknowledgements.json`, and
 the credited bylines of every article that only has the old `author` text.
 After that, the **Bylines** section of the editor's sidebar picks them, any
@@ -256,6 +253,19 @@ The author text field is hidden. EmDash gives a plugin no way to place a field
 in the sidebar, so the widgets draw their controls there and hide their place
 in the main column by the `data-co-editing-field` mark on each field; if
 EmDash stops marking fields that way, they stay in the main column.
+
+The category (news, opinion, essays) is a taxonomy: pick it under
+**Taxonomies** in the sidebar. It is still the first part of an article's
+address, so changing it moves the article, and an article with no category is
+left off the site. **Summary** is the one description field: its first
+paragraph is the short text for lists, search and RSS, and if it has several
+paragraphs the front page shows them when the article is the headline, in
+place of the opening paragraphs. Posts no longer have an expiry date. On start,
+`scripts/emdash-after-seed.mjs` also turns each existing post's category into
+its term, merges a front page preview into the summary, and removes the old
+fields. A **Response to** or **Follow-up to** link is stored as the article's
+slug, so it survives a change of category; `category/slug` written in an MDX
+file still works.
 
 #### Co-editing
 

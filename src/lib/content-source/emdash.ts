@@ -128,9 +128,17 @@ function entry<Data>(
 
 export async function loadPosts(): Promise<SourceEntry<PostData>[]> {
   const entries = await loadAll("posts");
-  return entries.map(({ id: slug, data }) => {
-    const category = text(data.category);
-    if (!category) throw new Error(`CMS post "${slug}" has no category`);
+  return entries.flatMap(({ id: slug, data }) => {
+    // The category is a taxonomy term, picked in the editor's sidebar. An
+    // article without one has no address, so it stays off the site.
+    const terms = (
+      data.terms as Record<string, { slug?: string }[]> | undefined
+    )?.category;
+    const category = text(terms?.[0]?.slug);
+    if (!category) {
+      console.warn(`CMS post "${slug}" has no category, so it is not shown.`);
+      return [];
+    }
     const id = `${category}/${slug}`;
     return entry<PostData>(
       id,
@@ -140,7 +148,6 @@ export async function loadPosts(): Promise<SourceEntry<PostData>[]> {
         date: date(data.date, id),
         ...authors(data),
         excerpt: text(data.excerpt),
-        frontPagePreview: text(data.front_page_preview),
         responseTo: list(data.response_to),
         followUpTo: list(data.follow_up_to),
         // SQLite hands booleans back as 0 or 1.

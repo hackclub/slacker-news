@@ -29,6 +29,8 @@ type Entry = {
   slug: string;
   status: "published";
   data: Record<string, unknown>;
+  /** Taxonomy name to term slugs. */
+  taxonomies?: Record<string, string[]>;
 };
 
 /** A list in frontmatter becomes "a, b" in the CMS, where each field is one text box. */
@@ -101,13 +103,13 @@ for (const category of POST_CATEGORIES) {
       id: `post:${category}/${slug}`,
       slug,
       status: "published",
+      // The category is a taxonomy term; it is the first part of the address.
+      taxonomies: { category: [category] },
       data: withoutEmpty({
         title: frontmatter.title,
         date: dateString(frontmatter.date, file),
-        category,
         author: joined(frontmatter.author),
         excerpt: frontmatter.excerpt,
-        front_page_preview: frontmatter.frontPagePreview,
         response_to: joined(frontmatter.responseTo),
         follow_up_to: joined(frontmatter.followUpTo),
         legacy_id: frontmatter.id,
@@ -166,7 +168,7 @@ const date = {
   required: true,
 };
 // Kept for articles nobody has credited yet. Authors are the bylines in the
-// editor's sidebar now (scripts/emdash-people.mjs moved them there).
+// editor's sidebar now (scripts/emdash-after-seed.mjs moved them there).
 const author = {
   slug: "author",
   label: "Author",
@@ -179,9 +181,13 @@ const author = {
 };
 const excerpt = {
   slug: "excerpt",
-  label: "Excerpt",
+  label: "Summary",
   type: "text",
-  options: { rows: 3 },
+  options: {
+    rows: 4,
+    helpText:
+      "A short description for lists, search results and RSS: its first paragraph is used. If it has several paragraphs, the front page shows them all when this is the headline, instead of the opening paragraphs.",
+  },
 };
 const references = [
   {
@@ -260,6 +266,19 @@ const seed = {
       "Content model and articles migrated from the MDX files in src/content.",
   },
   settings: { title: siteData.title, tagline: siteData.description },
+  taxonomies: [
+    {
+      name: "category",
+      label: "Categories",
+      labelSingular: "Category",
+      hierarchical: false,
+      collections: ["posts"],
+      terms: POST_CATEGORIES.map((slug) => ({
+        slug,
+        label: slug[0].toUpperCase() + slug.slice(1),
+      })),
+    },
+  ],
   collections: [
     {
       slug: "posts",
@@ -272,36 +291,9 @@ const seed = {
       fields: [
         title,
         date,
-        {
-          slug: "category",
-          label: "Category",
-          type: "select",
-          required: true,
-          defaultValue: "news",
-          validation: { options: POST_CATEGORIES },
-        },
         author,
         excerpt,
-        {
-          slug: "front_page_preview",
-          label: "Front page preview",
-          type: "text",
-          options: {
-            rows: 6,
-            helpText:
-              "Shown instead of the opening paragraphs when this post is the headline.",
-          },
-        },
         ...references,
-        {
-          slug: "expires_at",
-          label: "Expires",
-          type: "datetime",
-          options: {
-            helpText:
-              "Optional. When this time passes, the post is taken off the site. Needs the newsroom plugin and a running server.",
-          },
-        },
         {
           slug: "members_only",
           label: "Members only",

@@ -19,7 +19,6 @@ export type PostData = {
   /** One per author, in order; empty where a person has no Slack ID. From the CMS bylines. */
   authorSlackIds?: string[];
   excerpt?: string;
-  frontPagePreview?: string;
   responseTo?: string | string[];
   followUpTo?: string | string[];
   /** Only readers who are signed in may see this post. Set in the CMS. */
