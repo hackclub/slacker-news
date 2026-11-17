@@ -33,6 +33,9 @@ const RUNTIME_ENV = [
   "INDIGEST_CACHE_TTL_MS",
   "RSS_ACCESS_TOKEN",
 ];
+// In `astro dev` the browser would receive these too, and it has no `process`,
+// so the admin would not start. Dev reads .env through Vite instead.
+const isDev = process.argv.includes("dev");
 const runtimeEnv = Object.fromEntries(
   RUNTIME_ENV.map((name) => [`import.meta.env.${name}`, `process.env.${name}`]),
 );
@@ -214,7 +217,7 @@ export default defineConfig({
   },
   redirects: legacyRedirects,
   vite: {
-    define: useEmDash ? runtimeEnv : {},
+    define: useEmDash && !isDev ? runtimeEnv : {},
     resolve: {
       alias: {
         "#content-source": contentSource(useEmDash ? "emdash" : "file"),

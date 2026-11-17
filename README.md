@@ -195,6 +195,20 @@ plugin to run in the server process rather than a sandbox.
 - **Other collections.** Set "Collections that need review" to include
   `changelogs` or `pages`.
 
+##### Still to do
+
+- **Slack and email notifications, in full.** Today the plugin sends only two
+  emails: to approvers when a post is sent for review, and to its author when
+  it is decided. Planned: Slack messages (a direct message or a channel post)
+  and email for every event that needs someone's attention, each with a link
+  to the article. That covers a review request, an approval, a request for
+  changes, a new comment or reply, a mention, a suggestion made, accepted or
+  rejected, a post published, and an approval voided by an edit. Each person
+  chooses where they hear about what, and a digest can replace single
+  messages. Slack delivery would go through Indigest or a Slack app; the
+  plugin would need a Slack identity for each editor, which Hack Club Auth
+  already supplies.
+
 #### Co-editing
 
 Several people can edit the same article at once and see each other's cursors

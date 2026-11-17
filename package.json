@@ -48,5 +48,8 @@
     "oxlint": "^1.81.0",
     "sass": "^1.102.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "vite": "^7"
   }
 }
