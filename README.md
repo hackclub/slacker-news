@@ -222,10 +222,40 @@ The editor stores Portable Text, not MDX. When the page is requested,
 markdown rules and components behave the same in both. Existing posts are not
 converted, and nothing changes for them.
 
+Searching Slack: the Slack user and Slack channel forms look people and
+channels up by name on [Flaron](https://github.com/sadeshmukh/flaron) as you
+type, and fill in the ID and name of the one you pick. The editor asks the
+newsroom plugin, which asks Flaron from the server; only the text typed is
+sent. If it fails, the boxes still take an ID by hand.
+
 Known gaps: the Slack mention, channel, emoji and formula components are
 blocks here, not inline in a sentence; images need their media URL to be
 resolved; the review comments and suggestions of the newsroom plugin still
 only work on the MDX field.
+
+#### People, and the editor's sidebar
+
+The people the site credits are bylines in the CMS, each with two fields: a
+**Slack ID** and **Roles** (`editor`, `technical`, `content`, comma-separated).
+`scripts/emdash-people.mjs` fills them in on every start, only where something
+is missing: one byline for each person in `src/data/acknowledgements.json`, and
+the credited bylines of every article that only has the old `author` text.
+After that, the **Bylines** section of the editor's sidebar picks them, any
+number can be reused, and new ones are made in **Bylines** in the admin menu.
+The site reads authors, and the acknowledgements page, from the bylines; the
+old `author` text and the JSON file are the fallback for anything not yet
+credited. Names and Slack IDs are edited in **Bylines**, with **Byline Schema**
+holding the two fields.
+
+Some fields move to a **Links and visibility** section of the sidebar, drawn by
+`src/cms/newsroom/sidebar.tsx`: the body format, the members-only switch, and
+**Response to** and **Follow-up to** as pickers of other articles by title. They
+are still ordinary fields, so saving, drafts and co-editing work as before.
+Choosing a body format shows only that body in the editor; the other is kept.
+The author text field is hidden. EmDash gives a plugin no way to place a field
+in the sidebar, so the widgets draw their controls there and hide their place
+in the main column by the `data-co-editing-field` mark on each field; if
+EmDash stops marking fields that way, they stay in the main column.
 
 #### Co-editing
 

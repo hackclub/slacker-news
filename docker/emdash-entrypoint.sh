@@ -19,6 +19,7 @@ if [ ! -f "$DB" ]; then
   echo "Creating $DB from seed/seed.json"
   $EMDASH seed seed/seed.json --database "$DB" --uploads-dir "$DATA_DIR/uploads"
   node scripts/emdash-migrate.mjs "$DB"
+  node scripts/emdash-people.mjs "$DB"
 else
   # An existing database keeps its content, so editors' changes survive a
   # redeploy. Only the content model is brought in step with this build, which
@@ -27,6 +28,8 @@ else
   # First, the changes the seed cannot make, such as a field changing type.
   node scripts/emdash-migrate.mjs "$DB"
   $EMDASH seed seed/seed.json --database "$DB" --no-content --on-conflict update
+  # Bylines for the people the site credits, and for articles that have none.
+  node scripts/emdash-people.mjs "$DB"
 fi
 
 exec "$@"

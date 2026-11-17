@@ -165,13 +165,16 @@ const date = {
   type: "datetime",
   required: true,
 };
+// Kept for articles nobody has credited yet. Authors are the bylines in the
+// editor's sidebar now (scripts/emdash-people.mjs moved them there).
 const author = {
   slug: "author",
   label: "Author",
   type: "string",
+  widget: "newsroom:hidden",
   options: {
-    helpText:
-      "A Slack handle such as @orpheus. Separate several authors with commas.",
+    field: "author",
+    helpText: "Replaced by the bylines. Only read for articles that have none.",
   },
 };
 const excerpt = {
@@ -185,7 +188,12 @@ const references = [
     slug: "response_to",
     label: "Response to",
     type: "string",
+    // Shown in the sidebar by the newsroom plugin (src/cms/newsroom/sidebar.tsx).
+    widget: "newsroom:articles",
     options: {
+      slot: "response_to",
+      scope: "posts",
+      title: "Response to",
       helpText:
         "Slugs of the posts this responds to, such as news/red-teams. Separate several with commas.",
     },
@@ -194,7 +202,11 @@ const references = [
     slug: "follow_up_to",
     label: "Follow-up to",
     type: "string",
+    widget: "newsroom:articles",
     options: {
+      slot: "follow_up_to",
+      scope: "all",
+      title: "Follow-up to",
       helpText:
         "Slugs of the posts this follows up on. Separate several with commas.",
     },
@@ -204,6 +216,7 @@ const bodyFormat = {
   slug: "body_format",
   label: "Body format",
   type: "select",
+  widget: "newsroom:body-format",
   defaultValue: "mdx",
   validation: { options: ["mdx", "slack", "rich"] },
   options: {
@@ -293,6 +306,7 @@ const seed = {
           slug: "members_only",
           label: "Members only",
           type: "boolean",
+          widget: "newsroom:members-only",
           defaultValue: false,
           options: {
             helpText:

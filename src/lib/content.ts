@@ -1,4 +1,9 @@
-import { loadChangelogs, loadPage, loadPosts } from "#content-source";
+import {
+  loadChangelogs,
+  loadPage,
+  loadPeople,
+  loadPosts,
+} from "#content-source";
 import type {
   ChangelogData,
   PageData,
@@ -353,7 +358,8 @@ export async function getPosts({
         url: `/${entry.id}/`,
         title: entry.data.title,
         author: entry.data.author,
-        authorSlackIds: getAuthorSlackIds(entry.data.author),
+        authorSlackIds:
+          entry.data.authorSlackIds ?? getAuthorSlackIds(entry.data.author),
         category,
         date: entry.data.date,
         excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
@@ -441,7 +447,8 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
       title: entry.data.title,
       date: dateString,
       author: entry.data.author,
-      slackIds: getAuthorSlackIds(entry.data.author),
+      slackIds:
+        entry.data.authorSlackIds ?? getAuthorSlackIds(entry.data.author),
       excerpt: toExcerpt({ body: entry.body!, data: entry.data }),
       paragraphs,
       readingTime: Math.max(1, Math.ceil(wordCount / 200)),
@@ -460,7 +467,8 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
 }
 
 export async function getAcknowledgements(): Promise<Acknowledgement[]> {
-  return acknowledgementsData as Acknowledgement[];
+  // In the CMS the people are bylines; the file serves the rest.
+  return ((await loadPeople()) ?? acknowledgementsData) as Acknowledgement[];
 }
 
 function hasRole(person: Acknowledgement, role: AcknowledgementRole): boolean {

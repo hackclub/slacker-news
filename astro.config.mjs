@@ -87,6 +87,22 @@ const newsroom = {
       label: "Text with comments and suggestions",
       fieldTypes: ["text"],
     },
+    {
+      name: "body-format",
+      label: "Body format, in the sidebar",
+      fieldTypes: ["select"],
+    },
+    {
+      name: "members-only",
+      label: "Members-only switch, in the sidebar",
+      fieldTypes: ["boolean"],
+    },
+    {
+      name: "articles",
+      label: "Picker of other articles, in the sidebar",
+      fieldTypes: ["string"],
+    },
+    { name: "hidden", label: "Kept, not shown", fieldTypes: ["string"] },
   ],
   adminPages: [
     { path: "/queue", label: "Review queue", icon: "inbox" },

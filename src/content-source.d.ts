@@ -7,6 +7,7 @@ declare module "#content-source" {
   export const loadPosts: FileSource["loadPosts"];
   export const loadChangelogs: FileSource["loadChangelogs"];
   export const loadPage: FileSource["loadPage"];
+  export const loadPeople: FileSource["loadPeople"];
 }
 
 declare module "#live-loader" {

@@ -1,5 +1,11 @@
 import { getCollection, getEntry, render } from "astro:content";
-import type { ChangelogData, PageData, PostData, SourceEntry } from "./types";
+import type {
+  ChangelogData,
+  PageData,
+  Person,
+  PostData,
+  SourceEntry,
+} from "./types";
 
 /** Content comes from the MDX files in src/content. */
 export const cmsEnabled = false;
@@ -35,4 +41,9 @@ export async function loadPage(
     body: entry.body!,
     render: () => render(entry),
   };
+}
+
+/** The people come from src/data/acknowledgements.json, read by the caller. */
+export async function loadPeople(): Promise<Person[] | undefined> {
+  return undefined;
 }

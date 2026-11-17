@@ -40,6 +40,7 @@ import {
 import type { Anchor } from "./anchors";
 import type { ReviewComment } from "./review";
 import "./slack-picker";
+import { SidebarSlots, sidebarWidgets } from "./sidebar";
 import {
   applyEdit,
   changesOf,
@@ -1143,5 +1144,15 @@ export function ReviewTextField(props: {
   );
 }
 
-/** What EmDash reads from this module: widgets by name. */
-export const fields = { "review-text": ReviewTextField };
+/** What EmDash reads from this module: widgets by name, and sidebar sections. */
+export const fields = { "review-text": ReviewTextField, ...sidebarWidgets };
+
+export const contentEditorPanels = [
+  {
+    id: "details",
+    title: "Links and visibility",
+    component: SidebarSlots,
+    collections: ["posts", "changelogs"],
+    order: -10,
+  },
+];

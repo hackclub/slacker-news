@@ -1,7 +1,15 @@
 import { getEmDashCollection, getEmDashEntry } from "emdash";
+import { getDb } from "emdash/runtime";
+import { sql } from "kysely";
 import { portableTextToMdx } from "../../cms/rich/to-mdx";
 import { renderMdx, renderSlackText } from "../mdx-runtime";
-import type { ChangelogData, PageData, PostData, SourceEntry } from "./types";
+import type {
+  ChangelogData,
+  PageData,
+  Person,
+  PostData,
+  SourceEntry,
+} from "./types";
 
 /** Content comes from EmDash. The schema is defined in scripts/build-emdash-seed.ts. */
 export const cmsEnabled = true;
@@ -46,6 +54,41 @@ function portableText(value: unknown): unknown {
   } catch {
     return [];
   }
+}
+
+type Credit = {
+  byline?: {
+    displayName?: string;
+    customFields?: Record<string, unknown>;
+  };
+};
+
+/**
+ * The people credited in the editor's Bylines section. They replace the old
+ * `author` text, which still serves entries nobody has credited yet.
+ */
+function credits(data: Fields): { names: string[]; slackIds: string[] } {
+  const names: string[] = [];
+  const slackIds: string[] = [];
+  for (const credit of (data.bylines as Credit[] | undefined) ?? []) {
+    const name = text(credit.byline?.displayName);
+    if (!name) continue;
+    names.push(name);
+    slackIds.push(text(credit.byline?.customFields?.slack_id) ?? "");
+  }
+  return { names, slackIds };
+}
+
+function authors(data: Fields): {
+  author?: string | string[];
+  authorSlackIds?: string[];
+} {
+  const { names, slackIds } = credits(data);
+  if (names.length === 0) return { author: list(data.author) };
+  return {
+    author: names.length > 1 ? names : names[0],
+    authorSlackIds: slackIds,
+  };
 }
 
 function list(value: unknown): string | string[] | undefined {
@@ -95,7 +138,7 @@ export async function loadPosts(): Promise<SourceEntry<PostData>[]> {
         id: text(data.legacy_id),
         title: text(data.title) ?? slug,
         date: date(data.date, id),
-        author: list(data.author),
+        ...authors(data),
         excerpt: text(data.excerpt),
         frontPagePreview: text(data.front_page_preview),
         responseTo: list(data.response_to),
@@ -116,7 +159,8 @@ export async function loadChangelogs(): Promise<SourceEntry<ChangelogData>[]> {
       {
         title: text(data.title) ?? id,
         date: date(data.date, id),
-        author: list(data.author) ?? "",
+        author: authors(data).author ?? "",
+        authorSlackIds: authors(data).authorSlackIds,
         excerpt: text(data.excerpt),
         responseTo: list(data.response_to),
         followUpTo: list(data.follow_up_to),
@@ -136,4 +180,44 @@ export async function loadPage(
   // name here, so the generated shape is deliberately not relied on.
   const data = found.data as unknown as Fields;
   return entry<PageData>(slug, { title: text(data.title) }, data);
+}
+
+/**
+ * Everyone with a byline, with the Slack ID and roles kept on it. Nothing in
+ * EmDash's site API lists bylines, so this reads them from the database.
+ */
+export async function loadPeople(): Promise<Person[] | undefined> {
+  const { rows } = await sql<{
+    display_name: string;
+    slack_id: string | null;
+    roles: string | null;
+  }>`
+    select b.display_name, s.value as slack_id, r.value as roles
+      from _emdash_bylines b
+      left join _emdash_byline_fields sf on sf.slug = 'slack_id'
+      left join _emdash_byline_field_values s
+        on s.byline_id = b.id and s.field_id = sf.id
+      left join _emdash_byline_fields rf on rf.slug = 'roles'
+      left join _emdash_byline_field_values r
+        on r.byline_id = b.id and r.field_id = rf.id
+     order by b.display_name collate nocase
+  `.execute(await getDb());
+  if (rows.length === 0) return undefined;
+  // A byline field's value is stored as JSON.
+  const stored = (value: string | null): string | undefined => {
+    if (value === null) return undefined;
+    try {
+      return text(JSON.parse(value));
+    } catch {
+      return undefined;
+    }
+  };
+  return rows.map((row) => ({
+    name: row.display_name,
+    slackId: stored(row.slack_id),
+    roles: (stored(row.roles) ?? "")
+      .split(",")
+      .map((role) => role.trim())
+      .filter(Boolean),
+  }));
 }
