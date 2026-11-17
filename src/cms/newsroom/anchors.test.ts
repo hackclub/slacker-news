@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  anchorFor,
-  applyReplacement,
-  findAnchor,
-  marksAt,
-  pieces,
-} from "./anchors";
+import { anchorFor, findAnchor } from "./anchors";
 
 const text = "The cat sat. The cat ran. A dog ran.";
 
@@ -33,47 +27,6 @@ describe("anchors", () => {
   test("gives up when the passage was edited away", () => {
     const anchor = anchorFor(text, 0, 7);
     expect(findAnchor("Nothing alike.", anchor)).toBeUndefined();
-    expect(applyReplacement("Nothing alike.", anchor, "x")).toBeUndefined();
-  });
-
-  test("applies a replacement to the right occurrence", () => {
-    const start = text.lastIndexOf("cat");
-    const anchor = anchorFor(text, start, start + 3);
-    expect(applyReplacement(text, anchor, "fox")).toBe(
-      "The cat sat. The fox ran. A dog ran.",
-    );
-  });
-
-  test("an empty replacement deletes the passage", () => {
-    const anchor = anchorFor(text, 13, 17);
-    expect(applyReplacement(text, anchor, "")).toBe(
-      "The cat sat. cat ran. A dog ran.",
-    );
-  });
-
-  test("cuts text into stretches with their marks", () => {
-    const out = pieces("abcdef", [
-      { id: "a", start: 1, end: 4 },
-      { id: "b", start: 3, end: 5 },
-    ]);
-    expect(out).toEqual([
-      { text: "a", ids: [] },
-      { text: "bc", ids: ["a"] },
-      { text: "d", ids: ["a", "b"] },
-      { text: "e", ids: ["b"] },
-      { text: "f", ids: [] },
-    ]);
-    expect(out.map((p) => p.text).join("")).toBe("abcdef");
-  });
-
-  test("lists the marks at a caret", () => {
-    const ranges = [
-      { id: "a", start: 1, end: 4 },
-      { id: "b", start: 3, end: 5 },
-    ];
-    expect(marksAt(ranges, 2)).toEqual(["a"]);
-    expect(marksAt(ranges, 3)).toEqual(["a", "b"]);
-    expect(marksAt(ranges, 9)).toEqual([]);
   });
 });
 
@@ -99,13 +52,5 @@ describe("anchors without a quoted passage", () => {
     expect(
       findAnchor("Entirely different words here.", anchor),
     ).toBeUndefined();
-  });
-
-  test("an insertion is applied at its point", () => {
-    const at = text.indexOf("A dog");
-    const anchor = anchorFor(text, at, at);
-    expect(applyReplacement(text, anchor, "Then ")).toBe(
-      "The cat sat. The cat ran. Then A dog ran.",
-    );
   });
 });

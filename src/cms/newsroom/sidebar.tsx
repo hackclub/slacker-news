@@ -243,6 +243,8 @@ export function ArticlesField(props: WidgetProps) {
   const title = String(props.options?.title ?? "Articles");
   const all = useCandidates(scope);
   const chosen = split(props.value);
+  // Older values were written as `category/slug`; the slug is what counts.
+  const key = (id: string) => id.split("/").pop() ?? id;
   const byId = useMemo(
     () => new Map(all.map((item) => [item.id, item])),
     [all],

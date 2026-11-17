@@ -14,7 +14,8 @@
  *
  * Fields that went away: a post's category is now a taxonomy term (so the
  * category it had becomes its term), the front page preview is merged into
- * the summary (`excerpt`), and the expiry date is dropped.
+ * the summary (`excerpt`), and the expiry date is dropped. The body field no
+ * longer uses the old comment editor.
  *
  * Plain Node, like emdash-migrate.mjs, because the container has no Bun.
  */
@@ -309,6 +310,12 @@ if (hasColumn("ec_posts", "front_page_preview")) {
 }
 
 dropField("posts", "expires_at");
+
+// The body's own comment and suggestion editor is gone (comments live in the
+// rich-text editor now), so the body is a plain text box again.
+db.exec(
+  `update _emdash_fields set widget = null where widget = 'newsroom:review-text'`,
+);
 
 db.exec("commit");
 

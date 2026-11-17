@@ -17,6 +17,7 @@
  */
 import { definePlugin } from "emdash";
 import { portableTextBlocks } from "../rich/blocks.mjs";
+import { portableTextToPlain } from "../rich/plain";
 import { readHits, searchUrl } from "../rich/slack-search";
 import type { SlackKind } from "../rich/slack-search";
 import { findAnchor, type Anchor } from "./anchors";
@@ -41,7 +42,7 @@ import {
 } from "./review";
 
 /** The fields a reviewer reads; an edit to any of them voids an approval. */
-const REVIEWED_FIELDS = ["title", "body", "category", "author"] as const;
+const REVIEWED_FIELDS = ["title", "excerpt", "body", "body_rich"] as const;
 
 /** Collections the review panel and buttons can appear on. */
 const PANEL_COLLECTIONS = ["posts", "changelogs", "pages"];
@@ -154,7 +155,10 @@ async function panel(ctx: Ctx) {
     values?: Record<string, string>;
     draft?: { fields: Record<string, unknown> };
   };
-  const text = String(input.draft?.fields?.body ?? "");
+  // The text comments are about: the rich-text body when it has one.
+  const draft = input.draft?.fields;
+  const rich = portableTextToPlain(draft?.body_rich);
+  const text = rich || String(draft?.body ?? "");
 
   if (!collections.includes(entry.collection))
     return {
@@ -923,13 +927,9 @@ export function createPlugin() {
       ],
       widgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
       // Slash-menu blocks of the rich-text editor: our MDX components.
-      portableTextBlocks,
+      // (Typed loosely in blocks.mjs, which astro.config.mjs also reads.)
+      portableTextBlocks: portableTextBlocks as never,
       fieldWidgets: [
-        {
-          name: "review-text",
-          label: "Text with comments and suggestions",
-          fieldTypes: ["text"],
-        },
         {
           name: "body-format",
           label: "Body format, in the sidebar",
@@ -957,7 +957,7 @@ export function createPlugin() {
           title: "Review",
           route: "panel",
           collections: PANEL_COLLECTIONS,
-          draft: { read: { fields: ["body"] } },
+          draft: { read: { fields: ["body", "body_rich"] } },
         },
       ],
       editorActions: [

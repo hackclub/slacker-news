@@ -152,9 +152,9 @@ The first visit to `/_emdash/admin` creates the administrator account.
 
 The `newsroom` plugin (`src/cms/newsroom`) adds an editorial process to the
 Posts collection. It is a prototype: it works through the admin and API, but has
-only been tried with a handful of test articles. The body editor
-(`admin.tsx`) is a plain text box with a highlight layer, so it needs the
-plugin to run in the server process rather than a sandbox.
+only been tried with a handful of test articles. Its comments and suggestions
+run as code inside the rich-text editor's page (`rich-review.tsx`), so the
+plugin has to run in the server process rather than a sandbox.
 
 - **Review.** An author sends a post for review with the **Submit for review**
   button. An editor then approves it, or requests changes with a note.
@@ -167,24 +167,19 @@ plugin to run in the server process rather than a sandbox.
 - **Approvers.** In the plugin's settings, require one to five different
   approvers, and optionally name who they are by email or user ID. Without a
   list, any editor can approve. Settings apply at once.
-- **Comments in the text.** Select text in the article body and a pair of
-  buttons appears beside the selection: **Comment** and **Suggest an edit**.
-  The passage is highlighted yellow; click it to open the thread, reply, or
-  resolve. The **Review** panel beside the editor lists the same threads. A
-  thread finds its passage again by its quoted text, so edits above it do not
-  lose them; if the passage itself is edited away, the thread says so.
-- **Suggesting mode.** Switch the body from **Editing** to **Suggesting** and
-  just type. The article does not change: text you delete stays, struck
-  through in red, and text you add is marked in green. Each change is stored
-  as a suggestion a moment after you stop typing. An editor, or the article's
-  author, accepts one: the new text goes into the body, unsaved, and saving
-  sends the article back to review like any edit. Rejecting leaves the text
-  alone. Suggestions you pick out by hand with **Suggest an edit** work the
-  same way. You cannot type inside someone else's suggestion; accept or
-  reject it first.
-- **Comments beside the text.** In EmDash's distraction-free mode, which hides
-  its sidebar, the threads show in a column beside the text. **Comments
-  beside** in the bar above the body does the same without full screen.
+- **Comments in the text.** In the **Body (rich text)** editor, select text and
+  a pair of buttons appears just above the selection: **Comment** and
+  **Suggest**. A commented passage is highlighted yellow with a small icon at
+  its end; click either to open the thread, reply, or resolve. The **Review**
+  panel in the sidebar lists the same threads, and also takes general comments
+  about no passage. A thread finds its passage again by its quoted text, so
+  edits above it, or by someone editing at the same time, do not lose it; if
+  the passage itself is edited away, the thread stays in the panel only.
+- **Suggested edits.** **Suggest** opens a box with the new text for the
+  selected passage (empty to delete it). The passage shows struck through in
+  red, the new text beside it in green. An editor, or the article's author,
+  accepts it: the text changes in the editor like any edit, and saving sends the
+  article back to review. Rejecting leaves the text alone.
 - **Queue, card and calendar.** A **Review queue** page, an "Awaiting review"
   card on the dashboard, and an editorial **Calendar** of what goes live.
 - **Email.** If the site has an email provider, approvers are told when a post
@@ -227,8 +222,9 @@ sent. If it fails, the boxes still take an ID by hand.
 
 Known gaps: the Slack mention, channel, emoji and formula components are
 blocks here, not inline in a sentence; images need their media URL to be
-resolved; the review comments and suggestions of the newsroom plugin still
-only work on the MDX field.
+resolved; comments and suggestions work only on the rich-text body, not on the
+MDX one. They rely on the editor handing its `editor` object to the page
+(`.ProseMirror` elements carry it), which is not a public EmDash API.
 
 #### People, and the editor's sidebar
 

@@ -75,18 +75,13 @@ const newsroom = {
   entrypoint: fileURLToPath(
     new URL("./src/cms/newsroom/plugin.ts", import.meta.url),
   ),
-  // The text editor with comments and suggestions on selected passages.
+  // Comments and suggestions on the rich-text editor, Slack search, sidebar.
   adminEntry: fileURLToPath(
     new URL("./src/cms/newsroom/admin.tsx", import.meta.url),
   ),
   // Our MDX components as blocks in the rich-text editor's slash menu.
   portableTextBlocks,
   fieldWidgets: [
-    {
-      name: "review-text",
-      label: "Text with comments and suggestions",
-      fieldTypes: ["text"],
-    },
     {
       name: "body-format",
       label: "Body format, in the sidebar",
