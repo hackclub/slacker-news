@@ -6,6 +6,7 @@ import vercel from "@astrojs/vercel";
 import mdx from "@astrojs/mdx";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import { portableTextBlocks } from "./src/cms/rich/blocks.mjs";
 import { legacyRedirects } from "./src/data/legacy-redirects.mjs";
 
 // CMS=emdash swaps the MDX files in src/content for EmDash as the source of
@@ -78,6 +79,8 @@ const newsroom = {
   adminEntry: fileURLToPath(
     new URL("./src/cms/newsroom/admin.tsx", import.meta.url),
   ),
+  // Our MDX components as blocks in the rich-text editor's slash menu.
+  portableTextBlocks,
   fieldWidgets: [
     {
       name: "review-text",

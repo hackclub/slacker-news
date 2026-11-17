@@ -209,6 +209,24 @@ plugin to run in the server process rather than a sandbox.
   plugin would need a Slack identity for each editor, which Hack Club Auth
   already supplies.
 
+#### Rich-text body (prototype)
+
+Posts have a second body field, **Body (rich text)**, next to the MDX one. Set
+**Body format** to `rich` and the page is drawn from the rich-text field
+instead. Type `/` in it to add a YouTube video, caption, formula, Slack user or
+channel, emoji or raw HTML; these are the same components MDX posts use
+(`src/cms/rich/blocks.mjs`).
+
+The editor stores Portable Text, not MDX. When the page is requested,
+`src/cms/rich/to-mdx.ts` turns it into MDX and the usual pipeline draws it, so
+markdown rules and components behave the same in both. Existing posts are not
+converted, and nothing changes for them.
+
+Known gaps: the Slack mention, channel, emoji and formula components are
+blocks here, not inline in a sentence; images need their media URL to be
+resolved; the review comments and suggestions of the newsroom plugin still
+only work on the MDX field.
+
 #### Co-editing
 
 Several people can edit the same article at once and see each other's cursors

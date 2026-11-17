@@ -205,10 +205,10 @@ const bodyFormat = {
   label: "Body format",
   type: "select",
   defaultValue: "mdx",
-  validation: { options: ["mdx", "slack"] },
+  validation: { options: ["mdx", "slack", "rich"] },
   options: {
     helpText:
-      "mdx for articles written here. slack for articles brought over from Slack, which keep Slack's formatting.",
+      "mdx for articles written here as text. rich for articles written in the rich-text editor (the Body field below the MDX one). slack for articles brought over from Slack, which keep Slack's formatting.",
   },
 };
 const body = {
@@ -222,6 +222,18 @@ const body = {
     rows: 30,
     helpText:
       "Markdown, plus the components Caption, Emoji, M, RawHtml, SlackChannel, SlackMention and YouTube. No imports needed.",
+  },
+};
+// The rich-text editor. Used when Body format is "rich"; its content becomes
+// MDX when the page is drawn (src/cms/rich/to-mdx.ts).
+const bodyRich = {
+  slug: "body_rich",
+  label: "Body (rich text)",
+  type: "portableText",
+  searchable: true,
+  options: {
+    helpText:
+      "Used when Body format is rich. Type / to add a video, a Slack mention and other components.",
   },
 };
 const supports = ["drafts", "revisions", "search"];
@@ -290,6 +302,7 @@ const seed = {
         { slug: "legacy_id", label: "Legacy ID", type: "string" },
         bodyFormat,
         body,
+        bodyRich,
       ],
     },
     {

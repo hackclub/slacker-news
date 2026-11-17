@@ -1,4 +1,5 @@
 import { getEmDashCollection, getEmDashEntry } from "emdash";
+import { portableTextToMdx } from "../../cms/rich/to-mdx";
 import { renderMdx, renderSlackText } from "../mdx-runtime";
 import type { ChangelogData, PageData, PostData, SourceEntry } from "./types";
 
@@ -37,6 +38,16 @@ function text(value: unknown): string | undefined {
 }
 
 /** "a, b" in a CMS text field means the list ["a", "b"]. */
+/** Portable Text comes back as an array, or as JSON text from some paths. */
+function portableText(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return [];
+  }
+}
+
 function list(value: unknown): string | string[] | undefined {
   const raw = text(value);
   if (!raw) return undefined;
@@ -62,7 +73,12 @@ function entry<Data>(
   data: Data,
   fields: Fields,
 ): SourceEntry<Data> {
-  const body = text(fields.body) ?? "";
+  // An article written in the rich-text editor becomes MDX here, then is drawn
+  // like any other.
+  const rich = fields.body_format === "rich";
+  const body = rich
+    ? portableTextToMdx(portableText(fields.body_rich))
+    : (text(fields.body) ?? "");
   const render = fields.body_format === "slack" ? renderSlackText : renderMdx;
   return { id, data, body, render: () => render(body) };
 }

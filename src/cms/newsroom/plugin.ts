@@ -16,6 +16,7 @@
  *    plugin's settings and are read each time, so changes apply at once.
  */
 import { definePlugin } from "emdash";
+import { portableTextBlocks } from "../rich/blocks.mjs";
 import { findAnchor, type Anchor } from "./anchors";
 import {
   approve,
@@ -932,6 +933,8 @@ export function createPlugin() {
         { path: "/calendar", label: "Calendar", icon: "calendar" },
       ],
       widgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
+      // Slash-menu blocks of the rich-text editor: our MDX components.
+      portableTextBlocks,
       fieldWidgets: [
         {
           name: "review-text",
