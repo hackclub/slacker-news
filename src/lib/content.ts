@@ -176,18 +176,27 @@ function getAuthorSlackIds(authors: string | string[] | undefined): string[] {
     .filter((id): id is string => Boolean(id));
 }
 
+/** An attribute of a component tag, written `name="x"` or `name={"x"}`. */
+function tagAttribute(tag: string, name: string): string | undefined {
+  const match = new RegExp(
+    `\\b${name}=(?:"([^"]*)"|\\{"((?:[^"\\\\]|\\\\.)*)"\\})`,
+  ).exec(tag);
+  if (!match) return undefined;
+  return match[1] ?? match[2].replace(/\\(.)/g, "$1");
+}
+
 function replaceSlackMentionComponents(input: string): string {
-  return input.replace(
-    /<SlackMention\s+name="([^"]+)"\s+id="([^"]+)"\s*\/?>/g,
-    (_match, name) => `@${name}`,
-  );
+  return input.replace(/<SlackMention\b[^>]*\/?>/g, (tag) => {
+    const name = tagAttribute(tag, "name");
+    return name ? `@${name}` : "";
+  });
 }
 
 function replaceSlackChannelComponents(input: string): string {
-  return input.replace(
-    /<SlackChannel\s+id="([^"]+)"\s*\/?>/g,
-    (_match, id) => `#${id}`,
-  );
+  return input.replace(/<SlackChannel\b[^>]*\/?>/g, (tag) => {
+    const name = tagAttribute(tag, "label") ?? tagAttribute(tag, "id");
+    return name ? `#${name}` : "";
+  });
 }
 
 function stripMarkdown(input: string): string {

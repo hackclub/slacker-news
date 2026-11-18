@@ -195,6 +195,12 @@ async function emdashIntegrations() {
       // Sandboxed plugins run in a local workerd child process, the
       // open-source Workers runtime. Nothing is hosted on Cloudflare.
       sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox",
+      // The admin is "Slacker Newsroom"; the public site stays Slacker News.
+      admin: {
+        siteName: "Slacker Newsroom",
+        logo: "/SN%20H%20Logo.svg",
+        footerLabel: "Slacker Newsroom",
+      },
       authProviders: [hackClubAuth],
       plugins: [newsroom],
       // Several people can edit one article at once. Needs the Node server,

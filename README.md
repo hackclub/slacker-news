@@ -148,6 +148,9 @@ bun run dev:emdash
 
 The first visit to `/_emdash/admin` creates the administrator account.
 
+The admin is branded **Slacker Newsroom** (`admin` in `astro.config.mjs`); the
+public site keeps the name Slacker News.
+
 #### Newsroom workflow (prototype)
 
 The `newsroom` plugin (`src/cms/newsroom`) adds an editorial process to the
