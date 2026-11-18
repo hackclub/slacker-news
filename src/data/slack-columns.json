@@ -48,5 +48,18 @@
     "authRequired": true,
     "rss": true,
     "showMetadata": false
+  },
+  {
+    "column": "happenings",
+    "channelId": "C05B6DBN802",
+    "title": "Happenings",
+    "subtitle": "from #happenings",
+    "homepage": true,
+    "homepageMessagesPerRow": 3,
+    "homepageLimit": 3,
+    "limit": 1000,
+    "authRequired": true,
+    "rss": true,
+    "showMetadata": false
   }
 ]
