@@ -35,6 +35,17 @@ function escapeText(text: string): string {
   return text.replace(/([\\`*_{}[\]<>#|~$])/g, "\\$1");
 }
 
+/**
+ * A link's address, if it is one a reader can safely follow: a web or mail
+ * address, or a path on this site. Anything else (`javascript:` above all) is
+ * dropped. Characters that mean something to markdown or MDX are encoded.
+ */
+export function safeHref(href: string): string | undefined {
+  const trimmed = href.trim();
+  if (!/^(https?:\/\/|mailto:|\/(?!\/)|#)/i.test(trimmed)) return undefined;
+  return trimmed.replace(/[()\s{}<>"`\\]/g, (c) => encodeURIComponent(c));
+}
+
 /** Wraps text in a marker without letting the marker touch a space. */
 function wrap(text: string, open: string, close = open): string {
   const lead = /^\s*/.exec(text)?.[0] ?? "";
@@ -76,10 +87,11 @@ function spanToMdx(span: Span, defs: Map<string, MarkDef>): string {
     else if (mark === "underline") out = wrap(out, "<u>", "</u>");
     else {
       const def = defs.get(mark);
-      if (def?._type === "link" && typeof def.href === "string") {
-        const href = def.href.replace(/[()\s]/g, encodeURIComponent);
-        out = wrap(out, "[", `](${href})`);
-      }
+      const href =
+        def?._type === "link" && typeof def.href === "string"
+          ? safeHref(def.href)
+          : undefined;
+      if (href) out = wrap(out, "[", `](${href})`);
     }
   }
   return out;
@@ -164,20 +176,36 @@ export function portableTextToMdx(blocks: unknown): string {
       } else if (raw.style === "blockquote") {
         piece = prefixLines(text, "> ");
       } else if (text.trim()) {
-        piece = text;
+        // MDX reads a paragraph that begins with `import` or `export` as
+        // code to run. Written as an entity, the first letter is only text.
+        piece = text.replace(
+          /^(\s*)([ie])(?=mport\b|xport\b)/,
+          (_all, space: string, letter: string) =>
+            `${space}&#${letter.charCodeAt(0)};`,
+        );
       }
     } else if (raw._type === "break") {
       piece = "---";
     } else if (raw._type === "code") {
       const code = typeof raw.code === "string" ? raw.code : "";
-      const language = typeof raw.language === "string" ? raw.language : "";
-      const fence = code.includes("```") ? "````" : "```";
+      const language =
+        typeof raw.language === "string"
+          ? raw.language.replace(/[^\w+#.-]/g, "").slice(0, 30)
+          : "";
+      // A fence longer than any run of backticks in the code, so the code
+      // cannot close it.
+      const longest = Math.max(
+        2,
+        ...(code.match(/`+/g) ?? []).map((run) => run.length),
+      );
+      const fence = "`".repeat(longest + 1);
       piece = `${fence}${language}\n${code}\n${fence}`;
     } else if (raw._type === "image") {
       const url = (raw.asset as { url?: string } | undefined)?.url;
-      if (url) {
+      const src = typeof url === "string" ? safeHref(url) : undefined;
+      if (src) {
         const alt = typeof raw.alt === "string" ? raw.alt : "";
-        piece = `![${escapeText(alt)}](${url.replace(/[()\s]/g, encodeURIComponent)})`;
+        piece = `![${escapeText(alt)}](${src})`;
       }
     } else {
       piece = componentToMdx(raw);

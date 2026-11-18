@@ -272,6 +272,36 @@ fields. A **Response to** or **Follow-up to** link is stored as the article's
 slug, so it survives a change of category; `category/slug` written in an MDX
 file still works.
 
+#### Submitters
+
+Everyone below the Editor role is a submitter: an outside contributor, trusted
+no more than a member of the public. EmDash's own roles are looser than that
+(a contributor can list every post and read every draft), so the site puts its
+own rules in front of EmDash's API (`src/cms/newsroom/submitters.ts`) and
+refuses a submitter anything not on a short list. A submitter can:
+
+- list, open, edit and delete the posts they wrote, and nothing else: no other
+  drafts, no published posts, no changelogs, pages, media library, users,
+  search or dashboard;
+- comment and suggest on their own posts, and send them for review;
+- open a post they were added to as a **collaborator**, read it, comment and
+  suggest. Collaborators are added by email in the **Collaborators** section
+  of the editor's sidebar, by the post's author or an editor, and find the
+  post under **Shared with me**. EmDash lets only the author and editors
+  change a post's text, so a collaborator cannot edit it directly.
+
+Only editors publish, schedule or approve. A submitter's save is cut down to
+what a submitter may set (`content:beforeSave` in the plugin): the rich-text
+body only, never the MDX body, which is code, and no raw HTML block. The
+admin hides the pages and buttons a submitter cannot use
+(`submitter-ui.ts`); that is for tidiness, the server is what refuses.
+
+The rich text of an article is turned into MDX and compiled when the page is
+drawn, so `to-mdx.ts` is a security boundary: it escapes everything a
+submitter can type, and has tests for the ways text could become code. A
+renderer that draws rich text without compiling it would be safer still, and
+is worth doing before opening the newsroom to the public.
+
 #### Co-editing
 
 Several people can edit the same article at once and see each other's cursors

@@ -127,4 +127,40 @@ describe("portableTextToMdx", () => {
         "[read this](https://hackclub.slack.com/help).\n",
     );
   });
+
+  test("text cannot become code: import and export at the start of a paragraph", () => {
+    const out = portableTextToMdx([
+      p("import fs from 'fs'"),
+      p("export const x = 1"),
+      p("  export default y"),
+      p("important news"),
+    ]);
+    expect(out).toBe(
+      "&#105;mport fs from 'fs'\n\n&#101;xport const x = 1\n\n  &#101;xport default y\n\nimportant news\n",
+    );
+  });
+
+  test("links that would run script are dropped; odd characters are encoded", () => {
+    const link = (href: string): PortableBlock => ({
+      _type: "block",
+      style: "normal",
+      markDefs: [{ _key: "a", _type: "link", href }],
+      children: [{ _type: "span", text: "x", marks: ["a"] }],
+    });
+    expect(portableTextToMdx([link("javascript:alert(1)")])).toBe("x\n");
+    expect(portableTextToMdx([link("data:text/html,hi")])).toBe("x\n");
+    expect(portableTextToMdx([link("//evil.test/a")])).toBe("x\n");
+    expect(portableTextToMdx([link("https://x.test/a{b}<c>")])).toBe(
+      "[x](https://x.test/a%7Bb%7D%3Cc%3E)\n",
+    );
+    expect(portableTextToMdx([link("/news/a")])).toBe("[x](/news/a)\n");
+  });
+
+  test("code cannot close its own fence, and the language is plain", () => {
+    expect(
+      portableTextToMdx([
+        { _type: "code", code: "a\n````\nb", language: "js}\n<x" },
+      ]),
+    ).toBe("`````jsx\na\n````\nb\n`````\n");
+  });
 });

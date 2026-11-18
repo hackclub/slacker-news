@@ -7,9 +7,11 @@
  *
  *  - rich-review: comments, suggested edits and Slack mentions in the
  *    rich-text editor.
+ *  - submitter-ui: takes editors-only pages and buttons off a submitter's screen.
  *  - sidebar: the "Links and visibility" section and the fields it holds.
  */
 import "./rich-review";
+import "./submitter-ui";
 import { SidebarSlots, sidebarWidgets } from "./sidebar";
 
 /** Field widgets, by name. */

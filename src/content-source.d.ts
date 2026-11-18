@@ -15,3 +15,7 @@ declare module "#live-loader" {
     | (typeof import("emdash/runtime"))["emdashLoader"]
     | undefined;
 }
+
+declare module "#submitter-gate" {
+  export const submitterGate: (typeof import("./cms/newsroom/submitters-none"))["submitterGate"];
+}

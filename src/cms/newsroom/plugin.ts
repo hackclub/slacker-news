@@ -173,6 +173,8 @@ async function panel(ctx: Ctx) {
     values?: Record<string, string>;
     draft?: { fields: Record<string, unknown> };
   };
+  if (!(await levelOn(ctx, actor, entry.collection, entry.id)))
+    return NO_ACCESS;
   // The text comments are about: the rich-text body when it has one.
   const draft = input.draft?.fields;
   const rich = portableTextToPlain(draft?.body_rich);
@@ -476,6 +478,8 @@ async function threads(ctx: Ctx) {
   const { collections } = await rules(ctx);
   if (!input.entryId || !collections.includes(input.collection))
     return { error: "Review is not turned on for this collection." };
+  if (!(await levelOn(ctx, actor, input.collection, input.entryId)))
+    return { error: "You do not have access to this article." };
 
   const fail = (error: string) => ({ error });
   const all = async () => {
@@ -838,8 +842,197 @@ async function calendar(ctx: Ctx) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Who may touch an article
+//
+// Editors and up work on everything. Everyone below them is a submitter: an
+// outside contributor who works only on articles they own, or that they were
+// added to as a collaborator. src/cms/newsroom/submitters.ts holds EmDash's
+// own API to the same rule; this is the rule for the plugin's routes.
+// ---------------------------------------------------------------------------
+
+type Level = "editor" | "owner" | "collaborator";
+/** One row for each person added to an article, keyed `<entry>:<user>`. */
+type Collaborator = { entryId: string; userId: string; addedBy: string };
+
+async function levelOn(
+  ctx: Ctx,
+  actor: Actor,
+  collection: string,
+  entryId: string,
+): Promise<Level | null> {
+  if (actor.role >= ROLE.EDITOR) return "editor";
+  const item = await ctx.content.get(collection, entryId);
+  if (!item) return null;
+  if (item.authorId === actor.id) return "owner";
+  const row = await ctx.storage.collaborators.get(`${entryId}:${actor.id}`);
+  return row ? "collaborator" : null;
+}
+
+const NO_ACCESS = {
+  blocks: [
+    { type: "context", text: "You do not have access to this article." },
+  ],
+};
+
+/** The sidebar's Collaborators section: who else may read and comment. */
+async function people(ctx: Ctx) {
+  const { entry } = ctx.ui as { entry: { collection: string; id: string } };
+  const actor = who(ctx);
+  const level = await levelOn(ctx, actor, entry.collection, entry.id);
+  if (!level) return NO_ACCESS;
+  const manage = level === "editor" || level === "owner";
+  const input = ctx.input as {
+    type: string;
+    action_id?: string;
+    value?: unknown;
+    values?: Record<string, unknown>;
+  };
+  let notice: { message: string; type: "success" | "error" } | undefined;
+
+  if (manage && input.type === "form_submit" && input.action_id === "add") {
+    const email = String(input.values?.email ?? "")
+      .trim()
+      .toLowerCase();
+    const found = email ? await ctx.users?.getByEmail(email) : null;
+    if (!found)
+      notice = {
+        message: "Nobody with that email has signed in to the newsroom yet.",
+        type: "error",
+      };
+    else {
+      const row: Collaborator = {
+        entryId: entry.id,
+        userId: found.id,
+        addedBy: actor.id,
+      };
+      await ctx.storage.collaborators.put(`${entry.id}:${found.id}`, row);
+      notice = { message: "Added.", type: "success" };
+    }
+  }
+  if (manage && input.type === "block_action" && input.action_id === "remove") {
+    await ctx.storage.collaborators.delete(
+      `${entry.id}:${String(input.value)}`,
+    );
+    notice = { message: "Removed.", type: "success" };
+  }
+
+  const { items } = await ctx.storage.collaborators.query({
+    where: { entryId: entry.id },
+    limit: 50,
+  });
+  const blocks: unknown[] = [
+    {
+      type: "context",
+      text: "Collaborators can read this article, comment on it and suggest edits. Only its author and editors can change the text.",
+    },
+  ];
+  for (const { data } of items as { data: Collaborator }[]) {
+    const user = await ctx.users?.get(data.userId);
+    blocks.push({
+      type: "section",
+      text: user?.name ?? user?.email ?? data.userId,
+    });
+    if (manage)
+      blocks.push({
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            action_id: "remove",
+            label: "Remove",
+            value: data.userId,
+          },
+        ],
+      });
+  }
+  if (!items.length) blocks.push({ type: "context", text: "Nobody yet." });
+  if (manage)
+    blocks.push({
+      type: "form",
+      fields: [
+        { type: "text_input", action_id: "email", label: "Add by email" },
+      ],
+      submit: { label: "Add", action_id: "add" },
+    });
+  return notice ? { blocks, toast: notice } : { blocks };
+}
+
+/** The "Shared with me" page: articles the reader was added to. */
+async function shared(ctx: Ctx) {
+  const actor = who(ctx);
+  const { items } = await ctx.storage.collaborators.query({
+    where: { userId: actor.id },
+    limit: 100,
+  });
+  const blocks: unknown[] = [{ type: "header", text: "Shared with me" }];
+  for (const { data } of items as { data: Collaborator }[]) {
+    const { collections } = await rules(ctx);
+    for (const collection of collections) {
+      const item = await ctx.content.get(collection, data.entryId);
+      if (!item) continue;
+      blocks.push(
+        {
+          type: "section",
+          text: String(item.data.title ?? item.slug ?? "Untitled"),
+        },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "link",
+              label: "Open",
+              target: { kind: "content", collection, id: data.entryId },
+            },
+          ],
+        },
+      );
+      break;
+    }
+  }
+  if (blocks.length === 1)
+    blocks.push({
+      type: "context",
+      text: "Nothing has been shared with you. Your own articles are under Posts.",
+    });
+  return { blocks };
+}
+
+/** Blocks a submitter may not put in an article: they put raw HTML on the site. */
+const UNSAFE_BLOCKS = new Set(["snRawHtml", "htmlBlock", "html"]);
+
+/**
+ * What a submitter's save may hold. They write in the rich-text body only:
+ * the MDX body is code that runs on the server, and raw HTML runs in every
+ * reader's browser, so neither is theirs to set.
+ */
+function submitterFields(
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
+  const out = { ...fields };
+  delete out.body;
+  out.body_format = "rich";
+  if (typeof out.body_rich === "string") {
+    try {
+      out.body_rich = JSON.parse(out.body_rich);
+    } catch {
+      out.body_rich = [];
+    }
+  }
+  if (Array.isArray(out.body_rich))
+    out.body_rich = out.body_rich.filter(
+      (block) =>
+        !UNSAFE_BLOCKS.has(String((block as { _type?: unknown })?._type)),
+    );
+  return out;
+}
+
 async function admin(ctx: Ctx) {
   const { page } = ctx.input as { page?: string };
+  if (page === "/shared") return shared(ctx);
+  // The queue, the calendar and the dashboard card are the editors'.
+  if (who(ctx).role < ROLE.EDITOR)
+    return { blocks: [{ type: "context", text: "This page is for editors." }] };
   if (page === "widget:awaiting") return widget(ctx);
   if (page === "/calendar") return calendar(ctx);
   return queue(ctx);
@@ -871,6 +1064,8 @@ export function createPlugin() {
       // cover that text, so the plugin reads it.
       "content:revisions:read",
       "content:write",
+      // Collaborators are added by email and shown by name.
+      "users:read",
       "content:publish",
       "email:send",
       "hooks.content-policy:register",
@@ -882,6 +1077,7 @@ export function createPlugin() {
     storage: {
       reviews: { indexes: ["state", "collection"] },
       comments: { indexes: ["entryId", "resolved"] },
+      collaborators: { indexes: ["entryId", "userId"] },
     },
     admin: {
       settingsSchema: {
@@ -919,6 +1115,7 @@ export function createPlugin() {
       pages: [
         { path: "/queue", label: "Review queue", icon: "inbox" },
         { path: "/calendar", label: "Calendar", icon: "calendar" },
+        { path: "/shared", label: "Shared with me", icon: "users" },
       ],
       widgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
       // Slash-menu blocks of the rich-text editor: our MDX components.
@@ -953,6 +1150,12 @@ export function createPlugin() {
           route: "panel",
           collections: PANEL_COLLECTIONS,
           draft: { read: { fields: ["body", "body_rich"] } },
+        },
+        {
+          id: "people",
+          title: "Collaborators",
+          route: "people",
+          collections: PANEL_COLLECTIONS,
         },
       ],
       editorActions: [
@@ -989,11 +1192,27 @@ export function createPlugin() {
       submit: { permission: "content:create", handler: submitAction },
       // Editors and up decide, and read the queue and calendar.
       approve: { permission: "content:publish_any", handler: approveAction },
-      admin: { permission: "content:edit_any", handler: admin },
+      people: { permission: "content:read_drafts", handler: people },
+      // Each page checks who is asking: "Shared with me" is for everyone.
+      admin: { permission: "content:create", handler: admin },
     },
     hooks: {
       "plugin:activate": async (_event, ctx) => {
         await retireExpiry(ctx);
+      },
+      // A submitter's save is cut down to what a submitter may set.
+      "content:beforeSave": {
+        handler: async (event) => {
+          if (!event.actor || event.actor.role >= ROLE.EDITOR) return;
+          if (!PANEL_COLLECTIONS.includes(event.collection)) return;
+          const content = event.content as Record<string, unknown>;
+          return content.data && typeof content.data === "object"
+            ? {
+                ...content,
+                data: submitterFields(content.data as Record<string, unknown>),
+              }
+            : submitterFields(content);
+        },
       },
       "content:afterSave": {
         handler: async (event, ctx) => {
@@ -1013,6 +1232,12 @@ export function createPlugin() {
       },
       "content:beforePublish": {
         handler: async (event, ctx) => {
+          // Only editors put things live, approved or not.
+          if (event.actor && event.actor.role < ROLE.EDITOR)
+            return {
+              cancel: true,
+              reason: "Only editors can publish. Submit it for review.",
+            };
           const { collections } = await rules(ctx);
           if (!collections.includes(event.collection)) return;
           const id = String(event.content.id ?? "");
@@ -1027,6 +1252,12 @@ export function createPlugin() {
       },
       "content:beforeSchedule": {
         handler: async (event, ctx) => {
+          // Only editors put things live, approved or not.
+          if (event.actor && event.actor.role < ROLE.EDITOR)
+            return {
+              cancel: true,
+              reason: "Only editors can publish. Submit it for review.",
+            };
           const { collections } = await rules(ctx);
           if (!collections.includes(event.collection)) return;
           const id = String(event.content.id ?? "");

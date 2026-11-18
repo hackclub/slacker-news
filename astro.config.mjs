@@ -102,6 +102,7 @@ const newsroom = {
   adminPages: [
     { path: "/queue", label: "Review queue", icon: "inbox" },
     { path: "/calendar", label: "Calendar", icon: "calendar" },
+    { path: "/shared", label: "Shared with me", icon: "users" },
   ],
   adminWidgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
   editorPanels: [
@@ -110,7 +111,13 @@ const newsroom = {
       title: "Review",
       route: "panel",
       collections: reviewable,
-      draft: { read: { fields: ["body"] } },
+      draft: { read: { fields: ["body", "body_rich"] } },
+    },
+    {
+      id: "people",
+      title: "Collaborators",
+      route: "people",
+      collections: reviewable,
     },
   ],
   editorActions: [
@@ -242,6 +249,14 @@ export default defineConfig({
       alias: {
         "#content-source": contentSource(useEmDash ? "emdash" : "file"),
         "#live-loader": contentSource(useEmDash ? "live-emdash" : "live-none"),
+        // The rules for submitters need EmDash, so the file-based site gets
+        // a stand-in.
+        "#submitter-gate": fileURLToPath(
+          new URL(
+            `./src/cms/newsroom/${useEmDash ? "submitters" : "submitters-none"}.ts`,
+            import.meta.url,
+          ),
+        ),
       },
     },
   },
