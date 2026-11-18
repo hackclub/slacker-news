@@ -25,7 +25,14 @@ if (!column) {
   Astro.response.status = 404;
   Astro.response.headers.set("Cache-Control", "no-store");
 } else {
-  Astro.response.headers.set("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=86400");
+  // A members-only column must never land in a shared cache, or the CDN
+  // serves one member's render to signed-out visitors.
+  Astro.response.headers.set(
+    "Cache-Control",
+    column.authRequired
+      ? "private, no-store"
+      : "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
+  );
 }
 
 function messageTitle(message: (typeof messages)[number]): string | undefined {
