@@ -7,6 +7,7 @@
  * out rather than guessed at.
  */
 import { COMPONENT_BLOCKS } from "./blocks.mjs";
+import { slackTarget } from "./slack-links";
 
 type Span = {
   _type: "span";
@@ -42,8 +43,28 @@ function wrap(text: string, open: string, close = open): string {
   return core ? `${lead}${open}${core}${close}${trail}` : text;
 }
 
+/** A JSX attribute holding any string, whatever characters it has. */
+function attribute(name: string, value: unknown): string {
+  return `${name}={${JSON.stringify(String(value))}}`;
+}
+
 function spanToMdx(span: Span, defs: Map<string, MarkDef>): string {
   const marks = span.marks ?? [];
+  // A link to a Slack person or channel is a mention: the site's component
+  // takes the place of the linked text, inside the sentence.
+  for (const mark of marks) {
+    const href = defs.get(mark)?.href;
+    const target = typeof href === "string" ? slackTarget(href) : undefined;
+    if (!target) continue;
+    const name = span.text.trim().replace(/^[@#]/, "");
+    const lead = /^\s*/.exec(span.text)?.[0] ?? "";
+    const trail = /\s*$/.exec(span.text)?.[0] ?? "";
+    const tag =
+      target.kind === "user"
+        ? `<SlackMention ${attribute("id", target.id)} ${attribute("name", name)} />`
+        : `<SlackChannel ${attribute("id", target.id)} ${attribute("label", name)} />`;
+    return `${lead}${tag}${trail}`;
+  }
   const code = marks.includes("code");
   // Code is verbatim: nothing inside it is escaped.
   let out = code ? span.text : escapeText(span.text);
@@ -70,11 +91,6 @@ function inline(block: PortableBlock): string {
     .map((child) => (child._type === "span" ? spanToMdx(child, defs) : ""))
     .join("")
     .replace(/\n/g, "  \n");
-}
-
-/** A JSX attribute holding any string, whatever characters it has. */
-function attribute(name: string, value: unknown): string {
-  return `${name}={${JSON.stringify(String(value))}}`;
 }
 
 function componentToMdx(block: PortableBlock): string | undefined {

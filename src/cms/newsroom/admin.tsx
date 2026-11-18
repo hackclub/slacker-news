@@ -5,12 +5,11 @@
  * module for field widgets and sidebar sections; importing the others runs
  * what they set up on the page.
  *
- *  - rich-review: comments and suggested edits on the rich-text editor.
- *  - slack-picker: search as you type in the Slack insert forms.
+ *  - rich-review: comments, suggested edits and Slack mentions in the
+ *    rich-text editor.
  *  - sidebar: the "Links and visibility" section and the fields it holds.
  */
 import "./rich-review";
-import "./slack-picker";
 import { SidebarSlots, sidebarWidgets } from "./sidebar";
 
 /** Field widgets, by name. */

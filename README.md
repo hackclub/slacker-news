@@ -170,8 +170,9 @@ plugin has to run in the server process rather than a sandbox.
 - **Comments in the text.** In the **Body (rich text)** editor, select text and
   a **Comment** button appears just above the selection. A commented passage is
   highlighted yellow with a small icon at its end; click either to open the
-  thread, reply, or resolve. The **Review** panel in the sidebar lists the same
-  threads, and also takes general comments about no passage. A thread finds its
+  thread, reply, or resolve. The **Review** panel in the sidebar is an overview
+  of the same threads, with one box for a general comment; an editor can send
+  that comment back to the author as a request for changes. A thread finds its
   passage again by its quoted text, so edits above it, or by someone editing at
   the same time, do not lose it; if the passage itself is edited away, the
   thread stays in the panel only.
@@ -218,14 +219,15 @@ The editor stores Portable Text, not MDX. When the page is requested,
 markdown rules and components behave the same in both. Existing posts are not
 converted, and nothing changes for them.
 
-Searching Slack: the Slack user and Slack channel forms look people and
-channels up by name on [Flaron](https://github.com/sadeshmukh/flaron) as you
-type, and fill in the ID and name of the one you pick. The editor asks the
-newsroom plugin, which asks Flaron from the server; only the text typed is
-sent. If it fails, the boxes still take an ID by hand.
+Slack people and channels go inside a sentence: type `@` and a few letters of
+a name, or `#` and a channel's, and pick from the list that opens. The list
+comes from [Flaron](https://github.com/sadeshmukh/flaron), asked by the
+newsroom plugin from the server; only the letters typed are sent. The editor
+stores the mention as a link to the person or channel on Slack, and the site
+draws such a link as its `SlackMention` or `SlackChannel` component.
 
-Known gaps: the Slack mention, channel, emoji and formula components are
-blocks here, not inline in a sentence; images need their media URL to be
+Known gaps: the emoji and formula components are blocks here, not inline in a
+sentence; images need their media URL to be
 resolved; comments and suggestions work only on the rich-text body, not on the
 MDX one. They rely on the editor handing its `editor` object to the page
 (`.ProseMirror` elements carry it), which is not a public EmDash API.

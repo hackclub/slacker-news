@@ -25,7 +25,6 @@ import {
   approve,
   dayOf,
   fingerprint,
-  locate,
   newReview,
   noteEdit,
   policyFrom,
@@ -196,50 +195,21 @@ async function panel(ctx: Ctx) {
     notice = { message, type };
   };
 
-  if (input.type === "form_submit" && input.values) {
-    const values = input.values;
-    if (input.action_id === "comment") {
-      const body = String(values.body ?? "").trim();
-      const quote = String(values.quote ?? "").trim();
-      if (!body) say("Write a comment first.", "error");
-      else if (quote && text && !locate(text, quote))
-        say("That passage is not in the article.", "error");
-      else {
-        const comment: ReviewComment = {
-          entryId: entry.id,
-          author: actor.id,
-          authorName: actor.name,
-          at: new Date().toISOString(),
-          quote,
-          body,
-          resolved: false,
-          replies: [],
-        };
-        await ctx.storage.comments.put(crypto.randomUUID(), comment);
-        say("Comment added.");
-      }
-    } else if (input.action_id?.startsWith("reply:")) {
-      const id = input.action_id.slice("reply:".length);
-      const comment = (await ctx.storage.comments.get(id)) as ReviewComment;
-      const body = String(values.body ?? "").trim();
-      if (!comment || comment.entryId !== entry.id || !body)
-        say("Nothing to reply to.", "error");
-      else {
-        comment.replies.push({
-          author: actor.id,
-          authorName: actor.name,
-          at: new Date().toISOString(),
-          body,
-        });
-        await ctx.storage.comments.put(id, comment);
-        say("Reply added.");
-      }
-    } else if (input.action_id === "request-changes") {
+  // The panel has one form: a comment, which an editor can instead send to
+  // the author as a request for changes.
+  if (
+    input.type === "form_submit" &&
+    input.values &&
+    input.action_id === "comment"
+  ) {
+    const values = input.values as Record<string, unknown>;
+    const body = String(values.body ?? "").trim();
+    const sendBack = values.send_back === true || values.send_back === "true";
+    if (sendBack) {
       try {
         const review = await loadReview(ctx, entry.id, entry.collection);
         const item = await ctx.content.get(entry.collection, entry.id);
-        const note = String(values.note ?? "");
-        requestChanges(review, actor, note, item?.authorId);
+        requestChanges(review, actor, body, item?.authorId);
         await ctx.storage.reviews.put(entry.id, review);
         say("Changes requested.");
         if (notify)
@@ -247,12 +217,26 @@ async function panel(ctx: Ctx) {
             ctx,
             review.submitterEmail,
             `Changes requested: ${await titleOf(ctx, entry.collection, entry.id)}`,
-            `${actor.name} asked for changes:\n\n${note.trim()}\n\n${adminLink(ctx, entry.collection, entry.id)}`,
+            `${actor.name} asked for changes:\n\n${body}\n\n${adminLink(ctx, entry.collection, entry.id)}`,
           );
       } catch (error) {
         if (!(error instanceof RuleError)) throw error;
         say(error.message, "error");
       }
+    } else if (!body) say("Write a comment first.", "error");
+    else {
+      const comment: ReviewComment = {
+        entryId: entry.id,
+        author: actor.id,
+        authorName: actor.name,
+        at: new Date().toISOString(),
+        quote: "",
+        body,
+        resolved: false,
+        replies: [],
+      };
+      await ctx.storage.comments.put(crypto.randomUUID(), comment);
+      say("Comment added.");
     }
   }
 
@@ -381,12 +365,6 @@ async function panel(ctx: Ctx) {
           },
         ],
       });
-    if (!comment.resolved)
-      lines.push({
-        type: "form",
-        fields: [{ type: "text_input", action_id: "body", label: "Reply" }],
-        submit: { label: "Reply", action_id: `reply:${comment.id}` },
-      });
     return lines;
   };
 
@@ -403,6 +381,9 @@ async function panel(ctx: Ctx) {
       ]),
     });
 
+  // One box. Comments on a passage, replies and suggestions are made in the
+  // text itself, where the passage is.
+  const mayDecide = actor.role >= ROLE.EDITOR && review.state === "in_review";
   blocks.push(
     { type: "divider" },
     {
@@ -410,34 +391,23 @@ async function panel(ctx: Ctx) {
       fields: [
         {
           type: "text_input",
-          action_id: "quote",
-          label: "Passage (paste from the article)",
-          multiline: true,
-        },
-        {
-          type: "text_input",
           action_id: "body",
           label: "Comment",
           multiline: true,
         },
+        ...(mayDecide
+          ? [
+              {
+                type: "toggle",
+                action_id: "send_back",
+                label: "Request changes: send it back to the author",
+              },
+            ]
+          : []),
       ],
-      submit: { label: "Comment", action_id: "comment" },
+      submit: { label: mayDecide ? "Send" : "Comment", action_id: "comment" },
     },
   );
-
-  if (actor.role >= ROLE.EDITOR && review.state === "in_review")
-    blocks.push({
-      type: "form",
-      fields: [
-        {
-          type: "text_input",
-          action_id: "note",
-          label: "What should change?",
-          multiline: true,
-        },
-      ],
-      submit: { label: "Request changes", action_id: "request-changes" },
-    });
 
   // Each event is its own line: Block Kit text does not keep line breaks.
   if (review.history.length)

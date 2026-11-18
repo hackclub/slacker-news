@@ -93,4 +93,38 @@ describe("portableTextToMdx", () => {
     expect(portableTextToMdx(undefined)).toBe("");
     expect(portableTextToMdx([])).toBe("");
   });
+
+  test("a link to a Slack person or channel is a mention, inside the sentence", () => {
+    const block: PortableBlock = {
+      _type: "block",
+      style: "normal",
+      markDefs: [
+        {
+          _key: "u",
+          _type: "link",
+          href: "https://hackclub.slack.com/team/U09Q8MLTE58",
+        },
+        {
+          _key: "c",
+          _type: "link",
+          href: "https://hackclub.slack.com/archives/C0ALDCF90K1",
+        },
+        { _key: "x", _type: "link", href: "https://hackclub.slack.com/help" },
+      ],
+      children: [
+        { _type: "span", text: "Ask " },
+        { _type: "span", text: "@eps", marks: ["u"] },
+        { _type: "span", text: " in " },
+        { _type: "span", text: "#slacker-news", marks: ["c", "strong"] },
+        { _type: "span", text: " or " },
+        { _type: "span", text: "read this", marks: ["x"] },
+        { _type: "span", text: "." },
+      ],
+    };
+    expect(portableTextToMdx([block])).toBe(
+      'Ask <SlackMention id={"U09Q8MLTE58"} name={"eps"} /> in ' +
+        '<SlackChannel id={"C0ALDCF90K1"} label={"slacker-news"} /> or ' +
+        "[read this](https://hackclub.slack.com/help).\n",
+    );
+  });
 });

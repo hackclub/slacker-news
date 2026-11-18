@@ -31,6 +31,7 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { anchorFor, findAnchor } from "./anchors";
 import type { Anchor } from "./anchors";
 import { docText, endPos, offsetAt, startPos } from "./doc-text";
+import { mentionsPlugin } from "./mentions";
 import type { DocText } from "./doc-text";
 import type { ReviewComment } from "./review";
 
@@ -75,6 +76,14 @@ function entryFromLocation(): Entry | null {
     id: decodeURIComponent(match[2]),
   };
 }
+
+/** Line icons, drawn in the colour of the text around them. */
+const ICON = {
+  comment: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/>',
+};
+const svg = (paths: string, size = 14) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none">${paths}</svg>`;
 
 const key = new PluginKey<DecorationSet>("newsroomReview");
 /** Marks a change to the text that suggesting mode lets through. */
@@ -412,8 +421,10 @@ const STYLE = `
 .nr-del { background: rgba(239, 68, 68, .18); text-decoration: line-through; text-decoration-color: rgb(239, 68, 68); cursor: pointer; }
 .nr-ins { margin-left: 2px; background: rgba(34, 197, 94, .2); text-decoration: underline; text-decoration-color: rgb(34, 197, 94); border-radius: 2px; }
 .nr-on.nr-del { background: rgba(239, 68, 68, .32); }
-.nr-icon { display: inline-flex; align-items: center; gap: 2px; margin: 0 2px; padding: 0 4px; border: 0; border-radius: 10px; background: rgba(250, 204, 21, .9); color: #1a1a1a; font-size: 11px; line-height: 16px; vertical-align: text-top; cursor: pointer; user-select: none; }
+.nr-icon { display: inline-flex; align-items: center; gap: 2px; margin: 0 2px; padding: 2px 5px; border: 0; border-radius: 10px; background: rgba(250, 204, 21, .9); color: #1a1a1a; font-size: 11px; line-height: 16px; vertical-align: text-top; cursor: pointer; user-select: none; }
 .nr-icon.nr-s { background: rgba(34, 197, 94, .9); }
+/* News stories are set one way; the alignment buttons do not apply. */
+[data-emdash-editor-surface] button[aria-label="Align left"], [data-emdash-editor-surface] button[aria-label="Align center"], [data-emdash-editor-surface] button[aria-label="Align right"], [data-emdash-editor-surface] button[aria-label="Justify"] { display: none !important; }
 `;
 
 function ensureStyle() {
@@ -439,7 +450,9 @@ function icon(store: Store, thread: Thread): HTMLElement {
   button.className = suggestion ? "nr-icon nr-s" : "nr-icon";
   button.contentEditable = "false";
   const count = thread.replies.length + 1;
-  button.textContent = `${suggestion ? "✏️" : "💬"}${count > 1 && !suggestion ? ` ${count}` : ""}`;
+  button.innerHTML =
+    svg(suggestion ? ICON.pencil : ICON.comment, 11) +
+    (count > 1 && !suggestion ? `<span>${count}</span>` : "");
   button.title = suggestion ? "Suggested edit" : "Comment";
   // The editor must keep its selection and focus.
   button.addEventListener("mousedown", (event) => event.preventDefault());
@@ -956,7 +969,15 @@ function Overlay(props: { store: Store }) {
             }}
             onClick={begin}
           >
-            💬 Comment
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <span
+                style={{ display: "inline-flex" }}
+                dangerouslySetInnerHTML={{ __html: svg(ICON.comment) }}
+              />
+              Comment
+            </span>
           </button>
         </div>
       );
@@ -1011,12 +1032,12 @@ function mountToggle(store: Store, surface: Element): () => void {
   );
   const paint = () => {
     const on = store.suggesting;
-    toggle.textContent = on ? "✏️ Suggesting" : "✏️ Suggest";
+    toggle.innerHTML = `${svg(ICON.pencil)}<span>${on ? "Suggesting" : "Suggest"}</span>`;
     toggle.title = on
       ? "Suggesting: your edits are shown as suggestions and do not change the text. Click to go back to editing."
       : "Switch to suggesting: your edits become suggestions for someone to accept.";
     toggle.setAttribute("aria-pressed", String(on));
-    toggle.style.cssText = `flex:none;margin-left:6px;padding:0 10px;height:32px;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid ${
+    toggle.style.cssText = `display:inline-flex;align-items:center;gap:6px;flex:none;margin-left:6px;padding:0 10px;height:32px;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid ${
       on ? "rgb(34,197,94)" : "rgba(128,128,128,.45)"
     };background:${on ? "rgba(34,197,94,.22)" : "transparent"};color:inherit;`;
     (surface as HTMLElement).style.boxShadow = on
@@ -1060,6 +1081,10 @@ function attach(editor: EditorLike, element: HTMLElement) {
     plugin,
     ...plugins,
   ]);
+  editor.registerPlugin(
+    mentionsPlugin(() => !store.suggesting),
+    (plugin, plugins) => [plugin, ...plugins],
+  );
   const host = document.createElement("div");
   host.id = "newsroom-review-root";
   document.body.appendChild(host);

@@ -18,12 +18,14 @@ const text = (action_id, label, extra = {}) => ({
 
 /**
  * `tag` is the MDX component. `children` names the field that becomes the
- * tag's content instead of an attribute.
+ * tag's content instead of an attribute. A `hidden` block is not offered in
+ * the slash menu.
  *
  * @type {{
  *   type: string;
  *   tag: string;
  *   children?: string;
+ *   hidden?: boolean;
  *   label: string;
  *   description: string;
  *   icon?: string;
@@ -65,11 +67,13 @@ export const COMPONENT_BLOCKS = [
   {
     type: "snSlackMention",
     tag: "SlackMention",
+    // Mentions are typed into the sentence with @ now; this stays so articles
+    // that already hold the block are still drawn.
+    hidden: true,
     label: "Slack user",
     description: "A mention of someone on Slack",
     category: "Slack",
     fields: [
-      // The insert form searches Slack as this is typed (slack-picker.ts).
       text("id", "Slack user", {
         placeholder: "Search by name, or paste an ID",
       }),
@@ -79,6 +83,7 @@ export const COMPONENT_BLOCKS = [
   {
     type: "snSlackChannel",
     tag: "SlackChannel",
+    hidden: true,
     label: "Slack channel",
     description: "A link to a Slack channel",
     category: "Slack",
@@ -109,13 +114,13 @@ export const COMPONENT_BLOCKS = [
 ];
 
 /** The shape EmDash's `portableTextBlocks` setting takes. */
-export const portableTextBlocks = COMPONENT_BLOCKS.map(
-  ({ type, label, description, icon, category, fields }) => ({
-    type,
-    label,
-    description,
-    ...(icon ? { icon } : {}),
-    category,
-    fields,
-  }),
-);
+export const portableTextBlocks = COMPONENT_BLOCKS.filter(
+  (block) => !block.hidden,
+).map(({ type, label, description, icon, category, fields }) => ({
+  type,
+  label,
+  description,
+  ...(icon ? { icon } : {}),
+  category,
+  fields,
+}));
