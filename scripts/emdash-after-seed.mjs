@@ -311,6 +311,14 @@ if (hasColumn("ec_posts", "front_page_preview")) {
 
 dropField("posts", "expires_at");
 
+// New articles default to the rich-text body. Articles from before that
+// default existed have no format stored, and they are MDX.
+if (hasColumn("ec_posts", "body_format")) {
+  db.exec(
+    `update ec_posts set body_format = 'mdx' where body_format is null or body_format = ''`,
+  );
+}
+
 // The body's own comment and suggestion editor is gone (comments live in the
 // rich-text editor now), so the body is a plain text box again.
 db.exec(

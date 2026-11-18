@@ -184,3 +184,41 @@ describe("settings", () => {
     expect(reviewedCollections("posts, pages")).toEqual(["posts", "pages"]);
   });
 });
+
+describe("fingerprints of rich text", () => {
+  const block = (key: string, link: string) => ({
+    _type: "block",
+    _key: key,
+    markDefs: [{ _key: link, _type: "link", href: "https://x.test" }],
+    children: [
+      { _type: "span", _key: `${key}:0`, text: "See ", marks: [] },
+      { _type: "span", _key: `${key}:1`, text: "this", marks: [link, "em"] },
+    ],
+  });
+
+  test("the same text saved twice, with new keys, fingerprints the same", async () => {
+    const a = await fingerprint({ body_rich: [block("a1", "l1")] }, [
+      "body_rich",
+    ]);
+    const b = await fingerprint({ body_rich: [block("zz", "q9")] }, [
+      "body_rich",
+    ]);
+    expect(a).toBe(b);
+  });
+
+  test("a changed word, or a changed link, does not", async () => {
+    const base = await fingerprint({ body_rich: [block("a1", "l1")] }, [
+      "body_rich",
+    ]);
+    const word = block("a1", "l1");
+    word.children[1].text = "that";
+    const link = block("a1", "l1");
+    link.markDefs[0].href = "https://y.test";
+    expect(await fingerprint({ body_rich: [word] }, ["body_rich"])).not.toBe(
+      base,
+    );
+    expect(await fingerprint({ body_rich: [link] }, ["body_rich"])).not.toBe(
+      base,
+    );
+  });
+});

@@ -109,6 +109,8 @@ class Store {
   private sentEdits = 0;
   private syncTimer: ReturnType<typeof setTimeout> | undefined;
   private syncing = 0;
+  /** Counts saves of my typed suggestions, to tell when an answer is out of date. */
+  private epoch = 0;
   private noticeTimer: ReturnType<typeof setTimeout> | undefined;
   private localIds = 0;
 
@@ -135,6 +137,7 @@ class Store {
   }
 
   async call(body: Record<string, unknown>): Promise<Answer> {
+    const epoch = this.epoch;
     let answer: Answer;
     try {
       const response = await fetch(ROUTE, {
@@ -158,6 +161,9 @@ class Store {
       answer = { error: "Could not reach the server." };
     }
     this.error = answer.error ?? "";
+    // A list that was asked for before a save of my suggestions, and answered
+    // after it, shows the threads as they were: drop it.
+    if (body.op !== "sync" && epoch !== this.epoch) answer.threads = undefined;
     if (answer.threads) this.threads = answer.threads;
     if (answer.you) this.you = answer.you;
     // Take the server's copy of my typed suggestions, unless newer edits are
@@ -218,6 +224,7 @@ class Store {
     if (this.edits === this.sentEdits) return;
     this.sentEdits = this.edits;
     this.syncing += 1;
+    this.epoch += 1;
     await this.call({
       op: "sync",
       changes: this.mine.map((thread) => ({
@@ -622,14 +629,22 @@ function when(iso: string) {
 
 /** A card near a place in the document, kept inside the window. */
 function Near(props: { pos: number; store: Store; children: ReactNode }) {
-  let place: { left: number; top: number } | null = null;
+  let place: CSSProperties | null = null;
   try {
     const at = props.store.editor.view.coordsAtPos(props.pos);
     const width = 320;
-    place = {
-      left: Math.max(8, Math.min(at.left, window.innerWidth - width - 8)),
-      top: Math.min(at.bottom + 8, window.innerHeight - 120),
-    };
+    const left = Math.max(8, Math.min(at.left, window.innerWidth - width - 8));
+    const below = window.innerHeight - at.bottom;
+    // Under the passage when there is room; over it when the passage is low
+    // on the screen, so the card's buttons are never past the bottom edge.
+    place =
+      below >= 280 || below >= at.top
+        ? { left, top: at.bottom + 8, maxHeight: Math.max(160, below - 16) }
+        : {
+            left,
+            bottom: window.innerHeight - at.top + 8,
+            maxHeight: Math.max(160, at.top - 16),
+          };
   } catch {
     // The place is gone from the document.
   }
@@ -871,8 +886,11 @@ function Overlay(props: { store: Store }) {
 
   useEffect(() => {
     const read = () => {
-      const { from, to, empty } = store.editor.state.selection;
-      setSelection(empty ? null : { from, to });
+      const { doc, selection } = store.editor.state;
+      const { from, to, empty } = selection;
+      // Only a selection of text can be commented on, not a selected block.
+      const text = empty ? "" : doc.textBetween(from, to, "\n");
+      setSelection(text.trim() ? { from, to } : null);
     };
     const move = () => redraw((n) => n + 1);
     store.editor.on("selectionUpdate", read);

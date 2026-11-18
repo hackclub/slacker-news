@@ -221,12 +221,50 @@ export function publishBlock(
   return undefined;
 }
 
+/**
+ * A value with what changes from save to save taken out. The rich-text editor
+ * gives every block and span a fresh `_key` when it saves, so the same article
+ * would otherwise never fingerprint the same twice. A link is tied to its text
+ * by such a key, so the link itself takes the key's place.
+ */
+export function stable(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stable);
+  if (!value || typeof value !== "object") return value;
+  const source = value as Record<string, unknown>;
+  const defs = new Map<string, string>();
+  if (Array.isArray(source.markDefs)) {
+    for (const def of source.markDefs as Record<string, unknown>[]) {
+      if (typeof def?._key === "string")
+        defs.set(def._key, JSON.stringify(stable(def)));
+    }
+  }
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(source).sort()) {
+    if (key === "_key" || key === "markDefs") continue;
+    const item = source[key];
+    out[key] =
+      key === "children" && Array.isArray(item)
+        ? item.map((child) => {
+            const span = stable(child) as Record<string, unknown>;
+            if (Array.isArray(span.marks))
+              span.marks = span.marks.map((mark) =>
+                typeof mark === "string" ? (defs.get(mark) ?? mark) : mark,
+              );
+            return span;
+          })
+        : stable(item);
+  }
+  return out;
+}
+
 /** A short fingerprint of the parts of an article a reviewer reads. */
 export async function fingerprint(
   fields: Record<string, unknown>,
   names: readonly string[],
 ): Promise<string> {
-  const text = JSON.stringify(names.map((name) => fields[name] ?? null));
+  const text = JSON.stringify(
+    names.map((name) => stable(fields[name] ?? null)),
+  );
   const bytes = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(text),

@@ -113,6 +113,7 @@ for (const category of POST_CATEGORIES) {
         response_to: joined(frontmatter.responseTo),
         follow_up_to: joined(frontmatter.followUpTo),
         legacy_id: frontmatter.id,
+        body_format: "mdx",
         body,
       }),
     });
@@ -223,7 +224,9 @@ const bodyFormat = {
   label: "Body format",
   type: "select",
   widget: "newsroom:body-format",
-  defaultValue: "mdx",
+  // New articles are written in the rich-text editor. Articles migrated from
+  // the MDX files say "mdx" themselves.
+  defaultValue: "rich",
   validation: { options: ["mdx", "slack", "rich"] },
   options: {
     helpText:

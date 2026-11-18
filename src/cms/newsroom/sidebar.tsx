@@ -65,15 +65,17 @@ function useSlot(name: string): HTMLElement | null {
 
 /**
  * Hides a field's place in the main column. EmDash marks each field's wrapper
- * with `data-co-editing-field`; if that ever changes, the field just stays
- * visible.
+ * with `data-co-editing-field`, and gives its control the id `field-<name>`;
+ * if that ever changes, the field just stays visible.
  */
 function useHidden(field: string, hidden: boolean) {
   useEffect(() => {
     if (!hidden) return;
     const style = document.createElement("style");
     style.dataset.newsroomHidden = field;
-    style.textContent = `[data-co-editing-field="${field}"] { display: none !important; }`;
+    // A saved entry wraps each field in a marked element. A new, unsaved one
+    // does not, so there the field is found by the id of its control.
+    style.textContent = `[data-co-editing-field="${field}"], div#field-${field}, div:has(> #field-${field}) { display: none !important; }`;
     document.head.appendChild(style);
     return () => style.remove();
   }, [field, hidden]);
@@ -107,7 +109,7 @@ function useBodyFormat(format: string) {
 }
 
 export function BodyFormatField(props: WidgetProps) {
-  const value = typeof props.value === "string" ? props.value : "mdx";
+  const value = typeof props.value === "string" ? props.value : "rich";
   useBodyFormat(value);
   const choices = [
     ["mdx", "MDX text"],

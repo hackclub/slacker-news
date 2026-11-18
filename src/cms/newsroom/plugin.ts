@@ -98,6 +98,25 @@ function fieldsOf(content: Record<string, unknown>): Record<string, unknown> {
     : content;
 }
 
+/**
+ * The fields of an article as publishing would publish them. Edits to an
+ * article with revisions are kept in its draft revision until then, not in
+ * the entry itself, so that is where the saved text is.
+ */
+async function savedFields(
+  ctx: Ctx,
+  entry: { collection: string; id: string },
+  item: { data: Record<string, unknown>; draftRevisionId?: string | null },
+): Promise<Record<string, unknown>> {
+  if (!item.draftRevisionId || !ctx.content.getRevision) return item.data;
+  const draft = await ctx.content.getRevision(
+    entry.collection,
+    entry.id,
+    item.draftRevisionId,
+  );
+  return draft?.data ? { ...item.data, ...draft.data } : item.data;
+}
+
 const pretty = (state: string) => state.replaceAll("_", " ");
 
 function toast(message: string, type: "success" | "error" = "success") {
@@ -660,7 +679,10 @@ async function snapshot(ctx: Ctx) {
   return {
     entry,
     item,
-    hash: await fingerprint(item.data, REVIEWED_FIELDS),
+    hash: await fingerprint(
+      await savedFields(ctx, entry, item),
+      REVIEWED_FIELDS,
+    ),
   };
 }
 
@@ -750,7 +772,7 @@ async function queue(ctx: Ctx) {
       blocks.push(
         {
           type: "section",
-          text: `**${name}**\n${pretty(data.state)} · ${data.approvals.length} of ${policy.required} approvals${mine ? " · you approved" : ""}`,
+          text: `${name}\n${pretty(data.state)} · ${data.approvals.length} of ${policy.required} approvals${mine ? " · you approved" : ""}`,
         },
         {
           type: "actions",
@@ -875,6 +897,9 @@ export function createPlugin() {
     allowedHosts: ["flaron.halceon.dev"],
     capabilities: [
       "content:read",
+      // Unpublished edits are kept in a draft revision; an approval has to
+      // cover that text, so the plugin reads it.
+      "content:revisions:read",
       "content:write",
       "content:publish",
       "email:send",
