@@ -14,6 +14,9 @@ export type SlackColumnConfig = {
   limit?: number;
   subtitle?: string;
   rss?: boolean;
+  // Messages are numbered editions of a newsletter, titled "<title> #<n>"
+  // from the number each one states (see editions.ts).
+  editionNumbers?: boolean;
   noun?: string;
   // Messages are articles for the site's markdown columns (opinion, news,
   // essays). Each message names its column, and may name an author and a
