@@ -50,8 +50,15 @@ if (!column || !message) {
   Astro.response.status = 404;
   Astro.response.headers.set("Cache-Control", "no-store");
 } else {
-  Astro.response.headers.set("Cache-Control", "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800");
-  }
+  // A members-only message must never land in a shared cache, or the CDN
+  // serves one member's render to signed-out visitors.
+  Astro.response.headers.set(
+    "Cache-Control",
+    column.authRequired
+      ? "private, no-store"
+      : "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800",
+  );
+}
 ---
 
 <BaseLayout
