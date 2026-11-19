@@ -1,0 +1,42 @@
+---
+title: AI time tracking
+date: '2026-11-18'
+author: '@zrl'
+excerpt: "The hardest problem to solve is AI time tracking. How can we figure out how many hours of productive struggle someone spends toward a project when building it with AI? To that end, I'm excited to announce the biggest bounty in Hack Club's history: $10,000 USD to build an open source AI time tracking tool."
+followUpTo:
+  - "news/vision-for-an-ai-native-hack-club"
+---
+
+Yesterday I wrote about [a vision for an AI native Hack Club](/news/vision-for-an-ai-native-hack-club).
+
+The hardest problem to solve is AI time tracking. How can we figure out how many hours of productive struggle someone spends toward a project when building it with AI?
+
+So, to that end, I'm excited to announce the biggest bounty in Hack Club's history: **$10,000 USD** to build an open source AI time tracking tool.
+
+Here are the requirements:
+
+1. It must be open source under the AGPLv3 license.
+
+2. It must accurately track the hours of productive struggle that teenagers spend building awesome projects with AI, like this [Counter Strike 2](https://cs2go.3kh0.net/) browser port by Rowan, age 17.
+
+3. It must be meaningful and motivating to use in it and of itself, and not just an anti-fraud tool. Many teenagers are interested in self-improvement. This should be an amazing tool they want to install and use to self-improve, regardless of any You Ship, We Ship incentives. One of the things I love about [Hackatime](https://hackatime.hackclub.com/) is that it helps me track and feel motivated to work on personal projects I never submit to Hack Club programs.
+
+4. It must track time passively. The best thing about Hackatime is that you don't need to think about time tracking. When you are in an intense flow state for hours working on your project, Hackatime counts that time. When you jump into your project for 5 minutes before school, Hackatime counts that time. When you are multitasking and jump between 5 different projects in an afternoon, Hackatime accurately counts that time for each project. This solution must work passively too.
+
+5. It must have a centralized server with accounts, public-by-default user profiles, projects, git integration, and a stats dashboard that updates in real-time as time is logged.
+
+6. It must be privacy friendly in its approach and be something most privacy conscious users are comfortable installing and using.
+
+7. It must work with all AI models and all harnesses (or at least support the most popular ones starting out and have a plugin approach where integrations can be built for every use case in the future).
+
+8. It must support all 3 popular operating systems (Windows, Mac, Linux) and work on low spec computers. The average Hack Clubber is on a 10 year old Windows laptop!
+
+9. It must be trustworthy. When we ran [Hack Club High Seas](https://highseas.hackclub.com/), the first event with Hackatime, most hours submitted were valid. In [Hack Club Stardance](https://stardance.hackclub.com/), which ran this past summer, 123,400 Hackatime hours were submitted and so far we've only been able to approve 27,600 (which means we hand-reviewed and validated them as hours of productive struggle). Most of this isn't fraud. Many were hours where we felt the person wasn't pushing themselves, so we had to deflate to only the hours we felt could be justified as productive struggle. Another big contributor was people using AI without proper self-declaration. But the point holds: for the most part, an hour submitted via this new system should equal 1 hour of actual productive struggle toward a shipped project.
+
+10. Submitted hours must be auditable by an external party (ex. program authors, reviewers, and Fraud Squad) to validate there is no time exaggeration, fraud, and that each hour is an actual hour of productive struggle. There can be different privacy guarantees for logged hours vs. submitted hours. For example, if it uses a timelapsing approach, perhaps the timelapses for all logged hours stay locally on your computer and only submitted hours are uploaded to the server.
+
+11. The hosting cost cannot exceed $500 USD/month for 15,488 monthly active users logging 109,759 hours per month (these are Hackatime's stats for the last 30 days). Hackatime's hosting bill for its overpowered server is currently $213 USD/month. I just SSHed into its server and for the past hour it has averaged 10% of CPU use on a machine with 32 cores, 65 out of 192 GB of RAM, 1 out of 4 TB of storage, 1 MB/s of network activity, and 60 MB/s of disk read - so it still has plenty of headroom. The effective monthly hosting cost for Hackatime based on its resource usage is $55/month.
+
+**Criteria for acceptance:** The first time tracking system that meets the above requirements and is used to track 1,000 weighted projects in the Hack Club Unified Projects DB wins this bounty. This can be a completely new piece of software, an improved version of [Hackatime](https://hackatime.hackclub.com/) or [Lapse](https://lapse.hackclub.com/), or an approach we haven't even thought of yet. This doesn't need to be built on top of Hackatime.
+
+This bounty is open to current Hack Clubbers, alumni, teen contractors, and staff. It can be won by an individual or a group, but if it's won by a group there must be a group leader who submits on behalf of the group and is responsible for communicating the final split. If you are an existing contractor in Hack Club, you cannot log work hours toward this bounty - you must do this outside the scope of your existing contract unless otherwise approved by me and me alone. If you are Hack Club staff and pursue this completely outside of your normal workday, you are eligible for the full $10,000. If you pursue it during your workday, you will receive $5,000 instead of $10,000 because you will already be getting compensated for your time.
