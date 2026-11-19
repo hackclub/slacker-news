@@ -8,9 +8,8 @@
  *    starts a draft, with the rest of the article's review as replies under it;
  *  - to a person, as a direct message from the bot, when something needs them.
  *
- * It needs a Slack app's bot token (SLACK_BOT_TOKEN) with the `chat:write`
- * scope, and the bot in the channel (or `chat:write.public`). Without a token
- * nothing is sent.
+ * It needs a Slack app's bot token with the `chat:write` scope, and the bot in
+ * the channel (or `chat:write.public`). Without a token nothing is sent.
  */
 
 const POST_MESSAGE = "https://slack.com/api/chat.postMessage";
@@ -122,5 +121,30 @@ export async function post(
   } catch (error) {
     fail(String(error));
     return undefined;
+  }
+}
+
+/** Who a token belongs to, or why Slack will not say. */
+export async function whoAmI(
+  fetcher: Fetch,
+  token: string,
+): Promise<{ bot?: string; workspace?: string; error?: string }> {
+  try {
+    const response = await fetcher("https://slack.com/api/auth.test", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    const answer = (await response.json()) as {
+      ok?: boolean;
+      error?: string;
+      user?: string;
+      team?: string;
+    };
+    return answer.ok
+      ? { bot: answer.user, workspace: answer.team }
+      : { error: answer.error ?? `HTTP ${response.status}` };
+  } catch (error) {
+    return { error: String(error) };
   }
 }

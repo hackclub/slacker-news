@@ -17,6 +17,7 @@ const HIDDEN_LINKS = [
   'a[href*="/content/pages"]',
   'a[href*="/_emdash/admin/media"]',
   'a[href*="/plugins/newsroom/queue"]',
+  'a[href*="/plugins/newsroom/slack"]',
   'a[href*="/plugins/newsroom/calendar"]',
 ];
 /**

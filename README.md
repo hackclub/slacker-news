@@ -197,11 +197,19 @@ plugin has to run in the server process rather than a sandbox.
 
 ##### Slack
 
-With a Slack app's bot token the newsroom reports to Slack. Set
-`SLACK_BOT_TOKEN` (scope `chat:write`) and name the channel, by ID, in the
-plugin's settings or in `NEWSROOM_SLACK_CHANNEL`. Invite the bot to the
-channel, or give it `chat:write.public`. Without a token nothing is sent, and a
-message Slack refuses is logged and never blocks the work that caused it.
+With a Slack app's bot token the newsroom reports to Slack. An administrator
+sets it up in the admin, under Plugins, Newsroom, Settings: the bot token
+(scope `chat:write`, kept encrypted), the channel's ID, and three switches for
+what is sent (new drafts to the channel, review steps to the channel, direct
+messages). The token and channel can instead come from `SLACK_BOT_TOKEN` and
+`NEWSROOM_SLACK_CHANNEL`; a setting wins over the environment. Invite the bot
+to the channel, or give it `chat:write.public`. Without a token nothing is
+sent, and a message Slack refuses is logged and never blocks the work that
+caused it.
+
+The **Slack** page in the admin's menu (administrators only) shows which bot
+and channel are in use, and has buttons that send a test message to the
+channel and to you.
 
 - **The channel** gets one message for each new draft, with a link to it and
   its author. The rest of that article's review goes under it as replies: sent

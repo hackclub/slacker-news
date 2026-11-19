@@ -103,6 +103,7 @@ const newsroom = {
     { path: "/queue", label: "Review queue", icon: "inbox" },
     { path: "/calendar", label: "Calendar", icon: "calendar" },
     { path: "/shared", label: "Shared with me", icon: "users" },
+    { path: "/slack", label: "Slack", icon: "bell" },
   ],
   adminWidgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
   editorPanels: [

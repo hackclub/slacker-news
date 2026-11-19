@@ -39,7 +39,13 @@ import {
   type Review,
   type ReviewComment,
 } from "./review";
-import { post, say as slackSay, type Article, type Person } from "./slack";
+import {
+  post,
+  say as slackSay,
+  whoAmI,
+  type Article,
+  type Person,
+} from "./slack";
 
 /** The fields a reviewer reads; an edit to any of them voids an approval. */
 const REVIEWED_FIELDS = ["title", "excerpt", "body", "body_rich"] as const;
@@ -179,11 +185,44 @@ type SlackThread = {
 /** Typing in suggesting mode saves often; the author hears of it this often. */
 const SUGGESTION_QUIET_MS = 30 * 60 * 1000;
 
-const slackToken = () => process.env.SLACK_BOT_TOKEN?.trim() || undefined;
+/**
+ * How Slack is set up, from the plugin's settings. The token and the channel
+ * fall back to the environment, so a deployment can set them once.
+ */
+type SlackConfig = {
+  token?: string;
+  channel?: string;
+  /** Tell the channel about new drafts. */
+  drafts: boolean;
+  /** Tell the channel how each review goes. */
+  review: boolean;
+  /** Send people direct messages. */
+  direct: boolean;
+};
 
-async function slackChannel(ctx: Ctx): Promise<string | undefined> {
-  const set = String((await ctx.settings.get("slackChannel")) ?? "").trim();
-  return set || process.env.NEWSROOM_SLACK_CHANNEL?.trim() || undefined;
+async function slackConfig(ctx: Ctx): Promise<SlackConfig> {
+  // A secret that cannot be read (no encryption key) is the same as none.
+  const read = (key: string) => ctx.settings.get(key).catch(() => undefined);
+  const [token, channel, drafts, review, direct] = await Promise.all(
+    [
+      "slackToken",
+      "slackChannel",
+      "slackDrafts",
+      "slackReview",
+      "slackDirect",
+    ].map(read),
+  );
+  const text = (value: unknown, fallback?: string) =>
+    (typeof value === "string" ? value.trim() : "") ||
+    fallback?.trim() ||
+    undefined;
+  return {
+    token: text(token, process.env.SLACK_BOT_TOKEN),
+    channel: text(channel, process.env.NEWSROOM_SLACK_CHANNEL),
+    drafts: drafts !== false,
+    review: review !== false,
+    direct: direct !== false,
+  };
 }
 
 /** Someone as Slack shows them. The Slack ID is kept at sign-in. */
@@ -212,10 +251,9 @@ async function articleOf(
 
 async function slackPost(
   ctx: Ctx,
+  token: string,
   message: { channel: string; text: string; threadTs?: string },
 ) {
-  const token = slackToken();
-  if (!token) return undefined;
   return post(
     (url, init) => ctx.http.fetch(url, init),
     token,
@@ -225,13 +263,23 @@ async function slackPost(
 }
 
 /** Says something under the article's message, or starts that message. */
-async function toChannel(ctx: Ctx, entryId: string, text: string) {
+async function toChannel(
+  ctx: Ctx,
+  entryId: string,
+  text: string,
+  kind: "drafts" | "review" = "review",
+) {
   try {
-    if (!slackToken()) return;
+    const config = await slackConfig(ctx);
+    if (!config.token || !config[kind]) return;
     const thread = (await ctx.storage.slack.get(entryId)) as SlackThread | null;
-    const channel = thread?.channel ?? (await slackChannel(ctx));
+    const channel = thread?.channel ?? config.channel;
     if (!channel) return;
-    const sent = await slackPost(ctx, { channel, text, threadTs: thread?.ts });
+    const sent = await slackPost(ctx, config.token, {
+      channel,
+      text,
+      threadTs: thread?.ts,
+    });
     if (sent && !thread?.ts)
       await ctx.storage.slack.put(entryId, {
         ...thread,
@@ -251,12 +299,13 @@ async function toPeople(
   text: string,
 ) {
   try {
-    if (!slackToken()) return;
+    const { token, direct } = await slackConfig(ctx);
+    if (!token || !direct) return;
     const ids = new Set(userIds.filter((id): id is string => Boolean(id)));
     ids.delete(actorId);
     for (const id of ids) {
       const { slackId } = await personOf(ctx, id);
-      if (slackId) await slackPost(ctx, { channel: slackId, text });
+      if (slackId) await slackPost(ctx, token, { channel: slackId, text });
     }
   } catch (error) {
     ctx.log.warn("Could not send a Slack message", { error: String(error) });
@@ -302,6 +351,7 @@ async function announceDraft(
         ),
         await personOf(ctx, author),
       ),
+      "drafts",
     );
   } catch (error) {
     ctx.log.warn("Could not announce a draft", { error: String(error) });
@@ -686,7 +736,8 @@ async function threads(ctx: Ctx) {
   /** Tells the author that this person is suggesting edits, but not often. */
   const nudge = async () => {
     const owner = await ownerId();
-    if (!slackToken() || !owner || owner === actor.id) return;
+    const { token, direct } = await slackConfig(ctx);
+    if (!token || !direct || !owner || owner === actor.id) return;
     const thread =
       ((await ctx.storage.slack.get(input.entryId)) as SlackThread | null) ??
       {};
@@ -1296,9 +1347,104 @@ function submitterFields(
   return out;
 }
 
+/**
+ * The administrators' Slack page: whether the bot is connected, and buttons
+ * to try it. The token and channel themselves are in the plugin's settings.
+ */
+async function slackPage(ctx: Ctx) {
+  const actor = who(ctx);
+  if (actor.role < ROLE.ADMIN)
+    return {
+      blocks: [{ type: "context", text: "This page is for administrators." }],
+    };
+  const input = ctx.input as { type?: string; action_id?: string };
+  const config = await slackConfig(ctx);
+  const fetcher = (url: string, init?: RequestInit) =>
+    ctx.http.fetch(url, init);
+  const me = await personOf(ctx, actor.id);
+  let notice: { message: string; type: "success" | "error" } | undefined;
+
+  if (input.type === "block_action" && config.token) {
+    const target =
+      input.action_id === "test_channel"
+        ? config.channel
+        : input.action_id === "test_me"
+          ? (me.slackId ?? undefined)
+          : undefined;
+    if (target) {
+      let reason = "";
+      const sent = await post(
+        fetcher,
+        config.token,
+        {
+          channel: target,
+          text: `Test from Slacker Newsroom, sent by ${actor.name}.`,
+        },
+        (why) => {
+          reason = why;
+        },
+      );
+      notice = sent
+        ? { message: "Sent. Look in Slack.", type: "success" }
+        : { message: `Slack refused it: ${reason}`, type: "error" };
+    }
+  }
+
+  const bot = config.token ? await whoAmI(fetcher, config.token) : undefined;
+  const blocks: unknown[] = [
+    { type: "header", text: "Slack" },
+    {
+      type: "fields",
+      fields: [
+        {
+          label: "Bot",
+          value: !bot
+            ? "No token"
+            : bot.error
+              ? `Not connected (${bot.error})`
+              : `${bot.bot} in ${bot.workspace}`,
+        },
+        { label: "Channel", value: config.channel ?? "Not set" },
+        {
+          label: "New drafts to the channel",
+          value: config.drafts ? "On" : "Off",
+        },
+        { label: "Review to the channel", value: config.review ? "On" : "Off" },
+        { label: "Direct messages", value: config.direct ? "On" : "Off" },
+        {
+          label: "Your Slack ID",
+          value: me.slackId ?? "Unknown. Sign out and in again.",
+        },
+      ],
+    },
+    {
+      type: "context",
+      text: "Set the bot token, the channel and what is sent in Plugins, Newsroom, Settings. The bot needs the chat:write scope, and must be in the channel or have chat:write.public. People get direct messages once they have signed in with Hack Club, which is where their Slack ID comes from.",
+    },
+  ];
+  if (bot && !bot.error) {
+    const buttons: unknown[] = [];
+    if (config.channel)
+      buttons.push({
+        type: "button",
+        action_id: "test_channel",
+        label: "Send a test to the channel",
+      });
+    if (me.slackId)
+      buttons.push({
+        type: "button",
+        action_id: "test_me",
+        label: "Send a test to me",
+      });
+    if (buttons.length) blocks.push({ type: "actions", elements: buttons });
+  }
+  return notice ? { blocks, toast: notice } : { blocks };
+}
+
 async function admin(ctx: Ctx) {
   const { page } = ctx.input as { page?: string };
   if (page === "/shared") return shared(ctx);
+  if (page === "/slack") return slackPage(ctx);
   // The queue, the calendar and the dashboard card are the editors'.
   if (who(ctx).role < ROLE.EDITOR)
     return { blocks: [{ type: "context", text: "This page is for editors." }] };
@@ -1385,17 +1531,44 @@ export function createPlugin() {
             "Tell approvers when an article is sent for review, and the author when it is decided. Needs an email provider.",
           default: true,
         },
+        slackToken: {
+          type: "secret",
+          label: "Slack bot token",
+          description:
+            "The bot token of a Slack app (xoxb-…) with the chat:write scope. Empty uses SLACK_BOT_TOKEN from the environment. Without either, nothing is sent to Slack.",
+        },
         slackChannel: {
           type: "string",
           label: "Slack channel",
           description:
-            "The ID of the channel that hears about new drafts and their review, such as C0123ABCDEF. Needs SLACK_BOT_TOKEN, and the bot in the channel. Empty uses NEWSROOM_SLACK_CHANNEL.",
+            "The ID of the channel that hears about drafts and their review, such as C0123ABCDEF (in Slack: channel details, at the bottom). The bot must be in it, or have chat:write.public. Empty uses NEWSROOM_SLACK_CHANNEL.",
+        },
+        slackDrafts: {
+          type: "boolean",
+          label: "Slack: new drafts",
+          description: "Post each new draft to the channel, with a link.",
+          default: true,
+        },
+        slackReview: {
+          type: "boolean",
+          label: "Slack: review in the channel",
+          description:
+            "Post each step of a review to the channel, under the article's message: sent for review, changes requested, approvals, published.",
+          default: true,
+        },
+        slackDirect: {
+          type: "boolean",
+          label: "Slack: direct messages",
+          description:
+            "Message people about their own articles: comments, suggestions, requests for changes, approvals. The Slack page tests the connection.",
+          default: true,
         },
       },
       pages: [
         { path: "/queue", label: "Review queue", icon: "inbox" },
         { path: "/calendar", label: "Calendar", icon: "calendar" },
         { path: "/shared", label: "Shared with me", icon: "users" },
+        { path: "/slack", label: "Slack", icon: "bell" },
       ],
       widgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
       // Slash-menu blocks of the rich-text editor: our MDX components.
