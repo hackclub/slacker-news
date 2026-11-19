@@ -170,8 +170,8 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
           <div class="headline-content">
             <h2 class="block-headline">
               <a class="linked-card-title" href={headline.url}>{headline.title}</a>
+              {" "}<Byline {...headline.byline} />
             </h2>
-            <p class="headline-byline"><Byline {...headline.byline} /></p>
             <div class="block-excerpts">
               <p
                 id="headline-excerpt"
