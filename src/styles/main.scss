@@ -222,7 +222,8 @@ $front-gutter: 56px;
 .newspaper-front {
   // Escape the narrow .wrapper without touching the shared layout.
   --front-gutter: 48px;
-  margin: 40px calc(50% - min(#{$front-max} / 2, 50vw - var(--front-gutter))) 64px;
+  margin: 40px calc(50% - min(#{$front-max} / 2, 50vw - var(--front-gutter)))
+    64px;
   display: flex;
   flex-direction: column;
 
