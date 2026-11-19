@@ -216,8 +216,6 @@ $hairline: #d8d8cf;
 // set apart by one hairline and generous vertical space.
 
 $front-max: 1200px;
-$front-aside: 250px;
-$front-gutter: 56px;
 
 .newspaper-front {
   // Escape the narrow .wrapper without touching the shared layout.
@@ -268,6 +266,28 @@ $front-gutter: 56px;
   font-size: 0.45em;
 }
 
+// Section heading: the name, a rule running across to the archive link. The
+// rule is the section break, so sections carry no border of their own.
+.front-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+  margin-bottom: 28px;
+
+  &::after {
+    content: "";
+    order: 2;
+    flex: 1 1 40px;
+    align-self: center;
+    border-top: 1px solid #000;
+  }
+
+  .front-section-more {
+    order: 3;
+  }
+}
+
 .front-section-title {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
@@ -280,8 +300,6 @@ $front-gutter: 56px;
 }
 
 .front-section-note {
-  display: block;
-  margin-top: 6px;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 0.85rem;
   font-style: italic;
@@ -290,7 +308,6 @@ $front-gutter: 56px;
 
 .newspaper-front .front-section-more {
   display: inline-block;
-  margin-top: 14px;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
@@ -311,7 +328,7 @@ $front-gutter: 56px;
   grid-template-columns: minmax(0, 1fr) 380px;
   gap: 56px;
   align-items: stretch;
-  padding-bottom: 48px;
+  padding-bottom: 72px;
 }
 
 .front-lead {
@@ -375,18 +392,6 @@ $front-gutter: 56px;
   flex-direction: column;
 }
 
-.front-rail-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-
-  .front-section-more {
-    margin-top: 0;
-  }
-}
-
 .opinion-item {
   display: block;
   padding: 20px 0;
@@ -415,22 +420,12 @@ $front-gutter: 56px;
 // ─── Sections ────────────────────────────────────────────────────────────────
 
 .front-section {
-  display: grid;
-  grid-template-columns: $front-aside minmax(0, 1fr);
-  gap: $front-gutter;
-  padding: 48px 0 72px;
-  border-top: 1px solid $hairline;
-}
-
-.front-section-aside {
-  align-self: start;
-  position: sticky;
-  top: 24px;
+  padding: 0 0 72px;
 }
 
 .front-grid {
   display: grid;
-  grid-template-columns: repeat(var(--front-grid-columns, 3), minmax(0, 1fr));
+  grid-template-columns: repeat(var(--front-grid-columns, 4), minmax(0, 1fr));
   gap: 48px 40px;
 
   &--2 {
@@ -480,7 +475,7 @@ $front-gutter: 56px;
 }
 
 .slack-column-row-items {
-  --front-grid-columns: var(--slack-columns, 3);
+  --front-grid-columns: var(--slack-columns, 4);
 }
 
 .front-slack-columns {
@@ -515,8 +510,6 @@ $front-gutter: 56px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 64px;
-  padding: 48px 0 0;
-  border-top: 1px solid $hairline;
 }
 
 .front-pair .changelog-list {
@@ -602,30 +595,12 @@ $front-gutter: 56px;
     gap: 48px;
   }
 
-  .front-section {
-    grid-template-columns: 1fr;
-    gap: 28px;
+  .front-grid {
+    --front-grid-columns: 3;
   }
 
-  .front-section-aside {
-    position: static;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px 16px;
-
-    .front-section-note {
-      margin-top: 0;
-    }
-
-    .front-section-more {
-      margin-top: 0;
-      margin-left: auto;
-    }
-  }
-
-  .slack-auth-prompt .front-section-aside {
-    display: none;
+  .front-grid--2 {
+    --front-grid-columns: 2;
   }
 }
 
@@ -646,7 +621,7 @@ $front-gutter: 56px;
   }
 
   .front-section {
-    padding: 36px 0 56px;
+    padding: 0 0 56px;
   }
 
   .front-grid {
@@ -657,7 +632,6 @@ $front-gutter: 56px;
   .front-pair {
     grid-template-columns: 1fr;
     gap: 56px;
-    padding: 36px 0 0;
   }
 }
 
