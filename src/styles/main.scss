@@ -202,41 +202,401 @@ a {
 
 // ─── Front page grid ─────────────────────────────────────────────────────────
 
-.newspaper-front {
-  max-width: 1248px;
-  margin: 28px auto;
-  padding: 0 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .section-rule {
   border: none;
   border-top: 2px solid #000;
   margin: 0;
 }
 
-.front-top {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 20px;
-  align-items: stretch;
+$hairline: #d8d8cf;
+
+// Homepage layout. The page breaks out of the 800px reading wrapper to a
+// wider measure. Each section is a two-column row: the section's name and
+// archive link sit in a left margin, its stories fill the right. Sections are
+// set apart by one hairline and generous vertical space.
+
+$front-max: 1200px;
+$front-aside: 250px;
+$front-gutter: 56px;
+
+.newspaper-front {
+  // Escape the narrow .wrapper without touching the shared layout.
+  --front-gutter: 48px;
+  margin: 40px calc(50% - min(#{$front-max} / 2, 50vw - var(--front-gutter))) 96px;
+  display: flex;
+  flex-direction: column;
+
+  a {
+    color: #000;
+  }
 }
 
-.front-bottom {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+.front-section-title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
-  &--1 {
-    grid-template-columns: 1fr;
+.front-section-note {
+  display: block;
+  margin-top: 6px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #666;
+}
+
+.newspaper-front .front-section-more {
+  display: inline-block;
+  margin-top: 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #555;
+
+  &:hover {
+    color: #000;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
+}
+
+// ─── Lead story and opinion rail ─────────────────────────────────────────────
+
+.front-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 56px;
+  align-items: stretch;
+  padding-bottom: 72px;
+}
+
+.front-lead {
+  display: flex;
+  flex-direction: column;
+
+  .headline-media {
+    margin: 0 0 28px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #e8e8e2;
+
+    img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 8;
+      object-fit: cover;
+      object-position: center;
+    }
+  }
+
+  .headline-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .block-headline {
+    font-size: 2.6rem;
+    font-weight: 900;
+    line-height: 1.12;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin: 0 0 24px;
+    text-wrap: balance;
+  }
+
+  &:hover .block-headline {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 7px;
+  }
+
+  .block-excerpts {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .block-excerpt {
+    font-size: 1.18rem;
+    line-height: 1.65;
+    color: #2a2a2a;
+    margin: 0;
+    white-space: pre-wrap;
+  }
+}
+
+.front-rail {
+  display: flex;
+  flex-direction: column;
+}
+
+.front-rail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  .front-section-more {
+    margin-top: 0;
+  }
+}
+
+.opinion-item {
+  display: block;
+  padding: 20px 0;
+  border-top: 1px solid $hairline;
+
+  .opinion-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 1.25;
+    margin: 0 0 8px;
+  }
+
+  &:hover .opinion-title {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .opinion-excerpt {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #444;
+    margin: 0;
+  }
+}
+
+// ─── Sections ────────────────────────────────────────────────────────────────
+
+.front-section {
+  display: grid;
+  grid-template-columns: $front-aside minmax(0, 1fr);
+  gap: $front-gutter;
+  padding: 48px 0 72px;
+  border-top: 1px solid $hairline;
+}
+
+.front-section-aside {
+  align-self: start;
+  position: sticky;
+  top: 24px;
+}
+
+.front-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--front-grid-columns, 3), minmax(0, 1fr));
+  gap: 48px 40px;
+
   &--2 {
-    grid-template-columns: repeat(2, 1fr);
+    --front-grid-columns: 2;
   }
-  &--3 {
-    grid-template-columns: repeat(3, 1fr);
+}
+
+.newspaper-front .story-block,
+.newspaper-front .slack-column-block {
+  display: block;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  overflow: visible;
+
+  &:hover {
+    background: none;
+  }
+
+  .story-block-title,
+  .slack-column-card-title {
+    font-size: 1.25rem;
+    line-height: 1.22;
+    margin: 0 0 10px;
+  }
+
+  &:hover .story-block-title {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .story-block-excerpt {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #444;
+  }
+
+  > span {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+}
+
+.front-grid--2 .story-block .story-block-title {
+  font-size: 1.5rem;
+}
+
+.slack-column-row-items {
+  --front-grid-columns: var(--slack-columns, 3);
+}
+
+.front-slack-columns {
+  display: contents;
+}
+
+.slack-column-row-items > .slack-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.slack-column-placeholder {
+  min-height: 140px;
+  border-radius: 4px;
+  background: #ecece6;
+}
+
+.slack-auth-prompt p {
+  margin: 0;
+  font-size: 1.05rem;
+
+  a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+// ─── Changelog and acknowledgements ──────────────────────────────────────────
+
+.changelog-list {
+  display: flex;
+  flex-direction: column;
+  max-width: 720px;
+}
+
+.changelog-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 0;
+
+  & + & {
+    border-top: 1px solid $hairline;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  .changelog-change {
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 1.3;
+  }
+
+  .changelog-change-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .changelog-meta {
+    font-size: 0.82rem;
+    color: #555;
+    letter-spacing: 0.04em;
+  }
+}
+
+.acknowledgements-grid {
+  column-count: 3;
+  column-gap: 40px;
+
+  .acknowledgement-name {
+    display: block;
+    font-size: 1rem;
+    font-weight: bold;
+    line-height: 1.9;
+    overflow-wrap: anywhere;
+  }
+}
+
+// ─── Narrower screens ────────────────────────────────────────────────────────
+
+@media (max-width: 1100px) {
+  .front-top {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 48px;
+  }
+
+  .front-section {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .front-section-aside {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 16px;
+
+    .front-section-note {
+      margin-top: 0;
+    }
+
+    .front-section-more {
+      margin-top: 0;
+      margin-left: auto;
+    }
+  }
+
+  .slack-auth-prompt .front-section-aside {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .newspaper-front {
+    --front-gutter: 20px;
+    margin-top: 28px;
+  }
+
+  .front-top {
+    grid-template-columns: 1fr;
+    gap: 56px;
+    padding-bottom: 56px;
+  }
+
+  .front-lead .block-headline {
+    font-size: 2rem;
+  }
+
+  .front-section {
+    padding: 36px 0 56px;
+  }
+
+  .front-grid {
+    --front-grid-columns: 2;
+    gap: 40px 28px;
+  }
+
+  .acknowledgements-grid {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 520px) {
+  .front-grid,
+  .front-grid--2 {
+    --front-grid-columns: 1;
+  }
+
+  .front-lead .block-headline {
+    font-size: 1.7rem;
   }
 }
 
@@ -256,112 +616,6 @@ a {
     background: #f0f0eb;
   }
 }
-
-// ─── Headline block ───────────────────────────────────────────────────────────
-
-.headline-block {
-  display: flex;
-  flex-direction: column;
-
-  .headline-media {
-    margin: -24px -22px 16px;
-    overflow: hidden;
-    border-radius: 12px 12px 0 0;
-    background: #e8e8e2;
-
-    img {
-      display: block;
-      width: 100%;
-      aspect-ratio: 16 / 7;
-      object-fit: cover;
-      object-position: center;
-    }
-  }
-
-  .headline-content {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
-
-  .block-headline {
-    font-size: 2rem;
-    font-weight: 900;
-    line-height: 1.2;
-    margin: 0 0 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-  }
-  .block-rule {
-    border: none;
-    border-top: 2px solid #000;
-    margin: 0 0 14px;
-  }
-  .block-excerpts {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .block-excerpt {
-    font-size: 1rem;
-    line-height: 1.55;
-    color: #222;
-    margin: 0;
-    white-space: pre-wrap;
-  }
-}
-
-// ─── Opinion block ────────────────────────────────────────────────────────────
-
-.opinion-block {
-  display: flex;
-  flex-direction: column;
-
-  .section-label {
-    font-size: 0.75rem;
-    font-family: Georgia, serif;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #555;
-    margin-bottom: 6px;
-  }
-
-  .block-rule {
-    border: none;
-    border-top: 2px solid #000;
-    margin: 0 0 14px;
-  }
-}
-
-.opinion-item {
-  display: block;
-  color: #000;
-  padding: 4px 0;
-
-  .opinion-title {
-    font-size: 1rem;
-    font-weight: bold;
-    margin: 0 0 5px;
-    line-height: 1.3;
-  }
-  .opinion-excerpt {
-    font-size: 0.85rem;
-    color: #444;
-    margin: 0;
-    line-height: 1.5;
-  }
-  .reading-time {
-    margin-top: 5px;
-  }
-}
-
-.opinion-divider {
-  border: none;
-  border-top: 1px solid #000;
-  margin: 12px 0;
-}
-
-// ─── Bottom story blocks ──────────────────────────────────────────────────────
 
 .story-block {
   .story-block-title {
@@ -404,63 +658,6 @@ a {
 
   .story-block-title {
     flex: 1;
-  }
-}
-
-// ─── Changelog block ──────────────────────────────────────────────────────────
-
-.front-changelog {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-
-  .changelog-block {
-    &:hover {
-      background: #fff;
-    }
-
-    .section-label {
-      font-size: 0.75rem;
-      font-family: Georgia, serif;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #555;
-      margin-bottom: 6px;
-    }
-
-    .block-rule {
-      border: none;
-      border-top: 2px solid #000;
-      margin: 0 0 14px;
-    }
-  }
-}
-
-.front-slack-columns {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.slack-column-row {
-}
-
-.slack-column-row-items {
-  display: grid;
-  grid-template-columns: repeat(
-    var(--slack-column-messages-per-row, 4),
-    minmax(0, 1fr)
-  );
-  gap: 16px;
-
-  &--1 {
-    grid-template-columns: 1fr;
-  }
-  &--2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  &--3 {
-    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -513,22 +710,6 @@ a {
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-}
-
-.slack-column-placeholder {
-  min-height: 160px;
-  background: linear-gradient(90deg, #fff 25%, #f0f0eb 50%, #fff 75%);
-  background-size: 200% 100%;
-  animation: slack-column-loading 1.5s infinite;
-}
-
-@keyframes slack-column-loading {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
   }
 }
 
@@ -666,111 +847,7 @@ a {
   font-style: italic;
 }
 
-.changelog-item {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 4px 0;
-
-  .changelog-change {
-    font-size: 1rem;
-    font-weight: bold;
-    line-height: 1.3;
-  }
-
-  .changelog-change-link {
-    color: inherit;
-    text-decoration: none;
-
-    &:visited {
-      color: inherit;
-    }
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
-  .changelog-meta {
-    font-size: 0.82rem;
-    color: #555;
-    letter-spacing: 0.04em;
-  }
-}
-
-.changelog-divider {
-  border: none;
-  border-top: 1px solid #000;
-  margin: 12px 0;
-}
-
-// ─── Essays block ────────────────────────────────────────────────────────────
-
-.front-essays {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-
-  &--1 {
-    grid-template-columns: 1fr;
-  }
-  &--2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  &--3 {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  @media screen and (max-width: 700px) {
-    grid-template-columns: 1fr;
-
-    &--1,
-    &--2,
-    &--3 {
-      grid-template-columns: 1fr;
-    }
-  }
-}
-
-.essay-block {
-  &:hover {
-    background: #fff;
-  }
-}
-
 // ─── Acknowledgements block ──────────────────────────────────────────────────
-
-.acknowledgements-block {
-  &:hover {
-    background: #fff;
-  }
-  .section-label {
-    font-size: 0.75rem;
-    font-family: Georgia, serif;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #555;
-    margin-bottom: 6px;
-  }
-
-  .block-rule {
-    border: none;
-    border-top: 2px solid #000;
-    margin: 0 0 14px;
-  }
-}
-
-.acknowledgements-grid {
-  column-count: 2;
-  column-gap: 20px;
-  margin-bottom: 14px;
-
-  .acknowledgement-name {
-    display: block;
-    font-size: 1rem;
-    font-weight: bold;
-    line-height: 1.4;
-  }
-}
 
 .acknowledgements-section {
   margin-bottom: 32px;
@@ -1179,27 +1256,6 @@ html.dark-mode mark {
 // ─── Responsive ───────────────────────────────────────────────────────────────
 
 @media (max-width: 700px) {
-  .front-top {
-    grid-template-columns: 1fr;
-  }
-  .front-bottom,
-  .front-bottom--3 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .front-changelog {
-    grid-template-columns: 1fr;
-  }
-  .front-slack-columns {
-    gap: 20px;
-  }
-  .slack-column-row-items {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-
-    &--1 {
-      grid-template-columns: 1fr;
-    }
-  }
-
   .site-title {
     font-size: 1.8rem;
   }

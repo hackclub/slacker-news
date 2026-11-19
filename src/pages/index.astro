@@ -112,7 +112,7 @@ const combinedNewsAndChangelogs = [...newsItems, ...longChangelogItems]
       : item.article.url !== headline?.url
   )
   .sort((a, b) => b.date.getTime() - a.date.getTime())
-  .slice(0, 8);
+  .slice(0, 9);
 
 const displayNews = combinedNewsAndChangelogs;
 
@@ -130,7 +130,7 @@ const homepageSlackColumns = getSlackColumns().filter(
 );
 
 function getSlackMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
-  return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 4), 1), 8);
+  return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 3), 1), 3);
 }
 
 function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLimit?: number; limit?: number }): number {
@@ -142,7 +142,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
   <div class="newspaper-front">
     <div class="front-top">
       {headline && (
-        <a href={headline.url} class="front-block headline-block">
+        <a href={headline.url} class="front-lead headline-block">
           {headline.leadingImage && (
             <div class="headline-media">
               <img
@@ -156,7 +156,6 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
 
           <div class="headline-content">
             <h2 class="block-headline">{headline.title}</h2>
-            <hr class="block-rule" />
             <div class="block-excerpts">
               <p
                 id="headline-excerpt"
@@ -170,108 +169,102 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         </a>
       )}
 
-      <div class="front-block opinion-block">
-        <div class="section-label">OPINION</div>
-        <hr class="block-rule" />
-        {displayOpinion.map((item, index) => (
-          <>
+      <section class="front-rail opinion-block">
+        <header class="front-rail-head">
+          <h2 class="front-section-title"><a href="/opinion/">Opinion</a></h2>
+          <a href="/opinion/" class="front-section-more">All opinion &rarr;</a>
+        </header>
+        {displayOpinion.map((item) => (
           <ColumnFeedCard item={item} variant="opinion" homepage={true} />
-            {index < displayOpinion.length - 1 && <hr class="opinion-divider" />}
-          </>
         ))}
-        {displayOpinion.length > 0 && <hr class="opinion-divider" />}
-        <a href="/opinion/" class="archive-link">All opinion &rarr;</a>
+      </section>
+    </div>
+
+    <section class="front-section">
+      <header class="front-section-aside">
+        <h2 class="front-section-title"><a href="/news/">News</a></h2>
+        <a href="/news/" class="front-section-more">All news &rarr;</a>
+      </header>
+      <div class="front-section-body front-grid">
+        {displayNews.map((item) => (
+          <ColumnFeedCard item={item} variant="story" homepage={true} />
+        ))}
       </div>
-    </div>
-
-    <div class={`front-bottom ${displayNews.length < 4 ? `front-bottom--${displayNews.length}` : ""}`}>
-      {displayNews.map((item) => (
-        <ColumnFeedCard item={item} variant="story" homepage={true}  />
-      ))}
-    </div>
-
-    <a href="/news/" class="news-archive-link">All news &rarr;</a>
+    </section>
 
     {displayEssays.length > 0 && (
-      <>
-        <hr class="section-rule" />
-
-        <div class={`front-essays ${displayEssays.length < 4 ? `front-essays--${displayEssays.length}` : ""}`}>
+      <section class="front-section">
+        <header class="front-section-aside">
+          <h2 class="front-section-title"><a href="/essays/">Essays</a></h2>
+          <a href="/essays/" class="front-section-more">All essays &rarr;</a>
+        </header>
+        <div class="front-section-body front-grid front-grid--2">
           {displayEssays.map((item) => (
-            <ColumnFeedCard item={item} variant="story" homepage={true}  />
+            <ColumnFeedCard item={item} variant="story" homepage={true} />
           ))}
         </div>
-
-        <a href="/essays/" class="news-archive-link">All essays &rarr;</a>
-      </>
+      </section>
     )}
-
-    <hr class="section-rule" />
 
     <HomepageSlackColumns server:defer returnTo={Astro.url.pathname}>
       <div slot="fallback" class="front-slack-columns">
         {homepageSlackColumns.map((column) => (
-          <>
-            <section class="slack-column-row slack-column-row--loading">
-              <div
-                class:list={[
-                  "slack-column-row-items",
-                  `slack-column-row-items--${getSlackMessagesPerRow(column)}`
-                ]}
-                style={`--slack-column-messages-per-row: ${getSlackMessagesPerRow(column)}`}
-              >
-                {Array.from({ length: getSlackHomepageLimit(column) }).map(() => (
-                  <div class="front-block slack-column-block slack-column-placeholder"></div>
-                ))}
-              </div>
-            </section>
-            <a class="news-archive-link" href={`/slack/${encodeURIComponent(column.channel)}/`}>All {column.title} &rarr;</a>
-            <hr class="section-rule" />
-          </>
+          <section class="front-section slack-column-row slack-column-row--loading">
+            <header class="front-section-aside">
+              <h2 class="front-section-title"><a href={`/slack/${encodeURIComponent(column.column)}/`}>{column.title}</a></h2>
+              {column.subtitle && <span class="front-section-note">{column.subtitle}</span>}
+              <a class="front-section-more" href={`/slack/${encodeURIComponent(column.column)}/`}>All {column.title} &rarr;</a>
+            </header>
+            <div
+              class="front-section-body front-grid slack-column-row-items"
+              style={`--slack-columns: ${getSlackMessagesPerRow(column)}`}
+            >
+              {Array.from({ length: getSlackHomepageLimit(column) }).map(() => (
+                <div class="slack-column-block slack-column-placeholder"></div>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </HomepageSlackColumns>
 
-
-    <div class="front-changelog">
-      <div class="front-block changelog-block">
-        <div class="section-label">CHANGELOG</div>
-        <hr class="block-rule" />
-        {recentChangelog.map((entry, index) => (
-          <>
-            <div class="changelog-item">
-              {entry.kind === "long" ? (
-                <a href={entry.url} class="changelog-change changelog-change-link">{entry.title}</a>
-              ) : (
-                <span class="changelog-change">{entry.change}</span>
-              )}
-              <span class="changelog-meta">
-                {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
-              </span>
-            </div>
-            {index < recentChangelog.length - 1 && <hr class="changelog-divider" />}
-          </>
+    <section class="front-section">
+      <header class="front-section-aside">
+        <h2 class="front-section-title"><a href="/changelogs/">Changelog</a></h2>
+        <a href="/changelogs/" class="front-section-more">All changelogs &rarr;</a>
+      </header>
+      <div class="front-section-body changelog-list">
+        {recentChangelog.map((entry) => (
+          <div class="changelog-item">
+            {entry.kind === "long" ? (
+              <a href={entry.url} class="changelog-change changelog-change-link">{entry.title}</a>
+            ) : (
+              <span class="changelog-change">{entry.change}</span>
+            )}
+            <span class="changelog-meta">
+              {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
+            </span>
+          </div>
         ))}
-        {recentChangelog.length > 0 && <hr class="changelog-divider" />}
-        <a href="/changelogs/" class="archive-link">All changelogs &rarr;</a>
       </div>
+    </section>
 
-      <div class="front-block acknowledgements-block">
-        <div class="section-label">ACKNOWLEDGEMENTS</div>
-        <hr class="block-rule" />
-        <div class="acknowledgements-grid">
-          {acknowledgements.map((person) => {
-            const userName = person.name.trim().replace(/^@+/, "");
-            return (
-              <span class="acknowledgement-name">
-                {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
-              </span>
-            );
-          })}
-        </div>
-        <a href="/acknowledgements/" class="archive-link">All acknowledgements &rarr;</a>
+    <section class="front-section">
+      <header class="front-section-aside">
+        <h2 class="front-section-title"><a href="/acknowledgements/">Acknowledgements</a></h2>
+        <a href="/acknowledgements/" class="front-section-more">All acknowledgements &rarr;</a>
+      </header>
+      <div class="front-section-body acknowledgements-grid">
+        {acknowledgements.map((person) => {
+          const userName = person.name.trim().replace(/^@+/, "");
+          return (
+            <span class="acknowledgement-name">
+              {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
+            </span>
+          );
+        })}
       </div>
-    </div>
+    </section>
   </div>
 
   <script>
