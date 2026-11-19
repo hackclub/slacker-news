@@ -195,19 +195,38 @@ plugin has to run in the server process rather than a sandbox.
 - **Other collections.** Set "Collections that need review" to include
   `changelogs` or `pages`.
 
+##### Slack
+
+With a Slack app's bot token the newsroom reports to Slack. Set
+`SLACK_BOT_TOKEN` (scope `chat:write`) and name the channel, by ID, in the
+plugin's settings or in `NEWSROOM_SLACK_CHANNEL`. Invite the bot to the
+channel, or give it `chat:write.public`. Without a token nothing is sent, and a
+message Slack refuses is logged and never blocks the work that caused it.
+
+- **The channel** gets one message for each new draft, with a link to it and
+  its author. The rest of that article's review goes under it as replies: sent
+  for review, changes requested, each approval, an edit that voids an approval,
+  and published.
+- **A person** gets a direct message from the bot when something needs them:
+  the author when an editor comments, suggests edits, asks for changes,
+  approves or publishes; everyone in a comment thread when someone replies; a
+  suggestion's writer when it is accepted or rejected; a named approver when an
+  article is sent for review; someone added as a collaborator. Nobody is told
+  about what they did themselves. Suggestions are announced at most once every
+  30 minutes per person and article, since typing in suggesting mode saves
+  often.
+
+The bot knows who to message from Hack Club Auth, which gives each person's
+Slack ID at sign-in. Someone who last signed in before this was added gets no
+direct messages until they sign in again.
+
 ##### Still to do
 
-- **Slack and email notifications, in full.** Today the plugin sends only two
-  emails: to approvers when a post is sent for review, and to its author when
-  it is decided. Planned: Slack messages (a direct message or a channel post)
-  and email for every event that needs someone's attention, each with a link
-  to the article. That covers a review request, an approval, a request for
-  changes, a new comment or reply, a mention, a suggestion made, accepted or
-  rejected, a post published, and an approval voided by an edit. Each person
-  chooses where they hear about what, and a digest can replace single
-  messages. Slack delivery would go through Indigest or a Slack app; the
-  plugin would need a Slack identity for each editor, which Hack Club Auth
-  already supplies.
+- **Notifications, the rest.** Slack covers the review cycle (see "Slack"
+  above). Still missing: email for the same events (only a review request and
+  its decision are emailed), a message when someone is mentioned in a comment,
+  a choice per person of what they hear about, and a digest in place of single
+  messages.
 
 #### Rich-text body (prototype)
 

@@ -8,6 +8,7 @@ import {
 } from "@emdash-cms/auth";
 import { createKyselyAdapter } from "@emdash-cms/auth/adapters/kysely";
 import { finalizeSetup, OptionsRepository } from "emdash/api/route-utils";
+import { sql, type Kysely } from "kysely";
 import { fetchUser, PENDING_KEY, type PendingSignIn } from "../oidc";
 
 export const prerender = false;
@@ -29,6 +30,22 @@ function isListedAdmin(
     .filter(Boolean);
   if (slackId && listed.includes(slackId.toLowerCase())) return true;
   return profile.emailVerified && listed.includes(profile.email.toLowerCase());
+}
+
+/** Kept in the newsroom plugin's storage, under `slackIds`. */
+async function rememberSlackId(
+  db: Kysely<never>,
+  userId: string,
+  slackId: string,
+) {
+  if (!/^[UW][A-Z0-9]{6,}$/.test(slackId)) return;
+  const data = JSON.stringify({ slackId });
+  await sql`
+    insert into _plugin_storage (plugin_id, collection, id, data)
+    values ('newsroom', 'slackIds', ${userId}, ${data})
+    on conflict (plugin_id, collection, id)
+    do update set data = excluded.data, updated_at = datetime('now')
+  `.execute(db);
 }
 
 const MESSAGES: Record<string, string> = {
@@ -137,6 +154,17 @@ export const GET: APIRoute = async ({ request, locals, session, redirect }) => {
         `[hackclub-auth] Setup complete: ${user.email} is the first administrator`,
       );
     }
+
+    // The newsroom plugin sends this person Slack messages about their
+    // articles. A failure here must not stop the sign-in.
+    if (hackClubUser.slack_id)
+      await rememberSlackId(
+        db as unknown as Kysely<never>,
+        user.id,
+        hackClubUser.slack_id,
+      ).catch((e) =>
+        console.warn("[hackclub-auth] Could not keep the Slack ID:", e),
+      );
 
     session.set("user", { id: user.id });
     return redirect("/_emdash/admin");

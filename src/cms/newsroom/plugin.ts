@@ -39,6 +39,7 @@ import {
   type Review,
   type ReviewComment,
 } from "./review";
+import { post, say as slackSay, type Article, type Person } from "./slack";
 
 /** The fields a reviewer reads; an edit to any of them voids an approval. */
 const REVIEWED_FIELDS = ["title", "excerpt", "body", "body_rich"] as const;
@@ -151,9 +152,160 @@ async function mail(
 const adminLink = (ctx: Ctx, collection: string, id: string) =>
   ctx.url(`/_emdash/admin/content/${collection}/${id}`);
 
+/** The title as last saved, which for an edited article is in its draft. */
 async function titleOf(ctx: Ctx, collection: string, id: string) {
   const item = await ctx.content.get(collection, id);
-  return String(item?.data?.title ?? item?.slug ?? id);
+  if (!item) return id;
+  const fields = await savedFields(ctx, { collection, id }, item);
+  return String(fields.title ?? item.slug ?? id);
+}
+
+// ---------------------------------------------------------------------------
+// Slack
+//
+// The newsroom channel gets one message per article, with the article's
+// review as replies under it. A person gets a direct message when something
+// needs them. Nothing here may fail the work that caused it.
+// ---------------------------------------------------------------------------
+
+/** Where an article's message is in the channel. */
+type SlackThread = {
+  channel?: string;
+  ts?: string;
+  /** When each person's suggestions were last announced, by user id. */
+  nudged?: Record<string, string>;
+};
+
+/** Typing in suggesting mode saves often; the author hears of it this often. */
+const SUGGESTION_QUIET_MS = 30 * 60 * 1000;
+
+const slackToken = () => process.env.SLACK_BOT_TOKEN?.trim() || undefined;
+
+async function slackChannel(ctx: Ctx): Promise<string | undefined> {
+  const set = String((await ctx.settings.get("slackChannel")) ?? "").trim();
+  return set || process.env.NEWSROOM_SLACK_CHANNEL?.trim() || undefined;
+}
+
+/** Someone as Slack shows them. The Slack ID is kept at sign-in. */
+async function personOf(ctx: Ctx, userId: string): Promise<Person> {
+  const [user, known] = await Promise.all([
+    ctx.users?.get(userId),
+    ctx.storage.slackIds.get(userId),
+  ]);
+  return {
+    name: user?.name ?? "Someone",
+    slackId: (known as { slackId?: string } | null)?.slackId,
+  };
+}
+
+async function articleOf(
+  ctx: Ctx,
+  collection: string,
+  id: string,
+  title?: unknown,
+): Promise<Article> {
+  return {
+    title: String(title ?? "").trim() || (await titleOf(ctx, collection, id)),
+    url: adminLink(ctx, collection, id),
+  };
+}
+
+async function slackPost(
+  ctx: Ctx,
+  message: { channel: string; text: string; threadTs?: string },
+) {
+  const token = slackToken();
+  if (!token) return undefined;
+  return post(
+    (url, init) => ctx.http.fetch(url, init),
+    token,
+    message,
+    (reason) => ctx.log.warn("Slack refused a message", { reason }),
+  );
+}
+
+/** Says something under the article's message, or starts that message. */
+async function toChannel(ctx: Ctx, entryId: string, text: string) {
+  try {
+    if (!slackToken()) return;
+    const thread = (await ctx.storage.slack.get(entryId)) as SlackThread | null;
+    const channel = thread?.channel ?? (await slackChannel(ctx));
+    if (!channel) return;
+    const sent = await slackPost(ctx, { channel, text, threadTs: thread?.ts });
+    if (sent && !thread?.ts)
+      await ctx.storage.slack.put(entryId, {
+        ...thread,
+        channel: sent.channel,
+        ts: sent.ts,
+      } satisfies SlackThread);
+  } catch (error) {
+    ctx.log.warn("Could not post to Slack", { error: String(error) });
+  }
+}
+
+/** A direct message to each of these people, except whoever caused it. */
+async function toPeople(
+  ctx: Ctx,
+  userIds: (string | null | undefined)[],
+  actorId: string,
+  text: string,
+) {
+  try {
+    if (!slackToken()) return;
+    const ids = new Set(userIds.filter((id): id is string => Boolean(id)));
+    ids.delete(actorId);
+    for (const id of ids) {
+      const { slackId } = await personOf(ctx, id);
+      if (slackId) await slackPost(ctx, { channel: slackId, text });
+    }
+  } catch (error) {
+    ctx.log.warn("Could not send a Slack message", { error: String(error) });
+  }
+}
+
+/** The named approvers, as user ids. They are written as ids or emails. */
+async function approverIds(ctx: Ctx, policy: Policy): Promise<string[]> {
+  const ids: string[] = [];
+  for (const entry of policy.approvers) {
+    const user = entry.includes("@")
+      ? await ctx.users?.getByEmail(entry)
+      : await ctx.users?.get(entry);
+    if (user) ids.push(user.id);
+  }
+  return ids;
+}
+
+/** Tells the channel about a draft someone has just started. */
+async function announceDraft(
+  ctx: Ctx,
+  event: {
+    collection: string;
+    isNew: boolean;
+    content: Record<string, unknown>;
+    actor?: { id: string };
+  },
+) {
+  try {
+    if (!event.isNew || !PANEL_COLLECTIONS.includes(event.collection)) return;
+    const id = String(event.content.id ?? "");
+    if (!id) return;
+    const author = String(event.content.authorId ?? event.actor?.id ?? "");
+    await toChannel(
+      ctx,
+      id,
+      slackSay.draft(
+        await articleOf(
+          ctx,
+          event.collection,
+          id,
+          fieldsOf(event.content).title,
+        ),
+        await personOf(ctx, author),
+      ),
+    );
+  } catch (error) {
+    ctx.log.warn("Could not announce a draft", { error: String(error) });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -214,6 +366,19 @@ async function panel(ctx: Ctx) {
         requestChanges(review, actor, body, item?.authorId);
         await ctx.storage.reviews.put(entry.id, review);
         say("Changes requested.");
+        const about = await articleOf(ctx, entry.collection, entry.id);
+        const text = slackSay.changesRequested(
+          about,
+          await personOf(ctx, actor.id),
+          body,
+        );
+        await toChannel(ctx, entry.id, text);
+        await toPeople(
+          ctx,
+          [review.submittedBy, item?.authorId],
+          actor.id,
+          text,
+        );
         if (notify)
           await mail(
             ctx,
@@ -239,6 +404,18 @@ async function panel(ctx: Ctx) {
       };
       await ctx.storage.comments.put(crypto.randomUUID(), comment);
       say("Comment added.");
+      const item = await ctx.content.get(entry.collection, entry.id);
+      await toPeople(
+        ctx,
+        [item?.authorId],
+        actor.id,
+        slackSay.comment(
+          await articleOf(ctx, entry.collection, entry.id),
+          await personOf(ctx, actor.id),
+          body,
+          "",
+        ),
+      );
     }
   }
 
@@ -500,6 +677,33 @@ async function threads(ctx: Ctx) {
   });
 
   if (input.op === "list") return view();
+
+  // Who hears about it on Slack.
+  const ownerId = async (): Promise<string | undefined> =>
+    (await ctx.content.get(input.collection, input.entryId))?.authorId;
+  const about = () => articleOf(ctx, input.collection, input.entryId);
+  const me = () => personOf(ctx, actor.id);
+  /** Tells the author that this person is suggesting edits, but not often. */
+  const nudge = async () => {
+    const owner = await ownerId();
+    if (!slackToken() || !owner || owner === actor.id) return;
+    const thread =
+      ((await ctx.storage.slack.get(input.entryId)) as SlackThread | null) ??
+      {};
+    const last = Date.parse(thread.nudged?.[actor.id] ?? "");
+    if (Date.now() - last < SUGGESTION_QUIET_MS) return;
+    await ctx.storage.slack.put(input.entryId, {
+      ...thread,
+      nudged: { ...thread.nudged, [actor.id]: new Date().toISOString() },
+    } satisfies SlackThread);
+    await toPeople(
+      ctx,
+      [owner],
+      actor.id,
+      slackSay.suggested(await about(), await me()),
+    );
+  };
+
   if (actor.role < ROLE.AUTHOR)
     return fail("You cannot comment on this article.");
 
@@ -547,6 +751,14 @@ async function threads(ctx: Ctx) {
         : {}),
     };
     await ctx.storage.comments.put(crypto.randomUUID(), row);
+    if (kind === "suggestion") await nudge();
+    else
+      await toPeople(
+        ctx,
+        [await ownerId()],
+        actor.id,
+        slackSay.comment(await about(), await me(), body, anchor.quote),
+      );
     return view();
   }
 
@@ -567,6 +779,7 @@ async function threads(ctx: Ctx) {
       (r: ReviewComment & { id: string }) =>
         r.auto && r.author === actor.id && r.status === "open",
     );
+    let made = false;
     for (const change of wanted) {
       const quote = String(change.quote ?? "");
       const replacement = String(change.replacement ?? "");
@@ -583,7 +796,8 @@ async function threads(ctx: Ctx) {
         const [kept] = mine.splice(at, 1);
         const { id, ...data } = kept;
         await ctx.storage.comments.put(id, { ...data, ...fields });
-      } else
+      } else {
+        made = true;
         await ctx.storage.comments.put(crypto.randomUUID(), {
           entryId: input.entryId,
           author: actor.id,
@@ -599,8 +813,10 @@ async function threads(ctx: Ctx) {
           resolved: false,
           replies: [],
         } satisfies ReviewComment);
+      }
     }
     for (const gone of mine) await ctx.storage.comments.delete(gone.id);
+    if (made) await nudge();
     return view();
   }
 
@@ -616,6 +832,13 @@ async function threads(ctx: Ctx) {
       at: new Date().toISOString(),
       body,
     });
+    // Everyone in the thread, and the article's author.
+    await toPeople(
+      ctx,
+      [row.author, ...row.replies.map((r) => r.author), await ownerId()],
+      actor.id,
+      slackSay.reply(await about(), await me(), body),
+    );
   } else if (input.op === "resolve") {
     if (row.kind === "suggestion" && row.status === "open")
       return fail("Accept or reject the suggestion instead.");
@@ -632,6 +855,17 @@ async function threads(ctx: Ctx) {
     row.status = input.accept ? "accepted" : "rejected";
     row.resolved = true;
     row.resolvedBy = actor.id;
+    await toPeople(
+      ctx,
+      [row.author],
+      actor.id,
+      slackSay.decided(
+        await about(),
+        await me(),
+        Boolean(input.accept),
+        row.quote || row.replacement || "",
+      ),
+    );
   } else return fail("Unknown request.");
 
   await ctx.storage.comments.put(id, row);
@@ -669,6 +903,12 @@ async function submitAction(ctx: Ctx) {
     const review = await loadReview(ctx, entry.id, entry.collection);
     submit(review, who(ctx));
     await ctx.storage.reviews.put(entry.id, review);
+    const text = slackSay.submitted(
+      await articleOf(ctx, entry.collection, entry.id),
+      await personOf(ctx, who(ctx).id),
+    );
+    await toChannel(ctx, entry.id, text);
+    await toPeople(ctx, await approverIds(ctx, policy), who(ctx).id, text);
     if (notify)
       await mail(
         ctx,
@@ -687,7 +927,17 @@ async function approveAction(ctx: Ctx) {
     const review = await loadReview(ctx, entry.id, entry.collection);
     approve(review, who(ctx), hash, item.authorId, policy);
     await ctx.storage.reviews.put(entry.id, review);
+    const about = await articleOf(ctx, entry.collection, entry.id);
+    const me = await personOf(ctx, who(ctx).id);
     if (review.state === "approved") {
+      const text = slackSay.approved(about, me);
+      await toChannel(ctx, entry.id, text);
+      await toPeople(
+        ctx,
+        [review.submittedBy, item.authorId],
+        who(ctx).id,
+        text,
+      );
       if (notify)
         await mail(
           ctx,
@@ -697,6 +947,16 @@ async function approveAction(ctx: Ctx) {
         );
       return toast("Approved. The article can be published.");
     }
+    await toChannel(
+      ctx,
+      entry.id,
+      slackSay.approvalRecorded(
+        about,
+        me,
+        review.approvals.length,
+        policy.required,
+      ),
+    );
     return toast(
       `Approval recorded: ${review.approvals.length} of ${policy.required}.`,
     );
@@ -908,6 +1168,15 @@ async function people(ctx: Ctx) {
       };
       await ctx.storage.collaborators.put(`${entry.id}:${found.id}`, row);
       notice = { message: "Added.", type: "success" };
+      await toPeople(
+        ctx,
+        [found.id],
+        actor.id,
+        slackSay.added(
+          await articleOf(ctx, entry.collection, entry.id),
+          await personOf(ctx, actor.id),
+        ),
+      );
     }
   }
   if (manage && input.type === "block_action" && input.action_id === "remove") {
@@ -1057,7 +1326,7 @@ export function createPlugin() {
   return definePlugin({
     id: "newsroom",
     version: "0.2.0",
-    allowedHosts: ["flaron.halceon.dev"],
+    allowedHosts: ["flaron.halceon.dev", "slack.com"],
     capabilities: [
       "content:read",
       // Unpublished edits are kept in a draft revision; an approval has to
@@ -1069,7 +1338,8 @@ export function createPlugin() {
       "content:publish",
       "email:send",
       "hooks.content-policy:register",
-      // Slack people and channels are looked up on Flaron for the insert forms.
+      // Slack people and channels are looked up on Flaron for the insert forms,
+      // and Slack is told about drafts and reviews.
       "network:request",
       // The review panel reads the unsaved text, to find quoted passages.
       "admin.editor-draft:read",
@@ -1078,6 +1348,10 @@ export function createPlugin() {
       reviews: { indexes: ["state", "collection"] },
       comments: { indexes: ["entryId", "resolved"] },
       collaborators: { indexes: ["entryId", "userId"] },
+      // Where each article's message is in the Slack channel.
+      slack: { indexes: [] },
+      // Each person's Slack ID, written when they sign in with Hack Club.
+      slackIds: { indexes: [] },
     },
     admin: {
       settingsSchema: {
@@ -1110,6 +1384,12 @@ export function createPlugin() {
           description:
             "Tell approvers when an article is sent for review, and the author when it is decided. Needs an email provider.",
           default: true,
+        },
+        slackChannel: {
+          type: "string",
+          label: "Slack channel",
+          description:
+            "The ID of the channel that hears about new drafts and their review, such as C0123ABCDEF. Needs SLACK_BOT_TOKEN, and the bot in the channel. Empty uses NEWSROOM_SLACK_CHANNEL.",
         },
       },
       pages: [
@@ -1216,6 +1496,7 @@ export function createPlugin() {
       },
       "content:afterSave": {
         handler: async (event, ctx) => {
+          await announceDraft(ctx, event);
           const { collections } = await rules(ctx);
           if (!collections.includes(event.collection)) return;
           const id = String(event.content.id ?? "");
@@ -1226,8 +1507,43 @@ export function createPlugin() {
             fieldsOf(event.content),
             REVIEWED_FIELDS,
           );
-          if (noteEdit(review, event.actor?.id ?? "unknown", hash))
-            await ctx.storage.reviews.put(id, review);
+          const wasApproved = review.state === "approved";
+          const editor = event.actor?.id ?? "unknown";
+          if (!noteEdit(review, editor, hash)) return;
+          await ctx.storage.reviews.put(id, review);
+          if (wasApproved)
+            await toChannel(
+              ctx,
+              id,
+              slackSay.voided(
+                await articleOf(
+                  ctx,
+                  event.collection,
+                  id,
+                  fieldsOf(event.content).title,
+                ),
+                await personOf(ctx, editor),
+              ),
+            );
+        },
+      },
+      "content:afterPublish": {
+        handler: async (event, ctx) => {
+          if (!PANEL_COLLECTIONS.includes(event.collection)) return;
+          const id = String(event.content.id ?? "");
+          if (!id) return;
+          const text = slackSay.published(
+            await articleOf(
+              ctx,
+              event.collection,
+              id,
+              fieldsOf(event.content).title,
+            ),
+          );
+          await toChannel(ctx, id, text);
+          const item = await ctx.content?.get(event.collection, id);
+          const review = (await ctx.storage.reviews.get(id)) as Review | null;
+          await toPeople(ctx, [item?.authorId, review?.submittedBy], "", text);
         },
       },
       "content:beforePublish": {
