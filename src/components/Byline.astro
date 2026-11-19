@@ -1,0 +1,28 @@
+---
+// "by @someone" for a homepage title.
+import AuthorList from "./AuthorList.astro";
+import SlackMention from "./SlackMention.astro";
+import type { BylineSource } from "../lib/byline";
+
+type Props = BylineSource;
+
+const { authors, slackIds, slackAuthor, slackUserId, slackUserName } = Astro.props;
+const hasAuthors = Array.isArray(authors) ? authors.length > 0 : Boolean(authors?.trim());
+const slackAuthorId = slackAuthor?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[1];
+const show = hasAuthors || Boolean(slackAuthor) || Boolean(slackUserId);
+---
+
+{show && (
+  <span class="byline">
+    by{" "}
+    {hasAuthors ? (
+      <AuthorList authors={authors!} slackIds={slackIds} />
+    ) : slackAuthorId ? (
+      <SlackMention name="" id={slackAuthorId} />
+    ) : slackAuthor ? (
+      slackAuthor
+    ) : (
+      <SlackMention name={slackUserName || slackUserId!} id={slackUserId!} />
+    )}
+  </span>
+)}

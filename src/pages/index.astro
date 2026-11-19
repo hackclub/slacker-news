@@ -14,6 +14,8 @@ import {
 import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
 
 import ColumnFeedCard from "../components/ColumnFeedCard.astro";
+import Byline from "../components/Byline.astro";
+import type { BylineSource } from "../lib/byline";
 import { getColumnFeedItems } from "../lib/column-feed";
 import { stripSlackMrkdwn } from "../lib/search";
 import { parseSlackBlocks } from "../lib/slack-rich-text";
@@ -52,14 +54,19 @@ const slackNewsCandidates = newsItems.flatMap((item) =>
           .filter(Boolean),
         date: item.date,
         leadingImage: undefined,
+        byline: {
+          slackAuthor: item.article.author,
+          slackUserId: item.message.userId,
+          slackUserName: item.message.userName,
+        } as BylineSource,
       }]
     : [],
 );
 
 const allCandidates = [
   ...slackNewsCandidates,
-  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
-  ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
+  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage, byline: { authors: p.author, slackIds: p.authorSlackIds } as BylineSource })),
+  ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage, byline: { authors: c.author, slackIds: c.slackIds } as BylineSource })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
 const headline = site.headlineOverride
@@ -98,6 +105,8 @@ function changelogToPostLike(changelog: LongChangelogEntry) {
       title: changelog.title,
       excerpt: changelog.excerpt,
       readingTime: changelog.readingTime,
+      author: changelog.author,
+      authorSlackIds: changelog.slackIds,
       date: new Date(`${changelog.date}T00:00:00Z`),
     },
     date: new Date(`${changelog.date}T00:00:00Z`),
@@ -145,7 +154,8 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
   <div class="newspaper-front">
     <div class="front-top">
       {headline && (
-        <a href={headline.url} class="front-lead headline-block">
+        <article class="front-lead headline-block linked-card">
+          <a class="linked-card-cover" href={headline.url} aria-hidden="true" tabindex="-1"></a>
           {headline.leadingImage && (
             <div class="headline-media">
               <img
@@ -158,7 +168,10 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
           )}
 
           <div class="headline-content">
-            <h2 class="block-headline">{headline.title}</h2>
+            <h2 class="block-headline">
+              <a class="linked-card-title" href={headline.url}>{headline.title}</a>
+            </h2>
+            <p class="headline-byline"><Byline {...headline.byline} /></p>
             <div class="block-excerpts">
               <p
                 id="headline-excerpt"
@@ -169,7 +182,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
               </p>
             </div>
           </div>
-        </a>
+        </article>
       )}
 
       <section class="front-rail opinion-block">

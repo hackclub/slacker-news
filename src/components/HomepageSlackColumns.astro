@@ -1,6 +1,7 @@
 ---
 import IndigestMetadata from "./IndigestMetadata.astro";
 import SlackRichText from "./SlackRichText.astro";
+import Byline from "./Byline.astro";
 import { getSlackColumnData, getSlackColumns, firstMetadataValue } from "../lib/indigest";
 import { getPosts } from "../lib/content";
 import type { IndigestMessage } from "../lib/indigest";
@@ -69,6 +70,7 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
               >
                 {cardTitle(column, message)}
               </a>
+              {" "}<Byline slackUserId={message.userId} slackUserName={message.userName} />
             </h3>
             <span><SlackRichText text={message.text} /></span>
             {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={column.metadataSchema} compact />}

@@ -227,9 +227,45 @@ $front-gutter: 56px;
   display: flex;
   flex-direction: column;
 
-  a {
+  a:not(.slack_user):not(.slack_channel) {
     color: #000;
   }
+}
+
+// A card whose title, byline and excerpt can hold their own links (Slack
+// mentions). The whole-card link sits behind the content as a cover.
+.linked-card {
+  position: relative;
+
+  .linked-card-cover {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  > *:not(.linked-card-cover) {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  a:not(.linked-card-cover) {
+    pointer-events: auto;
+  }
+}
+
+.byline {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.78em;
+  font-weight: normal;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #555;
+}
+
+.headline-byline {
+  margin: -10px 0 20px;
+  font-size: 1.15rem;
 }
 
 .front-section-title {
@@ -313,7 +349,7 @@ $front-gutter: 56px;
     text-wrap: balance;
   }
 
-  &:hover .block-headline {
+  &:hover .linked-card-title {
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 7px;
@@ -363,7 +399,7 @@ $front-gutter: 56px;
     margin: 0 0 8px;
   }
 
-  &:hover .opinion-title {
+  &:hover .linked-card-title {
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -422,7 +458,7 @@ $front-gutter: 56px;
     margin: 0 0 10px;
   }
 
-  &:hover .story-block-title {
+  &:hover .linked-card-title {
     text-decoration: underline;
     text-underline-offset: 3px;
   }
