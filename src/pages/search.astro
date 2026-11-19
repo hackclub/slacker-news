@@ -33,6 +33,7 @@ const site = await getSiteConfig();
 
   <script>
     import { tokenize, scoreDocument, type SearchIndex } from "../lib/search";
+    import { titleTransitionName } from "../lib/transitions";
 
     // Bundled scripts run once per full page load, so re-run on every
     // client-side navigation to set up search on this page again.
@@ -128,7 +129,7 @@ const site = await getSiteConfig();
                   : "";
                 return `
               <a href="${doc.url}" class="front-block story-block">
-                <h3 class="story-block-title">${escapeHtml(doc.title)}</h3>
+                <h3 class="story-block-title vt-title" data-vt-title="${titleTransitionName(doc.url)}">${escapeHtml(doc.title)}</h3>
                 <p class="story-block-excerpt">${truncateWords(doc.excerpt, 24)}</p>
                 <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
               </a>`;
@@ -180,7 +181,7 @@ const site = await getSiteConfig();
                 : "";
               return `
               <a href="${doc.url}" class="front-block story-block">
-                <h3 class="story-block-title">${terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title)}</h3>
+                <h3 class="story-block-title vt-title" data-vt-title="${titleTransitionName(doc.url)}">${terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title)}</h3>
                 <p class="story-block-excerpt">${preview}</p>
                 <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
               </a>`;

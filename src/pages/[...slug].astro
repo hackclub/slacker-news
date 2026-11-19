@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { titleTransitionName } from "../lib/transitions";
 import AuthorList from "../components/AuthorList.astro";
 import SubmitFollowUp from "../components/SubmitFollowUp.astro";
 import { formatStoryDate, getPosts, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../lib/content";
@@ -68,7 +69,7 @@ const followUpLinks =
 >
   <article class="story-page">
     <header class="story-header">
-      <h1 class="story-title">{post.title}</h1>
+      <h1 class="story-title vt-title" data-vt-title={titleTransitionName(Astro.url.pathname)}>{post.title}</h1>
       <div class="story-meta">
         {
           post.category && (

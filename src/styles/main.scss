@@ -1370,3 +1370,75 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 .front-pair-col:hover .emoji {
   filter: grayscale(0%) !important;
 }
+
+// ─── Page transitions ────────────────────────────────────────────────────────
+// The page swaps without animating (<html transition:animate="none">). Only a
+// title shared by the two pages moves, from where it was to where it lands,
+// the way the persisted newswire ticker carries across navigation.
+
+.vt-title {
+  view-transition-class: article-title;
+}
+
+::view-transition-group(*.article-title) {
+  animation-duration: var(--title-transition-duration, 0.32s);
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+// Titles change size and line breaks between pages, and stretching one
+// snapshot into the other's box distorts the letters. Both snapshots keep
+// their own size, pinned top-left, and cross-fade while the box moves.
+::view-transition-old(*.article-title),
+::view-transition-new(*.article-title) {
+  height: 100%;
+  object-fit: none;
+  object-position: left top;
+  animation-duration: var(--title-transition-duration, 0.32s);
+}
+
+// Dark mode inverts the page with a filter on <html>. Chrome snapshots the
+// outgoing title through that filter and loses the text (it comes out as a
+// solid block), and draws the incoming one without it. So in dark mode only
+// the incoming title moves, given the same filter, starting at the old
+// title's spot and strength.
+html.dark-mode {
+  &::view-transition-old(*.article-title) {
+    animation: none;
+    opacity: 0;
+  }
+
+  &::view-transition-new(*.article-title) {
+    filter: invert(1) hue-rotate(180deg);
+    mix-blend-mode: normal;
+    animation-name: title-in-dark;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-mode):not(.dark-mode) {
+    &::view-transition-old(*.article-title) {
+      animation: none;
+      opacity: 0;
+    }
+
+    &::view-transition-new(*.article-title) {
+      filter: invert(1) hue-rotate(180deg);
+      mix-blend-mode: normal;
+      animation-name: title-in-dark;
+    }
+  }
+}
+
+@keyframes title-in-dark {
+  from {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*.article-title),
+  ::view-transition-old(*.article-title),
+  ::view-transition-new(*.article-title) {
+    animation: none !important;
+  }
+}

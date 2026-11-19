@@ -73,6 +73,38 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     <meta property="og:image:alt" content={socialImageAlt} />
 
     <ClientRouter />
+    <script>
+      import { titleTransitionName } from "../lib/transitions";
+      import type {
+        TransitionBeforePreparationEvent,
+        TransitionBeforeSwapEvent,
+      } from "astro:transitions/client";
+
+      // Name only the title tied to this navigation: the one for the page
+      // being opened and the one for the page being left. Every other title
+      // stays unnamed, so the rest of the page swaps without animating.
+      let titleKeys: string[] = [];
+
+      function nameTitles(root: Document) {
+        root.querySelectorAll<HTMLElement>("[data-vt-title]").forEach((title) => {
+          title.style.viewTransitionName = "";
+        });
+        for (const key of new Set(titleKeys)) {
+          const title = root.querySelector<HTMLElement>(`[data-vt-title="${CSS.escape(key)}"]`);
+          if (title) title.style.viewTransitionName = key;
+        }
+      }
+
+      document.addEventListener("astro:before-preparation", (event) => {
+        const { from, to } = event as TransitionBeforePreparationEvent;
+        titleKeys = [titleTransitionName(to.pathname), titleTransitionName(from.pathname)];
+        nameTitles(document);
+      });
+
+      document.addEventListener("astro:before-swap", (event) => {
+        nameTitles((event as TransitionBeforeSwapEvent).newDocument);
+      });
+    </script>
 
 
     {openGraphType === "article" && articlePublishedTime && (

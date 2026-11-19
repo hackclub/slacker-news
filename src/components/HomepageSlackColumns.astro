@@ -2,6 +2,7 @@
 import IndigestMetadata from "./IndigestMetadata.astro";
 import SlackRichText from "./SlackRichText.astro";
 import Byline from "./Byline.astro";
+import { titleTransitionName } from "../lib/transitions";
 import { getSlackColumnData, getSlackColumns, firstMetadataValue } from "../lib/indigest";
 import { getPosts } from "../lib/content";
 import type { IndigestMessage } from "../lib/indigest";
@@ -63,7 +64,10 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
               href={`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`}
               aria-label={`Read ${cardTitle(column, message)}`}
             >Open message</a>
-            <h3 class="slack-column-card-title">
+            <h3
+              class="slack-column-card-title vt-title"
+              data-vt-title={titleTransitionName(`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`)}
+            >
               <a
                 class="slack-column-card-title-link"
                 href={`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`}

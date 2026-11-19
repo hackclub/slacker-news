@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { titleTransitionName } from "../../../lib/transitions";
 import { getSiteConfig } from "../../../lib/content";
 import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn,  slackLinkFromMessageId } from "../../../lib/indigest";
 import IndigestMetadata from "../../../components/IndigestMetadata.astro";
@@ -70,7 +71,7 @@ if (!column || !message) {
   {column && message ? (
     <article class="story-page slack-story-page">
       <header class="story-header">
-        <h1 class="story-title">{messageTitle}</h1>
+        <h1 class="story-title vt-title" data-vt-title={titleTransitionName(Astro.url.pathname)}>{messageTitle}</h1>
         <div class="story-meta">
           <span class="story-category">
             <a class="page-link" href={`/slack/${encodeURIComponent(channel)}/`}>{column.title}</a>
