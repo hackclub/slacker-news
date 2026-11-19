@@ -58,7 +58,7 @@ const slackNewsCandidates = newsItems.flatMap((item) =>
 
 const allCandidates = [
   ...slackNewsCandidates,
-  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, frontPagePreview: p.frontPagePreview, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
+  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage })),
   ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -67,7 +67,6 @@ const headline = site.headlineOverride
   : allCandidates[0];
 const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
 const headlineExcerpts = (() => {
-  if (headline?.frontPagePreview) return headline.frontPagePreview;
   const paras = headline?.paragraphs ?? [];
   const filtered = paras.filter((p) => {
     const s = p.replace(/\s+/g, " ").trim();
@@ -228,12 +227,13 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
       </div>
     </HomepageSlackColumns>
 
-    <section class="front-section">
-      <header class="front-section-aside">
+    <div class="front-pair">
+    <section class="front-pair-col">
+      <header class="front-rail-head">
         <h2 class="front-section-title"><a href="/changelogs/">Changelog</a></h2>
         <a href="/changelogs/" class="front-section-more">All changelogs &rarr;</a>
       </header>
-      <div class="front-section-body changelog-list">
+      <div class="changelog-list">
         {recentChangelog.map((entry) => (
           <div class="changelog-item">
             {entry.kind === "long" ? (
@@ -249,12 +249,12 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
       </div>
     </section>
 
-    <section class="front-section">
-      <header class="front-section-aside">
+    <section class="front-pair-col">
+      <header class="front-rail-head">
         <h2 class="front-section-title"><a href="/acknowledgements/">Acknowledgements</a></h2>
-        <a href="/acknowledgements/" class="front-section-more">All acknowledgements &rarr;</a>
+        <a href="/acknowledgements/" class="front-section-more">All &rarr;</a>
       </header>
-      <div class="front-section-body acknowledgements-grid">
+      <div class="acknowledgements-grid">
         {acknowledgements.map((person) => {
           const userName = person.name.trim().replace(/^@+/, "");
           return (
@@ -265,6 +265,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         })}
       </div>
     </section>
+    </div>
   </div>
 
   <script>

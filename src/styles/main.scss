@@ -473,6 +473,27 @@ $front-gutter: 56px;
 
 // ─── Changelog and acknowledgements ──────────────────────────────────────────
 
+// The two short lists share one row, each headed like the opinion rail.
+.front-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 64px;
+  padding: 48px 0 72px;
+  border-top: 1px solid $hairline;
+}
+
+.front-pair .changelog-list {
+  max-width: none;
+}
+
+.front-pair .acknowledgements-grid {
+  column-count: 2;
+}
+
+.acknowledgements-grid .slack_user {
+  white-space: normal;
+}
+
 .changelog-list {
   display: flex;
   flex-direction: column;
@@ -584,8 +605,10 @@ $front-gutter: 56px;
     gap: 40px 28px;
   }
 
-  .acknowledgements-grid {
-    column-count: 2;
+  .front-pair {
+    grid-template-columns: 1fr;
+    gap: 56px;
+    padding: 36px 0 56px;
   }
 }
 
