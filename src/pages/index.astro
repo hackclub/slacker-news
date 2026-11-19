@@ -65,7 +65,7 @@ const allCandidates = [
 const headline = site.headlineOverride
   ? allCandidates.find((c) => c.slug === site.headlineOverride) ?? allCandidates[0]
   : allCandidates[0];
-const headlineExcerptWordLimit = headline?.leadingImage ? 75 : 110;
+const headlineExcerptWordLimit = headline?.leadingImage ? 110 : 160;
 const headlineExcerpts = (() => {
   const paras = headline?.paragraphs ?? [];
   const filtered = paras.filter((p) => {
@@ -81,7 +81,9 @@ const headlineExcerpts = (() => {
     return true;
   });
 
-  return filtered.slice(0, headline?.leadingImage ? 2 : 3);
+  // The lead column is wide, so hand the fitting script more than it needs;
+  // it trims to whole sentences that fit beside the opinion rail.
+  return filtered.slice(0, headline?.leadingImage ? 5 : 8);
 })();
 const headlineExcerptText = headlineExcerpts.join("\n\n");
 
