@@ -1342,8 +1342,21 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 }
 
 // Restore color for all Slack entities while their containing card is hovered.
+// The homepage has no boxed cards, so each story and list counts as one.
 .front-block:hover .slack_user,
 .front-block:hover .slack_channel,
-.front-block:hover .emoji {
+.front-block:hover .emoji,
+.front-lead:hover .slack_user,
+.front-lead:hover .slack_channel,
+.front-lead:hover .emoji,
+.opinion-item:hover .slack_user,
+.opinion-item:hover .slack_channel,
+.opinion-item:hover .emoji,
+.slack-column-block:hover .slack_user,
+.slack-column-block:hover .slack_channel,
+.slack-column-block:hover .emoji,
+.front-pair-col:hover .slack_user,
+.front-pair-col:hover .slack_channel,
+.front-pair-col:hover .emoji {
   filter: grayscale(0%) !important;
 }
