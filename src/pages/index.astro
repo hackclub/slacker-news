@@ -117,8 +117,10 @@ const displayNews = combinedNewsAndChangelogs;
 
 const displayEssays = essayItems.slice(0, 4);
 
-const recentChangelog = allChangelogs.slice(0, 3);
 const acknowledgements = await getAcknowledgements();
+// Changelog sits beside acknowledgements (two name columns), so show about as
+// many entries as it takes to match that list's height.
+const recentChangelog = allChangelogs.slice(0, Math.max(3, Math.ceil(acknowledgements.length / 4)));
 // Markdown-column integrations show inside the opinion, news and essays
 // sections instead of a row of their own.
 const homepageSlackColumns = getSlackColumns().filter(

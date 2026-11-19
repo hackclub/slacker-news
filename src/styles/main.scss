@@ -222,7 +222,7 @@ $front-gutter: 56px;
 .newspaper-front {
   // Escape the narrow .wrapper without touching the shared layout.
   --front-gutter: 48px;
-  margin: 40px calc(50% - min(#{$front-max} / 2, 50vw - var(--front-gutter))) 96px;
+  margin: 40px calc(50% - min(#{$front-max} / 2, 50vw - var(--front-gutter))) 64px;
   display: flex;
   flex-direction: column;
 
@@ -478,12 +478,24 @@ $front-gutter: 56px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 64px;
-  padding: 48px 0 72px;
+  padding: 48px 0 0;
   border-top: 1px solid $hairline;
 }
 
 .front-pair .changelog-list {
   max-width: none;
+
+  .changelog-item {
+    padding: 10px 0;
+  }
+
+  .changelog-item:first-child {
+    padding-top: 0;
+  }
+
+  .changelog-change {
+    font-size: 1.05rem;
+  }
 }
 
 .front-pair .acknowledgements-grid {
@@ -608,7 +620,7 @@ $front-gutter: 56px;
   .front-pair {
     grid-template-columns: 1fr;
     gap: 56px;
-    padding: 36px 0 56px;
+    padding: 36px 0 0;
   }
 }
 
