@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import AuthorList from "../components/AuthorList.astro";
 import { getChangelogEntries, getSiteConfig, truncateWords } from "../lib/content";
+import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
 
 const site = await getSiteConfig();
 const changelogEntries = await getChangelogEntries();
@@ -16,10 +17,10 @@ const changelogEntries = await getChangelogEntries();
         if (entry.kind === "long") {
           return (
             <div class="front-block story-block story-block--long">
-              <h3 class="story-block-title">
+              <h3 class="story-block-title" data-vt-title={titleTransitionName(entry.url)}>
                 <a href={entry.url} class="story-block-title-link">{entry.title}</a>
               </h3>
-              <p class="story-block-excerpt">{truncateWords(entry.excerpt, 18)}</p>
+              <p class="story-block-excerpt" data-vt-excerpt={excerptTransitionName(entry.url)}>{truncateWords(entry.excerpt, 18)}</p>
               <span class="story-block-meta">
                 {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
               </span>
