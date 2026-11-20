@@ -106,6 +106,49 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         });
       }
 
+      // The text of the excerpt the reader clicked, by excerpt key, read from
+      // the page being left so the article side can find the same passage.
+      let excerptTexts = new Map<string, string>();
+
+      function normalise(text: string): string {
+        return text
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201c\u201d]/g, '"')
+          .replace(/\s+/g, " ")
+          .replace(/(\u2026|\.\.\.)\s*$/, "")
+          .trim()
+          .toLowerCase();
+      }
+
+      function openingWords(text: string): string {
+        return text.split(" ").slice(0, 6).join(" ");
+      }
+
+      // The run of paragraphs and list items in an article body that the
+      // excerpt showed, matched by their opening words. Anything before the
+      // first match (an italic note, say) is skipped; the run ends at the
+      // first full-length block after it that the excerpt didn't include.
+      function excerptBlocks(body: Element, excerptText: string): HTMLElement[] {
+        if (!excerptText) return [];
+        const excerptOpening = openingWords(excerptText);
+        const blocks = [...body.querySelectorAll<HTMLElement>("p, li")].filter(
+          (block) => !block.querySelector("p, li"),
+        );
+        const found: HTMLElement[] = [];
+        for (const block of blocks) {
+          const text = normalise(block.textContent ?? "");
+          if (!text) continue;
+          const shown = excerptText.includes(openingWords(text)) || text.includes(excerptOpening);
+          // The homepage leaves out short lines ("Here are the requirements:"),
+          // so they don't end the run.
+          const short = text.split(" ").length < 6 || text.length < 40;
+          if (shown) found.push(block);
+          else if (found.length > 0 && !short) break;
+          if (found.length >= 12) break;
+        }
+        return found;
+      }
+
       function nameCarried(root: Document) {
         clearCarried(root);
         for (const path of new Set(paths)) {
@@ -120,26 +163,126 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             readingTime,
             "carried",
           );
-          // On a card it's the excerpt; on the article, the whole body. It
-          // rises into place as the title lands instead of travelling.
-          carry(
-            root.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`) ??
-              root.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"]`),
-            excerpt,
-            "carried-excerpt",
-          );
+          // On a card it's the excerpt. On the article it's just the
+          // paragraphs that excerpt showed; the rest of the body swaps in with
+          // the page. They rise into place as the title lands.
+          const card = root.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
+          if (card) {
+            carry(card, excerpt, "carried-excerpt");
+          } else {
+            const body = root.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"]`);
+            if (body) {
+              excerptBlocks(body, excerptTexts.get(excerpt) ?? "").forEach((block, index) =>
+                carry(block, `${excerpt}-${index}`, "carried-excerpt"),
+              );
+            }
+          }
         }
       }
 
       document.addEventListener("astro:before-preparation", (event) => {
         const { from, to } = event as TransitionBeforePreparationEvent;
         paths = [to.pathname, from.pathname];
+        excerptTexts = new Map();
+        for (const path of paths) {
+          const excerpt = excerptTransitionName(path);
+          const card = document.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
+          if (card) excerptTexts.set(excerpt, normalise(card.textContent ?? ""));
+        }
         nameCarried(document);
       });
+
+      // Where a passage of text starts on screen: the first character of the
+      // first match for these opening words inside root.
+      function textStart(root: Element, words: string): DOMRect | null {
+        const nodes: Text[] = [];
+        const starts: number[] = [];
+        let full = "";
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text;
+          starts.push(full.length);
+          nodes.push(node);
+          full += node.data;
+        }
+        const pattern = new RegExp(
+          words
+            .split(" ")
+            .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+            .join("\\s+")
+            .replace(/'/g, "['\u2018\u2019]")
+            .replace(/"/g, '["\u201c\u201d]'),
+          "i",
+        );
+        const match = pattern.exec(full);
+        if (!match) return null;
+        const index = starts.findLastIndex((start) => start <= match.index);
+        const node = nodes[index];
+        const offset = match.index - starts[index];
+        const range = document.createRange();
+        range.setStart(node, offset);
+        range.setEnd(node, Math.min(offset + 1, node.length));
+        return range.getBoundingClientRect();
+      }
+
+      // Each carried excerpt piece flies from where its words were on the page
+      // being left to where they land. Going out, an article paragraph starts
+      // at its opening words inside the clicked card's excerpt; coming back,
+      // the card's excerpt starts at its paragraph in the article. A piece
+      // with no source just rises a little into place.
+      function planExcerptFlights(newDocument: Document) {
+        const flights: { element: HTMLElement; from: DOMRect | null }[] = [];
+        for (const path of new Set(paths)) {
+          const excerpt = excerptTransitionName(path);
+          const oldCard = document.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
+          const oldBody = document.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"]`);
+          newDocument
+            .querySelectorAll<HTMLElement>("[data-vt-carried]")
+            .forEach((element) => {
+              const name = element.style.viewTransitionName;
+              if (name !== excerpt && !name.startsWith(`${excerpt}-`)) return;
+              const words = openingWords(normalise(element.textContent ?? ""));
+              let from: DOMRect | null = null;
+              if (oldCard) from = textStart(oldCard, words.split(" ").slice(0, 4).join(" "));
+              else if (oldBody) {
+                const text = normalise(element.textContent ?? "");
+                const block = excerptBlocks(oldBody, text)[0];
+                from = block ? block.getBoundingClientRect() : null;
+              }
+              flights.push({ element, from });
+            });
+        }
+        return flights;
+      }
+
+      function flyExcerpts(flights: { element: HTMLElement; from: DOMRect | null }[]) {
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        // Same timing as the titles (--carry-duration in main.scss).
+        const duration =
+          parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--carry-duration") || "0.32") *
+            1000 || 320;
+        for (const { element, from } of flights) {
+          const pseudoElement = `::view-transition-group(${element.style.viewTransitionName})`;
+          // The browser places each group with a transform of its own, so the
+          // flight starts from an offset added to that, not a bare translate.
+          const end = getComputedStyle(document.documentElement, pseudoElement).transform;
+          const placed = end && end !== "none" ? end : "";
+          const to = element.getBoundingClientRect();
+          const offset = from
+            ? `translate(${from.left - to.left}px, ${from.top - to.top}px)`
+            : "translateY(8px)";
+          document.documentElement.animate(
+            { transform: [`${offset} ${placed}`.trim(), placed || "none"] },
+            { duration, easing: "cubic-bezier(0.2, 0, 0, 1)", pseudoElement },
+          );
+        }
+      }
 
       document.addEventListener("astro:before-swap", (event) => {
         const { newDocument, viewTransition } = event as TransitionBeforeSwapEvent;
         nameCarried(newDocument);
+        const flights = planExcerptFlights(newDocument);
+        void viewTransition?.ready.then(() => flyExcerpts(flights)).catch(() => {});
         // Unmark once the title has landed, which also brings its byline
         // back (see .byline in main.scss).
         void (viewTransition?.finished ?? Promise.resolve()).finally(() => clearCarried(document));
