@@ -110,18 +110,20 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       // the page being left so the article side can find the same passage.
       let excerptTexts = new Map<string, string>();
 
+      // Text reduced to lowercase letters, digits and single spaces, so a
+      // homepage excerpt and the article match however each was formatted:
+      // curly or straight quotes, Slack's *bold* and _italic_ markers,
+      // trailing ellipses.
       function normalise(text: string): string {
         return text
-          .replace(/[\u2018\u2019]/g, "'")
-          .replace(/[\u201c\u201d]/g, '"')
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s]+/gu, "")
           .replace(/\s+/g, " ")
-          .replace(/(\u2026|\.\.\.)\s*$/, "")
-          .trim()
-          .toLowerCase();
+          .trim();
       }
 
       function openingWords(text: string): string {
-        return text.split(" ").slice(0, 6).join(" ");
+        return text.split(" ").slice(0, 5).join(" ");
       }
 
       // The run of paragraphs and list items in an article body that the
@@ -134,6 +136,14 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         const blocks = [...body.querySelectorAll<HTMLElement>("p, li")].filter(
           (block) => !block.querySelector("p, li"),
         );
+        // A Slack message page's body is one run of text with no paragraphs:
+        // carry the whole body when it opens the way the excerpt does.
+        if (blocks.length === 0) {
+          const text = normalise(body.textContent ?? "");
+          return text && (text.includes(excerptOpening) || excerptText.includes(openingWords(text)))
+            ? [body as HTMLElement]
+            : [];
+        }
         const found: HTMLElement[] = [];
         for (const block of blocks) {
           const text = normalise(block.textContent ?? "");
@@ -141,7 +151,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           const shown = excerptText.includes(openingWords(text)) || text.includes(excerptOpening);
           // The homepage leaves out short lines ("Here are the requirements:"),
           // so they don't end the run.
-          const short = text.split(" ").length < 6 || text.length < 40;
+          const short = text.split(" ").length < 6 || text.length < 35;
           if (shown) found.push(block);
           else if (found.length > 0 && !short) break;
           if (found.length >= 12) break;
@@ -205,14 +215,17 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           nodes.push(node);
           full += node.data;
         }
+        // The words are normalised (letters and digits only), so let any
+        // punctuation or markup sit inside and between them on the page.
         const pattern = new RegExp(
           words
             .split(" ")
-            .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-            .join("\\s+")
-            .replace(/'/g, "['\u2018\u2019]")
-            .replace(/"/g, '["\u201c\u201d]'),
-          "i",
+            .filter(Boolean)
+            .map((word) =>
+              [...word].map((char) => char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[^\\p{L}\\p{N}\\s]*"),
+            )
+            .join("[^\\p{L}\\p{N}]+"),
+          "iu",
         );
         const match = pattern.exec(full);
         if (!match) return null;
