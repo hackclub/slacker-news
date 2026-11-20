@@ -1,5 +1,5 @@
-// Cachet redirects this straight to the user's Slack avatar, so the picture
-// costs no API call of our own.
+// A Slack profile picture, through our own cached route
+// (src/pages/api/avatars/[id].ts) rather than straight from Cachet.
 export function avatarUrl(slackId: string): string {
-  return `https://cachet.hackclub.com/users/${encodeURIComponent(slackId)}/r`;
+  return `/api/avatars/${encodeURIComponent(slackId)}`;
 }
