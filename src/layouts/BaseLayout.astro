@@ -173,6 +173,34 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         return found;
       }
 
+      // The part of an excerpt the reader can actually see. A card can hold a
+      // whole Slack message and clip it to a few lines; only the words above
+      // the clip count, or the article would carry paragraphs the card never
+      // showed.
+      function shownText(element: Element): string {
+        let bottom = element.getBoundingClientRect().bottom;
+        for (let ancestor = element.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {
+          if (getComputedStyle(ancestor).overflowY !== "visible") {
+            bottom = Math.min(bottom, ancestor.getBoundingClientRect().bottom);
+          }
+        }
+        let text = "";
+        const range = document.createRange();
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text;
+          for (const word of node.data.matchAll(/\S+/g)) {
+            range.setStart(node, word.index);
+            range.setEnd(node, word.index + word[0].length);
+            const box = range.getClientRects()[0];
+            // Clipped words sit below the clip (line-clamp, a fixed height).
+            if (box && box.top + box.height / 2 > bottom) return text + node.data.slice(0, word.index);
+          }
+          text += node.data;
+        }
+        return text;
+      }
+
       function nameCarried(root: Document) {
         clearCarried(root);
         for (const path of new Set(paths)) {
@@ -214,7 +242,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         for (const path of paths) {
           const excerpt = excerptTransitionName(path);
           const card = document.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
-          if (card) excerptTexts.set(excerpt, normalise(card.textContent ?? ""));
+          if (card) excerptTexts.set(excerpt, normalise(shownText(card)));
         }
         nameCarried(document);
       });
