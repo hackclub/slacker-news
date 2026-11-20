@@ -4,6 +4,7 @@ import type {
   PageData,
   Person,
   PostData,
+  SiteSettingsData,
   SourceEntry,
 } from "./types";
 
@@ -45,5 +46,12 @@ export async function loadPage(
 
 /** The people come from src/data/acknowledgements.json, read by the caller. */
 export async function loadPeople(): Promise<Person[] | undefined> {
+  return undefined;
+}
+
+/** The settings come from src/data/site.json, read by the caller. */
+export async function loadSiteSettings(): Promise<
+  SiteSettingsData | undefined
+> {
   return undefined;
 }

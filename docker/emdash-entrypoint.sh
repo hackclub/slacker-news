@@ -19,7 +19,6 @@ if [ ! -f "$DB" ]; then
   echo "Creating $DB from seed/seed.json"
   $EMDASH seed seed/seed.json --database "$DB" --uploads-dir "$DATA_DIR/uploads"
   node scripts/emdash-migrate.mjs "$DB"
-  node scripts/emdash-after-seed.mjs "$DB"
 else
   # An existing database keeps its content, so editors' changes survive a
   # redeploy. Only the content model is brought in step with this build, which
@@ -27,9 +26,15 @@ else
   echo "Updating the content model in $DB"
   # First, the changes the seed cannot make, such as a field changing type.
   node scripts/emdash-migrate.mjs "$DB"
-  $EMDASH seed seed/seed.json --database "$DB" --no-content --on-conflict update
-  # Bylines for the people the site credits, and for articles that have none.
-  node scripts/emdash-after-seed.mjs "$DB"
+  # model.json is seed.json without the content and the site settings, so a
+  # title an editor changed in Settings is not put back.
+  $EMDASH seed seed/model.json --database "$DB" --no-content --on-conflict update
 fi
+
+# Content moved into the CMS from the repository, imported once. After that
+# the CMS is where it lives.
+node scripts/emdash-import-once.mjs "$DB" seed/short-changelogs.json short-changelogs
+# Bylines for the people the site credits, and for articles that have none.
+node scripts/emdash-after-seed.mjs "$DB"
 
 exec "$@"

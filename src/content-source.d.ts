@@ -8,6 +8,7 @@ declare module "#content-source" {
   export const loadChangelogs: FileSource["loadChangelogs"];
   export const loadPage: FileSource["loadPage"];
   export const loadPeople: FileSource["loadPeople"];
+  export const loadSiteSettings: FileSource["loadSiteSettings"];
 }
 
 declare module "#live-loader" {

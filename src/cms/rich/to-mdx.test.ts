@@ -163,4 +163,20 @@ describe("portableTextToMdx", () => {
       ]),
     ).toBe("`````jsx\na\n````\nb\n`````\n");
   });
+
+  test("emoji and formulas typed in a sentence become components", () => {
+    expect(portableTextToMdx([p("Shipped :tada: at $$x^2$$ speed")])).toBe(
+      'Shipped <Emoji name={"tada"} /> at <M d={"x^2"} /> speed\n',
+    );
+    // A time, a word with colons and a lone dollar stay text.
+    expect(portableTextToMdx([p("At 10:30:00, re:this:that costs $5")])).toBe(
+      "At 10:30:00, re:this:that costs \\$5\n",
+    );
+  });
+
+  test("a formula or emoji cannot become code", () => {
+    expect(portableTextToMdx([p('$$"} /><script>x</script>{"$$ :a"b:')])).toBe(
+      '<M d={"\\"} /><script>x</script>{\\""} /> :a"b:\n',
+    );
+  });
 });

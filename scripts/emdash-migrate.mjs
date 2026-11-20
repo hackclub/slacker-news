@@ -77,6 +77,23 @@ function publishedAtFromDate() {
   );
 }
 
+/**
+ * A changelog's `author` text was required. Authors are bylines now and the
+ * text is hidden, so a new changelog could not be saved. EmDash will not drop
+ * "required" itself; the column already allows an empty value.
+ */
+function changelogAuthorOptional() {
+  const { changes } = db
+    .prepare(
+      `update _emdash_fields set required = 0
+        where slug = 'author' and required = 1 and collection_id in
+          (select id from _emdash_collections where slug = 'changelogs')`,
+    )
+    .run();
+  if (changes) console.log("changelogs: author is no longer required");
+}
+
 dateFieldsToDatetime();
 publishedAtFromDate();
+changelogAuthorOptional();
 db.close();

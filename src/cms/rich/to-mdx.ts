@@ -36,6 +36,29 @@ function escapeText(text: string): string {
 }
 
 /**
+ * Inline components typed as text: `:name:` is a Slack emoji and `$$x^2$$` a
+ * formula, as in Slack and in the MDX files. The colons must stand apart from
+ * other words and colons, so a time like 10:30:00 stays text.
+ */
+const INLINE_COMPONENT =
+  /\$\$([^$\n]+?)\$\$|(?<![\w:]):([a-z0-9][a-z0-9_+'-]*):(?![\w:])/g;
+
+/** Text, escaped, with its emoji and formulas turned into components. */
+function textToMdx(text: string): string {
+  let out = "";
+  let last = 0;
+  for (const match of text.matchAll(INLINE_COMPONENT)) {
+    out += escapeText(text.slice(last, match.index));
+    out +=
+      match[1] !== undefined
+        ? `<M ${attribute("d", match[1].trim())} />`
+        : `<Emoji ${attribute("name", match[2])} />`;
+    last = match.index + match[0].length;
+  }
+  return out + escapeText(text.slice(last));
+}
+
+/**
  * A link's address, if it is one a reader can safely follow: a web or mail
  * address, or a path on this site. Anything else (`javascript:` above all) is
  * dropped. Characters that mean something to markdown or MDX are encoded.
@@ -78,7 +101,7 @@ function spanToMdx(span: Span, defs: Map<string, MarkDef>): string {
   }
   const code = marks.includes("code");
   // Code is verbatim: nothing inside it is escaped.
-  let out = code ? span.text : escapeText(span.text);
+  let out = code ? span.text : textToMdx(span.text);
   if (code) out = wrap(out, "`");
   for (const mark of marks) {
     if (mark === "strong") out = wrap(out, "**");

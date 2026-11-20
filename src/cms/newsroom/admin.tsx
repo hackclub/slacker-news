@@ -23,7 +23,8 @@ export const contentEditorPanels = [
     id: "details",
     title: "Links and visibility",
     component: SidebarSlots,
-    collections: ["posts", "changelogs"],
+    // Pages only have the body format here.
+    collections: ["posts", "changelogs", "pages"],
     order: -10,
   },
 ];

@@ -19,6 +19,7 @@ const HIDDEN_LINKS = [
   'a[href*="/plugins/newsroom/queue"]',
   'a[href*="/plugins/newsroom/slack"]',
   'a[href*="/plugins/newsroom/calendar"]',
+  'a[href*="/plugins/newsroom/front-page"]',
 ];
 /**
  * Buttons for things only editors do, by how their label starts. (EmDash

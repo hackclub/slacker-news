@@ -6,11 +6,12 @@
  *   node scripts/emdash-after-seed.mjs [database] [acknowledgements.json]
  *
  * People: every person in src/data/acknowledgements.json becomes a byline with two
- * fields, their Slack ID and their roles. Every article that names an author in
- * its old `author` text gets that person as a credited byline, which is what
- * the editor's Bylines section shows and edits. The container runs this on
- * every start, after the seed, so it only fills in what is missing: a byline
- * or credit an editor has changed is left alone.
+ * fields, their Slack ID and their roles. That happens once per database: after
+ * it the CMS holds the list, so a person an editor removes stays removed. Every
+ * article that names an author in its old `author` text gets that person as a
+ * credited byline, which is what the editor's Bylines section shows and edits.
+ * The container runs this on every start, after the seed, so it only fills in
+ * what is missing: a byline or credit an editor has changed is left alone.
  *
  * Fields that went away: a post's category is now a taxonomy term (so the
  * category it had becomes its term), the front page preview is merged into
@@ -30,12 +31,20 @@ db.exec("pragma busy_timeout = 10000");
 // All or nothing, so a stop halfway leaves nothing half-filled.
 db.exec("begin immediate");
 
+// The acknowledgements are read from the file only the first time.
+const PEOPLE_IMPORTED = "slacker-news:imported:people";
+const peopleImported = Boolean(
+  db.prepare("select 1 from options where name = ?").get(PEOPLE_IMPORTED),
+);
 const peopleFile = [
   peoplePath,
   "seed/acknowledgements.json",
   "src/data/acknowledgements.json",
 ].find((path) => path && existsSync(path));
-const people = peopleFile ? JSON.parse(readFileSync(peopleFile, "utf8")) : [];
+const people =
+  peopleFile && !peopleImported
+    ? JSON.parse(readFileSync(peopleFile, "utf8"))
+    : [];
 
 const SLACK_ID = /^<?@?([UW][A-Z0-9]{6,})(?:\|[^>]*)?>?$/;
 
@@ -157,6 +166,12 @@ function createByline({ displayName, slackId, roles }) {
 }
 
 let createdPeople = 0;
+if (peopleFile && !peopleImported) {
+  db.prepare("insert into options (name, value) values (?, ?)").run(
+    PEOPLE_IMPORTED,
+    JSON.stringify(new Date().toISOString()),
+  );
+}
 for (const person of people) {
   const name = person.name.trim().replace(/^@+/, "");
   const known =
@@ -313,11 +328,19 @@ dropField("posts", "expires_at");
 
 // New articles default to the rich-text body. Articles from before that
 // default existed have no format stored, and they are MDX.
-if (hasColumn("ec_posts", "body_format")) {
+for (const table of ["ec_posts", "ec_changelogs", "ec_pages"]) {
+  if (!hasColumn(table, "body_format")) continue;
   db.exec(
-    `update ec_posts set body_format = 'mdx' where body_format is null or body_format = ''`,
+    `update "${table}" set body_format = 'mdx' where body_format is null or body_format = ''`,
   );
 }
+
+// The legacy ID is kept but never edited, so it is hidden in the editor.
+db.exec(
+  `update _emdash_fields set widget = 'newsroom:hidden',
+          options = json_set(coalesce(options, '{}'), '$.field', 'legacy_id')
+    where slug = 'legacy_id' and (widget is null or widget = '')`,
+);
 
 // The body's own comment and suggestion editor is gone (comments live in the
 // rich-text editor now), so the body is a plain text box again.

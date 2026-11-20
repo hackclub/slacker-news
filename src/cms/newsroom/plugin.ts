@@ -1089,25 +1089,29 @@ async function queueTable(
   };
 }
 
+/**
+ * The reviews in a state whose article still needs someone. A review outlives
+ * its article: it is kept when the article goes to the trash, and it stays
+ * approved once the article is live.
+ */
+async function openReviews(ctx: Ctx, state: Review["state"]): Promise<Row[]> {
+  const rows: Row[] = [];
+  for (const row of await reviewsIn(ctx, state)) {
+    const item = await ctx.content.get(row.data.collection, row.id);
+    if (!item) continue;
+    if (state === "approved" && item.status === "published") continue;
+    rows.push(row);
+  }
+  return rows;
+}
+
 async function queue(ctx: Ctx) {
   const actor = who(ctx);
   const { policy } = await rules(ctx);
-  // A review outlives its article: it stays approved once the article is
-  // live, and it is kept when the article goes to the trash.
-  const open = async (state: Review["state"]) => {
-    const rows: Row[] = [];
-    for (const row of await reviewsIn(ctx, state)) {
-      const item = await ctx.content.get(row.data.collection, row.id);
-      if (!item) continue;
-      if (state === "approved" && item.status === "published") continue;
-      rows.push(row);
-    }
-    return rows;
-  };
   const [waiting, returned, approved] = await Promise.all([
-    open("in_review"),
-    open("changes_requested"),
-    open("approved"),
+    openReviews(ctx, "in_review"),
+    openReviews(ctx, "changes_requested"),
+    openReviews(ctx, "approved"),
   ]);
   const approvedByMe = (row: Row) =>
     row.data.approvals.some((entry) => entry.by === actor.id);
@@ -1204,7 +1208,7 @@ async function queue(ctx: Ctx) {
 
 async function widget(ctx: Ctx) {
   const { policy } = await rules(ctx);
-  const waiting = await reviewsIn(ctx, "in_review");
+  const waiting = await openReviews(ctx, "in_review");
   const actor = who(ctx);
   const mine = waiting.filter(
     (row) => !row.data.approvals.some((entry) => entry.by === actor.id),
@@ -1566,6 +1570,132 @@ async function slackPage(ctx: Ctx) {
   return notice ? { blocks, toast: notice } : { blocks };
 }
 
+// ---------------------------------------------------------------------------
+// Front page
+//
+// Which article leads the front page. Empty means the newest. The site reads
+// the `headline` setting (src/lib/content-source/emdash.ts); it is the
+// article's address without slashes at the ends, as the front page names
+// candidates: `news/<slug>` for a post, the slug alone for a changelog.
+// ---------------------------------------------------------------------------
+
+async function headlineCandidates(ctx: Ctx) {
+  const found: { value: string; label: string; date: string }[] = [];
+  // The newest published posts. Their publish time is their date (see
+  // scripts/emdash-migrate.mjs).
+  const { items: posts } = await ctx.content.list("posts", {
+    limit: 60,
+    orderBy: { publishedAt: "desc" },
+    where: { status: "published" },
+  });
+  for (const item of posts) {
+    if (found.length >= 25) break;
+    if (item.status !== "published" || !item.slug) continue;
+    const terms = await ctx.taxonomies?.getEntryTerms("posts", item.id, {
+      taxonomy: "category",
+    });
+    // Only news leads the front page.
+    if (terms?.[0]?.slug !== "news") continue;
+    // SQLite hands booleans back as 0 or 1.
+    const membersOnly =
+      item.data.members_only === true || item.data.members_only === 1;
+    found.push({
+      value: `news/${item.slug}`,
+      label: `${String(item.data.title ?? item.slug)}${membersOnly ? " (members only)" : ""}`,
+      date: String(item.data.date ?? ""),
+    });
+  }
+  const { items: changelogs } = await ctx.content.list("changelogs", {
+    limit: 20,
+    orderBy: { publishedAt: "desc" },
+    where: { status: "published" },
+  });
+  for (const item of changelogs) {
+    if (item.status !== "published" || !item.slug) continue;
+    // A changelog with no body is one line, never a headline.
+    const body =
+      item.data.body_format === "rich"
+        ? portableTextToPlain(item.data.body_rich)
+        : String(item.data.body ?? "");
+    if (!body.trim()) continue;
+    found.push({
+      value: item.slug,
+      label: `${String(item.data.title ?? item.slug)} (changelog)`,
+      date: String(item.data.date ?? ""),
+    });
+  }
+  return found.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+async function frontPage(ctx: Ctx) {
+  const input = ctx.input as {
+    type?: string;
+    action_id?: string;
+    values?: { pick?: string; address?: string };
+  };
+  let toastMessage: string | undefined;
+  if (input.type === "form_submit" && input.action_id === "headline") {
+    // A typed address wins: it is how a Slack article is named.
+    const typed = String(input.values?.address ?? "")
+      .trim()
+      .replace(/^https?:\/\/[^/]+/, "")
+      .replace(/^\/+|\/+$/g, "");
+    const value = typed || String(input.values?.pick ?? "");
+    await ctx.settings.set("headline", value);
+    toastMessage = value
+      ? "Saved. The front page leads with it."
+      : "Saved. The front page leads with the newest article.";
+  }
+  const current = String((await ctx.settings.get("headline")) ?? "");
+  const candidates = await headlineCandidates(ctx);
+  const listed = candidates.some((item) => item.value === current);
+  const blocks: unknown[] = [
+    { type: "header", text: "Front page" },
+    {
+      type: "fields",
+      fields: [
+        {
+          label: "Headline",
+          value: !current
+            ? "The newest article"
+            : (candidates.find((item) => item.value === current)?.label ??
+              current),
+        },
+      ],
+    },
+    {
+      type: "form",
+      fields: [
+        {
+          type: "select",
+          action_id: "pick",
+          label: "Lead with",
+          options: [
+            { label: "The newest article", value: "" },
+            ...candidates.map(({ value, label }) => ({ label, value })),
+          ],
+          initial_value: listed ? current : "",
+        },
+        {
+          type: "text_input",
+          action_id: "address",
+          label: "Or an article's address",
+          placeholder: "news/stardance-wraps-up",
+          initial_value: listed ? "" : current,
+        },
+      ],
+      submit: { label: "Save", action_id: "headline" },
+    },
+    {
+      type: "context",
+      text: "News posts and changelogs are listed. For an article published from Slack, type its address. If the article is taken down, the front page goes back to the newest, as it does for readers who are not signed in when the article is members only. The site's title and description are in Settings, General.",
+    },
+  ];
+  return toastMessage
+    ? { blocks, toast: { message: toastMessage, type: "success" } }
+    : { blocks };
+}
+
 async function admin(ctx: Ctx) {
   const { page } = ctx.input as { page?: string };
   if (page === "/shared") return shared(ctx);
@@ -1575,6 +1705,7 @@ async function admin(ctx: Ctx) {
     return { blocks: [{ type: "context", text: "This page is for editors." }] };
   if (page === "widget:awaiting") return widget(ctx);
   if (page === "/calendar") return calendar(ctx);
+  if (page === "/front-page") return frontPage(ctx);
   return queue(ctx);
 }
 
@@ -1607,6 +1738,8 @@ export function createPlugin() {
       // Collaborators are added by email and shown by name.
       "users:read",
       "content:publish",
+      // The front page page lists news posts by category.
+      "taxonomies:read",
       "email:send",
       "hooks.content-policy:register",
       // Slack people and channels are looked up on Flaron for the insert forms,
@@ -1656,6 +1789,12 @@ export function createPlugin() {
             "Tell approvers when an article is sent for review, and the author when it is decided. Needs an email provider.",
           default: true,
         },
+        headline: {
+          type: "string",
+          label: "Front page headline",
+          description:
+            "The article that leads the front page, such as news/stardance-wraps-up. Empty: the newest. Easier to pick on the Front page page.",
+        },
         slackToken: {
           type: "secret",
           label: "Slack bot token",
@@ -1694,6 +1833,7 @@ export function createPlugin() {
         { path: "/calendar", label: "Calendar", icon: "calendar" },
         { path: "/shared", label: "Shared with me", icon: "users" },
         { path: "/slack", label: "Slack", icon: "bell" },
+        { path: "/front-page", label: "Front page", icon: "newspaper" },
       ],
       widgets: [{ id: "awaiting", size: "third", title: "Awaiting review" }],
       // Slash-menu blocks of the rich-text editor: our MDX components.

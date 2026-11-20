@@ -60,7 +60,8 @@ export const COMPONENT_BLOCKS = [
     type: "snMath",
     tag: "M",
     label: "Math",
-    description: "A formula in LaTeX",
+    description:
+      "A formula in LaTeX, on its own line. In a sentence, type $$x^2$$",
     category: "Text",
     fields: [text("d", "LaTeX", { multiline: true })],
   },
@@ -97,6 +98,9 @@ export const COMPONENT_BLOCKS = [
   {
     type: "snEmoji",
     tag: "Emoji",
+    // Emoji are typed into the sentence as :name: now; this stays so articles
+    // that already hold the block are still drawn.
+    hidden: true,
     label: "Emoji",
     description: "A Hack Club Slack emoji",
     category: "Slack",

@@ -35,7 +35,7 @@ COPY --from=build /app/seed ./seed
 # The people the site credits, moved into the CMS as bylines on start.
 COPY --from=build /app/src/data/acknowledgements.json ./seed/acknowledgements.json
 # Maintenance scripts that run against the database on the volume.
-COPY scripts/emdash-migrate.mjs scripts/emdash-after-seed.mjs scripts/import-slack-column.mjs ./scripts/
+COPY scripts/emdash-migrate.mjs scripts/emdash-after-seed.mjs scripts/emdash-import-once.mjs scripts/import-slack-column.mjs ./scripts/
 COPY package.json ./
 COPY docker/emdash-entrypoint.sh /usr/local/bin/emdash-entrypoint
 RUN chmod +x /usr/local/bin/emdash-entrypoint && mkdir -p /app/data

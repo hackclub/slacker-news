@@ -1,4 +1,9 @@
-import { getEmDashCollection, getEmDashEntry } from "emdash";
+import {
+  getEmDashCollection,
+  getEmDashEntry,
+  getPluginSetting,
+  getSiteSettings,
+} from "emdash";
 import { getDb } from "emdash/runtime";
 import { sql } from "kysely";
 import { portableTextToMdx } from "../../cms/rich/to-mdx";
@@ -8,6 +13,7 @@ import type {
   PageData,
   Person,
   PostData,
+  SiteSettingsData,
   SourceEntry,
 } from "./types";
 
@@ -227,4 +233,20 @@ export async function loadPeople(): Promise<Person[] | undefined> {
       .map((role) => role.trim())
       .filter(Boolean),
   }));
+}
+
+/**
+ * The site's title and description are EmDash's own site settings (Settings,
+ * General). The front page headline is a setting of the newsroom plugin.
+ */
+export async function loadSiteSettings(): Promise<SiteSettingsData> {
+  const [settings, headline] = await Promise.all([
+    getSiteSettings(),
+    getPluginSetting<string>("newsroom", "headline"),
+  ]);
+  return {
+    title: text(settings.title),
+    description: text(settings.tagline),
+    headlineOverride: text(headline) ?? null,
+  };
 }

@@ -1,8 +1,10 @@
 import {
+  cmsEnabled,
   loadChangelogs,
   loadPage,
   loadPeople,
   loadPosts,
+  loadSiteSettings,
 } from "#content-source";
 import type {
   ChangelogData,
@@ -327,10 +329,15 @@ function toExcerpt(entry: {
 }
 
 export async function getSiteConfig(): Promise<SiteConfig> {
+  // In the CMS these are settings; the file serves the rest, and fills in
+  // anything an editor left empty.
+  const cms = await loadSiteSettings();
   return {
-    title: siteData.title,
-    description: siteData.description,
-    headlineOverride: siteData.headlineOverride ?? null,
+    title: cms?.title ?? siteData.title,
+    description: cms?.description ?? siteData.description,
+    headlineOverride: cms
+      ? (cms.headlineOverride ?? null)
+      : (siteData.headlineOverride ?? null),
   };
 }
 
@@ -439,15 +446,29 @@ function sameArticle(reference: string, slug: string): boolean {
 }
 
 export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
-  const shortEntries: ShortChangelogEntry[] = changelogData.map((entry) => ({
-    kind: "short",
-    change: entry.change,
-    date: entry.date,
-    author: entry.author,
-    slackIds: getAuthorSlackIds(entry.author),
-  }));
+  const changelogs = await loadChangelogs();
+  // In the CMS a one-line entry is a changelog with no body: its title is the
+  // change. Without the CMS they come from src/data/changelog.json.
+  const isShort = (entry: SourceEntry<ChangelogData>) =>
+    cmsEnabled && !entry.body.trim();
+  const shortEntries: ShortChangelogEntry[] = cmsEnabled
+    ? changelogs.filter(isShort).map((entry) => ({
+        kind: "short",
+        change: entry.data.title,
+        date: entry.data.date.toISOString().slice(0, 10),
+        author: entry.data.author,
+        slackIds:
+          entry.data.authorSlackIds ?? getAuthorSlackIds(entry.data.author),
+      }))
+    : changelogData.map((entry) => ({
+        kind: "short",
+        change: entry.change,
+        date: entry.date,
+        author: entry.author,
+        slackIds: getAuthorSlackIds(entry.author),
+      }));
 
-  const longCollection = await loadChangelogs();
+  const longCollection = changelogs.filter((entry) => !isShort(entry));
   const posts = await getPosts();
   const resolveSlugs = (
     raw: string | string[] | undefined,

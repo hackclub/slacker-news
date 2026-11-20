@@ -92,6 +92,9 @@ Site configuration and frontpage data live in `src/data/` JSON files:
 - **src/data/acknowledgements.json** - Featured contributors
 - **src/data/slack-columns.json** - Slack-backed column configuration
 
+With the CMS (see "EmDash CMS" below), the first three move into it and the
+files only seed a new database.
+
 Slack message data is provided by [Indigest](https://github.com/matmanna/indigest). Mentions and channel names are resolved through [Flaron](https://github.com/sadeshmukh/flaron), while cached Slack user profiles and custom emojis come from [Cachet](https://github.com/taciturnaxolotl/cachet).
 
 A Slack column in `src/data/slack-columns.json` with `"markdownColumns": true` publishes articles into the markdown columns (news, opinion, essays) instead of a row of its own, so one channel can feed all three. Each message's Indigest metadata must give its `title` and `column`, and may give a `slug`, an `author` (a Slack user ID, shown as a mention, or a name) and a `publishdate` (a day such as `2026-10-06`, epoch seconds, or any date string). Without an author or publish date, the article shows who posted the message and when. An article lives at `/<column>/<slug>/`, where the slug defaults to the slugified title, next to the markdown posts. In `/feed.xml`, protected ones join their categories only with `include=protected` and a token that can read them.
@@ -142,9 +145,21 @@ uploads are local files, and sandboxed plugins run in a local
 ```bash
 bun run emdash:seed                                # src/content -> seed/seed.json
 bunx emdash seed seed/seed.json -d data/emdash.db  # create and fill the database
+node scripts/emdash-import-once.mjs data/emdash.db seed/short-changelogs.json short-changelogs
+node scripts/emdash-after-seed.mjs data/emdash.db  # bylines for the people credited
 bunx emdash secrets generate --write .env          # EMDASH_ENCRYPTION_KEY
 bun run dev:emdash
 ```
+
+`emdash:seed` writes three files: `seed.json` (the content model, the site's
+title and description, and every MDX file), `model.json` (the content model
+alone, applied on every start of the container so new fields reach a live
+site) and `short-changelogs.json` (the one-line changelog entries).
+
+EmDash is pinned to one version in `package.json`. The newsroom's comments and
+suggestions use the rich-text editor's internal `editor` object, which is not
+a public EmDash API, so after upgrading EmDash, try commenting and suggesting
+before deploying.
 
 The first visit to `/_emdash/admin` creates the administrator account.
 
@@ -232,17 +247,23 @@ direct messages until they sign in again.
 
 - **Notifications, the rest.** Slack covers the review cycle (see "Slack"
   above). Still missing: email for the same events (only a review request and
-  its decision are emailed), a message when someone is mentioned in a comment,
-  a choice per person of what they hear about, and a digest in place of single
-  messages.
+  its decision are emailed; email is meant to go through Loops), a message
+  when someone is mentioned in a comment, a choice per person of what they
+  hear about, and a digest in place of single messages.
 
-#### Rich-text body (prototype)
+#### Rich-text body
 
-Posts have a second body field, **Body (rich text)**, next to the MDX one. Set
-**Body format** to `rich` and the page is drawn from the rich-text field
-instead. Type `/` in it to add a YouTube video, caption, formula, Slack user or
-channel, emoji or raw HTML; these are the same components MDX posts use
-(`src/cms/rich/blocks.mjs`).
+Posts, changelogs and pages each have two bodies, rich text and MDX, and a
+**Body format** that picks one. Only the chosen body is shown in the editor;
+the other is kept. New articles are rich text. Articles moved from the MDX
+files are MDX, and stay so unless an editor switches them. Submitters only get
+rich text: the switch is hidden from them, and their saves are kept to the
+rich-text body.
+
+Type `/` in the rich-text body to add a YouTube video, caption, formula on its
+own line or raw HTML; these are the same components MDX posts use
+(`src/cms/rich/blocks.mjs`). In a sentence, `:name:` is a Slack emoji and
+`$$x^2$$` a formula, as in Slack and in the MDX files.
 
 The editor stores Portable Text, not MDX. When the page is requested,
 `src/cms/rich/to-mdx.ts` turns it into MDX and the usual pipeline draws it, so
@@ -256,19 +277,20 @@ newsroom plugin from the server; only the letters typed are sent. The editor
 stores the mention as a link to the person or channel on Slack, and the site
 draws such a link as its `SlackMention` or `SlackChannel` component.
 
-Known gaps: the emoji and formula components are blocks here, not inline in a
-sentence; images need their media URL to be
-resolved; comments and suggestions work only on the rich-text body, not on the
-MDX one. They rely on the editor handing its `editor` object to the page
-(`.ProseMirror` elements carry it), which is not a public EmDash API.
+Known gaps: images need their media URL to be resolved; comments and
+suggestions work only on the rich-text body, not on the MDX one. They rely on
+the editor handing its `editor` object to the page (`.ProseMirror` elements
+carry it), which is not a public EmDash API.
 
 #### People, and the editor's sidebar
 
 The people the site credits are bylines in the CMS, each with two fields: a
 **Slack ID** and **Roles** (`editor`, `technical`, `content`, comma-separated).
-`scripts/emdash-after-seed.mjs` fills them in on every start, only where something
-is missing: one byline for each person in `src/data/acknowledgements.json`, and
-the credited bylines of every article that only has the old `author` text.
+`scripts/emdash-after-seed.mjs` makes one byline for each person in
+`src/data/acknowledgements.json`, once per database; after that the
+acknowledgements page lists the bylines, and people are added, changed and
+removed in **Bylines**. On every start it also credits bylines to any article
+that only has the old `author` text.
 After that, the **Bylines** section of the editor's sidebar picks them, any
 number can be reused, and new ones are made in **Bylines** in the admin menu.
 The site reads authors, and the acknowledgements page, from the bylines; the
@@ -344,8 +366,9 @@ editor falls back to one editor at a time with an edit lock.
 admin, through the provider in `src/cms/hackclub-auth`. EmDash's passkey and
 email-link sign-in are switched off: the site refuses their endpoints
 (`src/cms/hackclub-auth/only.ts`), and the login page goes straight to Hack
-Club. EmDash still draws its passkey button on the setup and error screens; it
-does nothing.
+Club. EmDash still draws its passkey and email-link controls next to the Hack
+Club button on the login, setup and invite screens; the button hides them
+(`src/cms/hackclub-auth/admin.tsx`).
 
 Add this redirect URI to the Hack Club Auth app, replacing the origin with the
 site's own:
@@ -374,17 +397,25 @@ only the people it lists can.
 published entry in one of three collections (Posts, Changelogs, Pages) and
 keeps the same URLs. Applying the seed again skips entries that already exist.
 
-An article's body is stored as MDX in a text field and compiled when the page
-is requested, so migrated articles render the same as before, components
-included. Two consequences:
+A migrated article's body is stored as MDX in a text field and compiled when
+the page is requested, so it renders the same as before, components included.
+It stays MDX, edited as source, unless an editor switches it to rich text (see
+"Rich-text body"). MDX is code: anyone who can edit an MDX body can run
+JavaScript on the server, which is why only editors get it.
 
-- The body is edited as MDX source, not in a rich text editor.
-- MDX is code. Anyone who can edit an article can run JavaScript on the
-  server, so give CMS accounts only to people who could commit to this
-  repository.
+What used to be in `src/data` is edited in the CMS:
 
-The front page settings, short changelog entries and acknowledgements still
-come from `src/data`.
+- **Site title and description**: Settings, General.
+- **Front page headline**: the **Front page** page of the newsroom plugin. Pick
+  a news post or changelog, or type the address of an article published from
+  Slack. Empty leads with the newest article.
+- **One-line changelog entries**: changelogs with no body. The title is the
+  change. They are listed on the changelog page and get no page of their own.
+  `src/data/changelog.json` is imported once into a new or existing database
+  (`scripts/emdash-import-once.mjs`); after that, editors add and remove them.
+- **Acknowledgements**: bylines, as described under "People".
+
+The files stay for the site without the CMS.
 
 #### Members-only articles
 

@@ -39,11 +39,13 @@ export function SidebarSlots() {
       {slot("members_only")}
       {slot("response_to")}
       {slot("follow_up_to")}
-      <span style={note}>
-        An article's address starts with its category (picked under Taxonomies),
-        so changing the category moves it to a new address. Links to the old one
-        stop working.
-      </span>
+      {/\/content\/posts\//.test(window.location.pathname) && (
+        <span style={note}>
+          An article's address starts with its category (picked under
+          Taxonomies), so changing the category moves it to a new address. Links
+          to the old one stop working.
+        </span>
+      )}
     </div>
   );
 }
@@ -134,7 +136,8 @@ export function BodyFormatField(props: WidgetProps) {
           ))}
         </select>
         <span style={note}>
-          Which body the article is made from. The other one is kept, hidden.
+          New articles are rich text. MDX is for articles moved from the files,
+          and for code. Only the chosen body is shown; the other is kept.
         </span>
       </label>
     </InSidebar>

@@ -39,6 +39,14 @@ export type PageData = {
   title?: string;
 };
 
+/** The front page and site settings an editor can change. */
+export type SiteSettingsData = {
+  title?: string;
+  description?: string;
+  /** The article that leads the front page, as `<category>/<slug>`. */
+  headlineOverride?: string | null;
+};
+
 /** Someone the site credits. In the CMS they are bylines. */
 export type Person = {
   name: string;

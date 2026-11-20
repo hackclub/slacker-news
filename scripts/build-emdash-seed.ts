@@ -4,9 +4,17 @@
  *   bun scripts/build-emdash-seed.ts            # writes seed/seed.json
  *   bunx emdash seed seed/seed.json -d data/emdash.db
  *
- * The seed holds the content model (collections and fields) and one published
- * entry per MDX file. Applying it skips entries that already exist, so it is
- * safe to re-run against a database editors have been working in.
+ * Three files are written next to each other:
+ *
+ *  - seed.json: the content model (collections and fields), the site's title
+ *    and description, and one published entry per MDX file. For a new
+ *    database. Applying it skips entries that already exist.
+ *  - model.json: the content model alone. The container applies it on every
+ *    start, with updates, so a field added here reaches a live site. It has no
+ *    settings, so a title an editor changed is not put back.
+ *  - short-changelogs.json: the one-line changelog entries from
+ *    src/data/changelog.json, as changelogs with no body. Applied once by
+ *    scripts/emdash-import-once.mjs, so an entry an editor deleted stays gone.
  *
  * src/lib/content-source/emdash.ts reads these fields back; change the two
  * together.
@@ -16,6 +24,7 @@ import { basename, join } from "node:path";
 import { parseFrontmatter } from "@astrojs/markdown-remark";
 import { slug as slugify } from "github-slugger";
 import siteData from "../src/data/site.json";
+import shortChangelogData from "../src/data/changelog.json";
 
 const CONTENT_DIR = "src/content";
 const OUT_FILE = process.argv[2] ?? "seed/seed.json";
@@ -142,16 +151,35 @@ const changelogs: Entry[] = (
     excerpt: frontmatter.excerpt,
     response_to: joined(frontmatter.responseTo),
     follow_up_to: joined(frontmatter.followUpTo),
+    body_format: "mdx",
     body,
   }),
 }));
+
+// One-line entries. A changelog with no body is drawn as one line, its title
+// being the change, and gets no page of its own.
+const shortChangelogs: Entry[] = shortChangelogData.map((entry) => {
+  const slug = slugify(`${entry.date} ${entry.change}`);
+  return {
+    id: `changelog:${slug}`,
+    slug,
+    status: "published",
+    data: withoutEmpty({
+      title: entry.change,
+      date: dateString(entry.date, "src/data/changelog.json"),
+      author: joined(entry.author),
+      body_format: "mdx",
+      body: "",
+    }),
+  };
+});
 
 const pages: Entry[] = (await readMdx(join(CONTENT_DIR, "pages"))).map(
   ({ slug, frontmatter, body }) => ({
     id: `page:${slug}`,
     slug,
     status: "published",
-    data: withoutEmpty({ title: frontmatter.title, body }),
+    data: withoutEmpty({ title: frontmatter.title, body_format: "mdx", body }),
   }),
 );
 
@@ -230,30 +258,32 @@ const bodyFormat = {
   validation: { options: ["mdx", "slack", "rich"] },
   options: {
     helpText:
-      "mdx for articles written here as text. rich for articles written in the rich-text editor (the Body field below the MDX one). slack for articles brought over from Slack, which keep Slack's formatting.",
+      "Which body the article is made from. New articles are rich text. MDX is for articles moved from the files, and for editors who need code; submitters only get rich text. slack is for articles brought over from Slack, which keep Slack's formatting.",
   },
 };
 const body = {
   slug: "body",
-  label: "Body (MDX)",
+  // Only one body is shown at a time, picked by the body format, so both are
+  // simply called Body.
+  label: "Body",
   type: "text",
   searchable: true,
   options: {
     rows: 30,
     helpText:
-      "Markdown, plus the components Caption, Emoji, M, RawHtml, SlackChannel, SlackMention and YouTube. No imports needed.",
+      "MDX: markdown, plus the components Caption, Emoji, M, RawHtml, SlackChannel, SlackMention and YouTube. No imports needed.",
   },
 };
 // The rich-text editor. Used when Body format is "rich"; its content becomes
 // MDX when the page is drawn (src/cms/rich/to-mdx.ts).
 const bodyRich = {
   slug: "body_rich",
-  label: "Body (rich text)",
+  label: "Body",
   type: "portableText",
   searchable: true,
   options: {
     helpText:
-      "Used when Body format is rich. Type / to add a video, a Slack mention and other components.",
+      "Type / for a video, formula or other block, @ for a Slack person, # for a channel, :name: for an emoji and $$x^2$$ for a formula in a sentence.",
   },
 };
 const supports = ["drafts", "revisions", "search"];
@@ -306,7 +336,14 @@ const seed = {
               "Readers must sign in with Hack Club to read this. It is left out of the front page, archives, search and RSS for everyone else.",
           },
         },
-        { slug: "legacy_id", label: "Legacy ID", type: "string" },
+        // The `id` the MDX files gave some posts. Kept, never edited.
+        {
+          slug: "legacy_id",
+          label: "Legacy ID",
+          type: "string",
+          widget: "newsroom:hidden",
+          options: { field: "legacy_id" },
+        },
         bodyFormat,
         body,
         bodyRich,
@@ -321,12 +358,20 @@ const seed = {
       dateField: "date",
       supports,
       fields: [
-        title,
+        {
+          ...title,
+          options: {
+            helpText:
+              "With no body, this is a one-line entry on the changelog page, and the title is the change.",
+          },
+        },
         date,
-        { ...author, required: true },
+        author,
         excerpt,
         ...references,
+        bodyFormat,
         body,
+        bodyRich,
       ],
     },
     {
@@ -336,14 +381,24 @@ const seed = {
       urlPattern: "/{slug}",
       sortOrder: 3,
       supports,
-      fields: [{ ...title, required: false }, body],
+      fields: [{ ...title, required: false }, bodyFormat, body, bodyRich],
     },
   ],
   content: { posts, changelogs, pages },
 };
 
-await mkdir(join(OUT_FILE, ".."), { recursive: true });
-await writeFile(OUT_FILE, `${JSON.stringify(seed, null, 2)}\n`);
+const dir = join(OUT_FILE, "..");
+const write = (file: string, data: unknown) =>
+  writeFile(file, `${JSON.stringify(data, null, 2)}\n`);
+await mkdir(dir, { recursive: true });
+await write(OUT_FILE, seed);
+const { settings: _settings, content: _content, ...model } = seed;
+await write(join(dir, "model.json"), model);
+await write(join(dir, "short-changelogs.json"), {
+  ...model,
+  meta: { ...model.meta, description: "One-line changelog entries." },
+  content: { changelogs: shortChangelogs },
+});
 console.log(
-  `${OUT_FILE}: ${posts.length} posts, ${changelogs.length} changelogs, ${pages.length} pages`,
+  `${OUT_FILE}: ${posts.length} posts, ${changelogs.length} changelogs, ${pages.length} pages; ${shortChangelogs.length} one-line changelogs`,
 );
