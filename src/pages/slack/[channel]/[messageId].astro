@@ -6,6 +6,7 @@ import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn,  slackLi
 import IndigestMetadata from "../../../components/IndigestMetadata.astro";
 import SlackMention from "../../../components/SlackMention.astro";
 import SlackRichText from "../../../components/SlackRichText.astro";
+import SlackAvatar from "../../../components/SlackAvatar.astro";
 
 export const prerender = false;
 
@@ -77,7 +78,7 @@ if (!column || !message) {
             <a class="page-link" href={`/slack/${encodeURIComponent(channel)}/`}>{column.title}</a>
           </span>
           <span class="story-author" data-vt-byline={bylineTransitionName(Astro.url.pathname)}>
-            By <SlackMention name={message.userName || message.userId} id={message.userId} />
+            By <SlackAvatar id={message.userId} /><SlackMention name={message.userName || message.userId} id={message.userId} />
           </span>
           {" — "}
           <time datetime={message.timestamp}>
