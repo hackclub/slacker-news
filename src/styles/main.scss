@@ -1383,13 +1383,11 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-// Titles change size and line breaks between pages, and stretching one
-// snapshot into the other's box distorts the letters. Both snapshots keep
-// their natural size, pinned top-left, and cross-fade while the box moves.
+// Both title snapshots scale with the box's width, keeping their proportions,
+// so a headline shrinks into its card title and grows back out of it while
+// the two cross-fade.
 ::view-transition-old(*.carried),
 ::view-transition-new(*.carried) {
-  width: auto;
-  height: auto;
   animation-duration: var(--carry-duration, 0.32s);
 }
 
