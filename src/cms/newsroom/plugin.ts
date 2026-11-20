@@ -38,6 +38,7 @@ import {
   type Policy,
   type Review,
   type ReviewComment,
+  type ReviewEvent,
 } from "./review";
 import {
   post,
@@ -1030,51 +1031,175 @@ async function reviewsIn(ctx: Ctx, state: Review["state"]): Promise<Row[]> {
   return items;
 }
 
+/** When the review last saw `action`, and who did it. */
+function lastEvent(review: Review, action: ReviewEvent["action"]) {
+  return review.history.findLast((event) => event.action === action);
+}
+
+async function nameOf(ctx: Ctx, userId?: string) {
+  if (!userId) return "";
+  return (await ctx.users?.get(userId))?.name ?? "Someone";
+}
+
+/**
+ * One table of articles. `since` is the event that put them there; `extra`
+ * adds a column of its own between the people and the Open link.
+ */
+async function queueTable(
+  ctx: Ctx,
+  rows: Row[],
+  options: {
+    since: ReviewEvent["action"];
+    when: string;
+    empty: string;
+    extra?: { label: string; of: (row: Row) => string | Promise<string> };
+  },
+) {
+  const lines = await Promise.all(
+    rows.map(async (row) => {
+      const { id, data } = row;
+      return {
+        at: lastEvent(data, options.since)?.at ?? "",
+        title: await titleOf(ctx, data.collection, id),
+        author: await nameOf(ctx, data.submittedBy),
+        extra: options.extra ? await options.extra.of(row) : "",
+        open: {
+          type: "link",
+          label: "Open",
+          appearance: "secondary",
+          target: { kind: "content", collection: data.collection, id },
+        },
+      };
+    }),
+  );
+  // The article that has waited longest comes first.
+  lines.sort((a, b) => a.at.localeCompare(b.at));
+  return {
+    type: "table",
+    columns: [
+      { key: "title", label: "Article" },
+      { key: "author", label: "Sent by" },
+      { key: "at", label: options.when, format: "relative_time" },
+      ...(options.extra ? [{ key: "extra", label: options.extra.label }] : []),
+      { key: "open", label: "", format: "element" },
+    ],
+    rows: lines,
+    page_action_id: "queue-page",
+    empty_text: options.empty,
+  };
+}
+
 async function queue(ctx: Ctx) {
   const actor = who(ctx);
   const { policy } = await rules(ctx);
-  const waiting = await reviewsIn(ctx, "in_review");
-  const returned = await reviewsIn(ctx, "changes_requested");
-  const blocks: unknown[] = [
-    {
-      type: "stats",
-      items: [
-        { label: "Waiting for review", value: waiting.length },
-        { label: "Returned to authors", value: returned.length },
-        { label: "Approvals needed", value: policy.required },
-      ],
-    },
-  ];
-  const list = async (title: string, rows: Row[]) => {
-    blocks.push({ type: "header", text: title });
-    if (!rows.length) {
-      blocks.push({ type: "context", text: "Nothing here." });
-      return;
+  // A review outlives its article: it stays approved once the article is
+  // live, and it is kept when the article goes to the trash.
+  const open = async (state: Review["state"]) => {
+    const rows: Row[] = [];
+    for (const row of await reviewsIn(ctx, state)) {
+      const item = await ctx.content.get(row.data.collection, row.id);
+      if (!item) continue;
+      if (state === "approved" && item.status === "published") continue;
+      rows.push(row);
     }
-    for (const { id, data } of rows) {
-      const name = await titleOf(ctx, data.collection, id);
-      const mine = data.approvals.some((entry) => entry.by === actor.id);
-      blocks.push(
-        {
-          type: "section",
-          text: `${name}\n${pretty(data.state)} · ${data.approvals.length} of ${policy.required} approvals${mine ? " · you approved" : ""}`,
-        },
-        {
-          type: "actions",
-          elements: [
-            {
-              type: "link",
-              label: "Open",
-              target: { kind: "content", collection: data.collection, id },
-            },
-          ],
-        },
-      );
-    }
+    return rows;
   };
-  await list("Waiting for review", waiting);
-  await list("Returned to authors", returned);
-  return { blocks };
+  const [waiting, returned, approved] = await Promise.all([
+    open("in_review"),
+    open("changes_requested"),
+    open("approved"),
+  ]);
+  const approvedByMe = (row: Row) =>
+    row.data.approvals.some((entry) => entry.by === actor.id);
+  const forMe = waiting.filter((row) => !approvedByMe(row));
+  const forOthers = waiting.filter(approvedByMe);
+  // With one approval needed, nothing waits on a second editor.
+  const several = policy.required > 1 || forOthers.length > 0;
+  const approvals = {
+    label: "Approvals",
+    of: (row: Row) => `${row.data.approvals.length} of ${policy.required}`,
+  };
+  const tab = (label: string, rows: Row[], table: unknown) => ({
+    label: rows.length ? `${label} (${rows.length})` : label,
+    blocks: [table],
+  });
+  return {
+    blocks: [
+      { type: "header", text: "Review queue" },
+      {
+        type: "stats",
+        items: [
+          { label: "Waiting for you", value: forMe.length },
+          ...(several
+            ? [{ label: "Waiting for other editors", value: forOthers.length }]
+            : []),
+          { label: "Returned to authors", value: returned.length },
+          { label: "Ready to publish", value: approved.length },
+        ],
+      },
+      {
+        type: "tab",
+        panels: [
+          tab(
+            "Waiting for you",
+            forMe,
+            await queueTable(ctx, forMe, {
+              since: "submitted",
+              when: "Sent",
+              empty: "Nothing is waiting for you.",
+              extra: approvals,
+            }),
+          ),
+          ...(several
+            ? [
+                tab(
+                  "Waiting for other editors",
+                  forOthers,
+                  await queueTable(ctx, forOthers, {
+                    since: "submitted",
+                    when: "Sent",
+                    empty:
+                      "No article that you approved needs another approval.",
+                    extra: approvals,
+                  }),
+                ),
+              ]
+            : []),
+          tab(
+            "Returned to authors",
+            returned,
+            await queueTable(ctx, returned, {
+              since: "changes_requested",
+              when: "Returned",
+              empty: "No article is back with its author.",
+              extra: {
+                label: "Returned by",
+                of: (row) =>
+                  nameOf(ctx, lastEvent(row.data, "changes_requested")?.by),
+              },
+            }),
+          ),
+          tab(
+            "Ready to publish",
+            approved,
+            await queueTable(ctx, approved, {
+              since: "approved",
+              when: "Approved",
+              empty: "No approved article is waiting to be published.",
+              extra: {
+                label: "Approved by",
+                of: (row) => nameOf(ctx, row.data.approvedBy),
+              },
+            }),
+          ),
+        ],
+      },
+      {
+        type: "context",
+        text: `An article needs ${policy.required} ${policy.required === 1 ? "approval" : "approvals"} before it can be published.`,
+      },
+    ],
+  };
 }
 
 async function widget(ctx: Ctx) {
