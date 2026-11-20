@@ -1,0 +1,136 @@
+---
+import CommentItem from "./CommentItem.astro";
+import {
+  COMMENT_LIMITS,
+  LOGGED_IN_COOKIE,
+  commentLimitsEnabled,
+  getComments,
+  nestComments,
+} from "../lib/comments";
+import { slackLinkFromMessageId } from "../lib/indigest";
+import { getSlackUserDisplayName } from "../lib/slack-users";
+
+// The comments under an article: replies to its card in the comments channel,
+// shown only to logged-in readers. Always rendered per request, because it
+// depends on who is reading.
+interface Props {
+  // The article's path, such as /news/some-slug/.
+  articleKey: string;
+}
+
+const { articleKey } = Astro.props;
+const user = Astro.locals.user;
+
+// Never let one reader's view be cached for another.
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+// Lets the page show a skeleton for logged-in readers while this loads.
+if (user) {
+  Astro.cookies.set(LOGGED_IN_COOKIE, "1", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+    sameSite: "lax",
+    secure: import.meta.env.PROD,
+    httpOnly: false,
+  });
+} else {
+  Astro.cookies.delete(LOGGED_IN_COOKIE, { path: "/" });
+}
+
+const result = user ? await getComments(articleKey, user.slackId) : undefined;
+
+// Each name is a lookup of its own. Starting them together makes the wait the
+// slowest one, not the sum, before the list below asks for them one by one.
+if (result?.status === "ok") {
+  await Promise.all(result.comments.map((comment) => getSlackUserDisplayName(comment.userId)));
+}
+const enabled = Boolean(import.meta.env.COMMENTS_CHANNEL_ID?.trim());
+const replyUrl =
+  result?.status === "ok" && result.card
+    ? slackLinkFromMessageId(result.card.channelId, result.card.slackTs)
+    : undefined;
+
+// Comments that link to an earlier one are shown nested under it.
+const threads =
+  result?.status === "ok" && result.card
+    ? nestComments(result.comments, result.card.channelId)
+    : [];
+---
+
+{
+  enabled && (
+    <section class="comments" id="comments">
+      <h2 class="comments-title">Comments</h2>
+      {!user ? (
+        <p class="comments-note">
+          <a href={`/auth/login?returnTo=${encodeURIComponent(`${articleKey}#comments`)}`}>Log in</a> to read and
+          join the discussion.
+        </p>
+      ) : result?.status === "unavailable" ? (
+        <p class="comments-note">Comments are unavailable right now.</p>
+      ) : result?.status === "ok" && !result.card ? (
+        <p class="comments-note">Comments are not open on this article.</p>
+      ) : result?.status === "ok" ? (
+        <>
+          {result.comments.length === 0 ? (
+            <p class="comments-note">No comments yet.</p>
+          ) : (
+            <ol class="comment-list">
+              {threads.map((node) => (
+                <CommentItem node={node} card={result.card!} />
+              ))}
+            </ol>
+          )}
+          <p class="comments-note">
+            Comments are replies in Slack, on this article's post in the comments channel{replyUrl ? (
+              <>
+                {" — "}
+                <a href={replyUrl} target="_blank" rel="noreferrer noopener">reply in Slack</a>.
+              </>
+            ) : (
+              "."
+            )}
+            {commentLimitsEnabled() && (
+              <>
+                {" "}
+                Each account gets {COMMENT_LIMITS.perDay} a day and {COMMENT_LIMITS.total} in all.
+                {result.viewer && ` You have used ${result.viewer.used} of ${result.viewer.total}.`}
+              </>
+            )}
+          </p>
+        </>
+      ) : null}
+    </section>
+  )
+}
+
+<style>
+  .comments {
+    margin: 2rem 0 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #000;
+  }
+
+  .comments-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .comment-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+
+  .comments-note {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+  }
+
+  .comments a {
+    color: inherit;
+    text-decoration: underline;
+  }
+</style>
