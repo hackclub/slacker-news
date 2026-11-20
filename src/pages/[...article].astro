@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../lib/transitions";
+import { dateTransitionName, bylineTransitionName, excerptTransitionName, titleTransitionName } from "../lib/transitions";
 import { getSiteConfig } from "../lib/content";
 import { getMarkdownColumnArticles, MARKDOWN_COLUMNS } from "../lib/indigest";
 import SlackMention from "../components/SlackMention.astro";
@@ -70,7 +70,7 @@ const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[
         {!Number.isNaN(article.date.getTime()) && (
           <>
             {" — "}
-            <time datetime={article.date.toISOString()}>
+            <time data-vt-date={dateTransitionName(Astro.url.pathname)} datetime={article.date.toISOString()}>
               {article.hasTime
                 ? article.date.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })
                 : article.date.toLocaleDateString("en-US", { dateStyle: "long" })}

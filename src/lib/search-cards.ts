@@ -3,6 +3,7 @@
 import type { SearchDocument } from "./search";
 import {
   bylineTransitionName,
+  dateTransitionName,
   excerptTransitionName,
   readingTimeTransitionName,
   titleTransitionName,
@@ -102,7 +103,7 @@ export const cardHtml = (
       <a href="${doc.url}" class="front-block story-block search-result">
         <header class="story-card-header">
           <h3 class="story-block-title" data-vt-title="${titleTransitionName(doc.url)}">${titleHtml}</h3>
-          ${date ? `<time class="story-card-date" datetime="${doc.date}">${date}</time>` : ""}
+          ${date ? `<time class="story-card-date" datetime="${doc.date}" data-vt-date="${dateTransitionName(doc.url)}">${date}</time>` : ""}
         </header>
         <p class="story-block-excerpt" data-vt-excerpt="${excerptTransitionName(doc.url)}">${chipsHtml(previewHtml, doc)}</p>
         <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${byline ? byline + " · " : ""}<span class="search-reading-time" data-vt-reading-time="${readingTimeTransitionName(doc.url)}">${doc.readingTime} min read</span></span>

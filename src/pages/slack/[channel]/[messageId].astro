@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../../../lib/transitions";
+import { dateTransitionName, bylineTransitionName, excerptTransitionName, titleTransitionName } from "../../../lib/transitions";
 import { getSiteConfig } from "../../../lib/content";
 import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn,  slackLinkFromMessageId } from "../../../lib/indigest";
 import IndigestMetadata from "../../../components/IndigestMetadata.astro";
@@ -81,7 +81,7 @@ if (!column || !message) {
             By <SlackAvatar id={message.userId} /><SlackMention name={message.userName || message.userId} id={message.userId} />
           </span>
           {" — "}
-          <time datetime={message.timestamp}>
+          <time data-vt-date={dateTransitionName(Astro.url.pathname)} datetime={message.timestamp}>
             {new Date(message.timestamp).toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })}
           </time>
         </div>

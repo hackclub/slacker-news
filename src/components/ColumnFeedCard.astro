@@ -4,6 +4,7 @@ import Byline from "./Byline.astro";
 import type { ColumnFeedItem } from "../lib/column-feed";
 import { truncateWords, formatStoryDate } from "../lib/content";
 import {
+  dateTransitionName,
   excerptTransitionName,
   readingTimeTransitionName,
   titleTransitionName,
@@ -59,7 +60,7 @@ const excerptClass = variant === "opinion" ? "opinion-excerpt" : "story-block-ex
   <a href={href} class:list={[cardClass]}>
     <header class="story-card-header">
       <h3 class={titleClass} data-vt-title={titleTransitionName(href)}>{title}</h3>
-      {date ? (<time class="story-card-date" datetime={date.toISOString()}>{formatStoryDate(date)}</time>) : null}
+      {date ? (<time class="story-card-date" datetime={date.toISOString()} data-vt-date={dateTransitionName(href)}>{formatStoryDate(date)}</time>) : null}
     </header>
     {isSlack ? (
       <p class:list={[excerptClass, "slack-feed-excerpt"]} data-vt-excerpt={excerptTransitionName(href)}>

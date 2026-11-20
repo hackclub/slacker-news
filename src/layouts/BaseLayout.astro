@@ -76,6 +76,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     <script>
       import {
         bylineTransitionName,
+        dateTransitionName,
         excerptTransitionName,
         readingTimeTransitionName,
         titleTransitionName,
@@ -167,6 +168,8 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           carry(root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`), title, "carried");
           const byline = bylineTransitionName(path);
           carry(root.querySelector(`[data-vt-byline="${CSS.escape(byline)}"]`), byline, "carried");
+          const date = dateTransitionName(path);
+          carry(root.querySelector(`[data-vt-date="${CSS.escape(date)}"]`), date, "carried");
           const readingTime = readingTimeTransitionName(path);
           carry(
             root.querySelector(`[data-vt-reading-time="${CSS.escape(readingTime)}"]`),

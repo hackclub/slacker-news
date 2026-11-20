@@ -21,6 +21,10 @@ export function bylineTransitionName(path: string): string {
   return `byline-${pathKey(path)}`;
 }
 
+export function dateTransitionName(path: string): string {
+  return `date-${pathKey(path)}`;
+}
+
 export function readingTimeTransitionName(path: string): string {
   return `reading-time-${pathKey(path)}`;
 }
