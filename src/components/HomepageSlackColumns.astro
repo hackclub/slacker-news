@@ -2,7 +2,7 @@
 import IndigestMetadata from "./IndigestMetadata.astro";
 import SlackRichText from "./SlackRichText.astro";
 import Byline from "./Byline.astro";
-import { titleTransitionName } from "../lib/transitions";
+import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
 import { getSlackColumnData, getSlackColumns, firstMetadataValue } from "../lib/indigest";
 import { getPosts } from "../lib/content";
 import type { IndigestMessage } from "../lib/indigest";
@@ -65,7 +65,7 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
               aria-label={`Read ${cardTitle(column, message)}`}
             >Open message</a>
             <h3
-              class="slack-column-card-title vt-title"
+              class="slack-column-card-title"
               data-vt-title={titleTransitionName(`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`)}
             >
               <a
@@ -76,7 +76,7 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
               </a>
               {" "}<Byline slackUserId={message.userId} slackUserName={message.userName} />
             </h3>
-            <span><SlackRichText text={message.text} /></span>
+            <span data-vt-excerpt={excerptTransitionName(`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`)}><SlackRichText text={message.text} /></span>
             {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={column.metadataSchema} compact />}
           </article>
          

@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { titleTransitionName } from "../../../lib/transitions";
+import { excerptTransitionName, titleTransitionName } from "../../../lib/transitions";
 import { getSiteConfig } from "../../../lib/content";
 import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn,  slackLinkFromMessageId } from "../../../lib/indigest";
 import IndigestMetadata from "../../../components/IndigestMetadata.astro";
@@ -71,7 +71,7 @@ if (!column || !message) {
   {column && message ? (
     <article class="story-page slack-story-page">
       <header class="story-header">
-        <h1 class="story-title vt-title" data-vt-title={titleTransitionName(Astro.url.pathname)}>{messageTitle}</h1>
+        <h1 class="story-title" data-vt-title={titleTransitionName(Astro.url.pathname)}>{messageTitle}</h1>
         <div class="story-meta">
           <span class="story-category">
             <a class="page-link" href={`/slack/${encodeURIComponent(channel)}/`}>{column.title}</a>
@@ -87,7 +87,7 @@ if (!column || !message) {
         <hr class="story-rule" />
       </header>
 
-      <div class="story-body slack-story-body">
+      <div class="story-body slack-story-body" data-vt-body={excerptTransitionName(Astro.url.pathname)}>
         <SlackRichText text={message.text} />
         {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={metadataSchema} />}
       </div>

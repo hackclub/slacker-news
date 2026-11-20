@@ -3,7 +3,7 @@ import SlackRichText from "./SlackRichText.astro";
 import Byline from "./Byline.astro";
 import type { ColumnFeedItem } from "../lib/column-feed";
 import { truncateWords, formatStoryDate } from "../lib/content";
-import { titleTransitionName } from "../lib/transitions";
+import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
 
 interface Props {
   item: ColumnFeedItem;
@@ -37,32 +37,32 @@ const excerptClass = variant === "opinion" ? "opinion-excerpt" : "story-block-ex
   <article class:list={[cardClass, "linked-card"]}>
     <a class="linked-card-cover" href={href} aria-hidden="true" tabindex="-1"></a>
     <header class="story-card-header">
-      <h3 class:list={[titleClass, "vt-title"]} data-vt-title={titleTransitionName(href)}>
+      <h3 class={titleClass} data-vt-title={titleTransitionName(href)}>
         <a class="linked-card-title" href={href}>{title}</a>
         {" "}<Byline {...byline} />
       </h3>
     </header>
     {isSlack ? (
-      <p class:list={[excerptClass, "slack-feed-excerpt"]}>
+      <p class:list={[excerptClass, "slack-feed-excerpt"]} data-vt-excerpt={excerptTransitionName(href)}>
         <SlackRichText text={truncatedExcerpt} />
       </p>
     ) : (
-      <p class={excerptClass}>{truncatedExcerpt}</p>
+      <p class={excerptClass} data-vt-excerpt={excerptTransitionName(href)}>{truncatedExcerpt}</p>
     )}
     <span class="reading-time">{isSlack ? item.readingTime : item.post.readingTime} min read</span>
   </article>
 ) : (
   <a href={href} class:list={[cardClass]}>
     <header class="story-card-header">
-      <h3 class:list={[titleClass, "vt-title"]} data-vt-title={titleTransitionName(href)}>{title}</h3>
+      <h3 class={titleClass} data-vt-title={titleTransitionName(href)}>{title}</h3>
       {date ? (<time class="story-card-date" datetime={date.toISOString()}>{formatStoryDate(date)}</time>) : null}
     </header>
     {isSlack ? (
-      <p class:list={[excerptClass, "slack-feed-excerpt"]}>
+      <p class:list={[excerptClass, "slack-feed-excerpt"]} data-vt-excerpt={excerptTransitionName(href)}>
         <SlackRichText text={truncatedExcerpt} />
       </p>
     ) : (
-      <p class={excerptClass}>{truncatedExcerpt}</p>
+      <p class={excerptClass} data-vt-excerpt={excerptTransitionName(href)}>{truncatedExcerpt}</p>
     )}
     <span class="reading-time">{isSlack ? item.readingTime : item.post.readingTime} min read</span>
   </a>

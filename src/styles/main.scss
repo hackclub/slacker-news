@@ -1372,42 +1372,39 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 }
 
 // ─── Page transitions ────────────────────────────────────────────────────────
-// The page swaps without animating (<html transition:animate="none">). Only a
-// title shared by the two pages moves, from where it was to where it lands,
-// the way the persisted newswire ticker carries across navigation.
+// The page swaps without animating (<html transition:animate="none">). Only
+// the title and excerpt shared by the two pages move, from where they were to
+// where they land, the way the persisted newswire ticker carries across
+// navigation. BaseLayout's script gives them the "carried" class.
 
-.vt-title {
-  view-transition-class: article-title;
-}
-
-::view-transition-group(*.article-title) {
-  animation-duration: var(--title-transition-duration, 0.32s);
+::view-transition-group(*.carried) {
+  animation-duration: var(--carry-duration, 0.32s);
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-// Titles change size and line breaks between pages, and stretching one
+// Titles and excerpts change size and line breaks between pages, and stretching one
 // snapshot into the other's box distorts the letters. Both snapshots keep
 // their own size, pinned top-left, and cross-fade while the box moves.
-::view-transition-old(*.article-title),
-::view-transition-new(*.article-title) {
+::view-transition-old(*.carried),
+::view-transition-new(*.carried) {
   height: 100%;
   object-fit: none;
   object-position: left top;
-  animation-duration: var(--title-transition-duration, 0.32s);
+  animation-duration: var(--carry-duration, 0.32s);
 }
 
 // Dark mode inverts the page with a filter on <html>. Chrome snapshots the
-// outgoing title through that filter and loses the text (it comes out as a
-// solid block), and draws the incoming one without it. So in dark mode only
-// the incoming title moves, given the same filter, starting at the old
-// title's spot and strength.
+// outgoing title or excerpt through that filter and loses the text (it comes
+// out as a solid block), and draws the incoming one without it. So in dark
+// mode only the incoming element moves, given the same filter, starting at
+// the old one's spot.
 html.dark-mode {
-  &::view-transition-old(*.article-title) {
+  &::view-transition-old(*.carried) {
     animation: none;
     opacity: 0;
   }
 
-  &::view-transition-new(*.article-title) {
+  &::view-transition-new(*.carried) {
     filter: invert(1) hue-rotate(180deg);
     mix-blend-mode: normal;
     animation-name: title-in-dark;
@@ -1416,12 +1413,12 @@ html.dark-mode {
 
 @media (prefers-color-scheme: dark) {
   html:not(.light-mode):not(.dark-mode) {
-    &::view-transition-old(*.article-title) {
+    &::view-transition-old(*.carried) {
       animation: none;
       opacity: 0;
     }
 
-    &::view-transition-new(*.article-title) {
+    &::view-transition-new(*.carried) {
       filter: invert(1) hue-rotate(180deg);
       mix-blend-mode: normal;
       animation-name: title-in-dark;
@@ -1436,9 +1433,9 @@ html.dark-mode {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*.article-title),
-  ::view-transition-old(*.article-title),
-  ::view-transition-new(*.article-title) {
+  ::view-transition-group(*.carried),
+  ::view-transition-old(*.carried),
+  ::view-transition-new(*.carried) {
     animation: none !important;
   }
 }

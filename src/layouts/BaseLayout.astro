@@ -74,35 +74,51 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 
     <ClientRouter />
     <script>
-      import { titleTransitionName } from "../lib/transitions";
+      import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
       import type {
         TransitionBeforePreparationEvent,
         TransitionBeforeSwapEvent,
       } from "astro:transitions/client";
 
-      // Name only the title tied to this navigation: the one for the page
-      // being opened and the one for the page being left. Every other title
-      // stays unnamed, so the rest of the page swaps without animating.
-      let titleKeys: string[] = [];
+      // Carry the title and excerpt tied to this navigation: those for the
+      // page being opened and for the page being left. Everything else stays
+      // unnamed, so the rest of the page swaps without animating.
+      let paths: string[] = [];
 
-      function nameTitles(root: Document) {
-        root.querySelectorAll<HTMLElement>("[data-vt-title]").forEach((title) => {
-          title.style.viewTransitionName = "";
+      function carry(element: Element | null, name: string) {
+        if (!(element instanceof HTMLElement)) return;
+        element.style.viewTransitionName = name;
+        element.style.setProperty("view-transition-class", "carried");
+        element.dataset.vtCarried = "";
+      }
+
+      function nameCarried(root: Document) {
+        root.querySelectorAll<HTMLElement>("[data-vt-carried]").forEach((element) => {
+          element.style.viewTransitionName = "";
+          element.style.removeProperty("view-transition-class");
+          delete element.dataset.vtCarried;
         });
-        for (const key of new Set(titleKeys)) {
-          const title = root.querySelector<HTMLElement>(`[data-vt-title="${CSS.escape(key)}"]`);
-          if (title) title.style.viewTransitionName = key;
+        for (const path of new Set(paths)) {
+          const title = titleTransitionName(path);
+          const excerpt = excerptTransitionName(path);
+          carry(root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`), title);
+          // On a card it's the excerpt; on the article, its first paragraph.
+          carry(
+            root.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`) ??
+              root.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"] p`),
+            excerpt,
+          );
         }
       }
 
       document.addEventListener("astro:before-preparation", (event) => {
         const { from, to } = event as TransitionBeforePreparationEvent;
-        titleKeys = [titleTransitionName(to.pathname), titleTransitionName(from.pathname)];
-        nameTitles(document);
+        paths = [to.pathname, from.pathname];
+        nameCarried(document);
       });
 
       document.addEventListener("astro:before-swap", (event) => {
-        nameTitles((event as TransitionBeforeSwapEvent).newDocument);
+        nameCarried((event as TransitionBeforeSwapEvent).newDocument);
       });
     </script>
 
