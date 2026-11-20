@@ -22,7 +22,7 @@ const changelogEntries = await getChangelogEntries();
               </h3>
               <p class="story-block-excerpt" data-vt-excerpt={excerptTransitionName(entry.url)}>{truncateWords(entry.excerpt, 18)}</p>
               <span class="story-block-meta">
-                {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
+                {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} avatars />
               </span>
             </div>
           );
@@ -32,7 +32,7 @@ const changelogEntries = await getChangelogEntries();
           <div class="changelog-archive-item">
             <span class="changelog-change">{entry.change}</span>
             <span class="changelog-meta">
-              {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
+              {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} avatars />
             </span>
           </div>
         );
