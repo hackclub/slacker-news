@@ -971,6 +971,12 @@ $front-max: 1200px;
 .slack-story-body {
   white-space: pre-wrap;
 
+  // One blank line between paragraphs, as the message had.
+  .slack-paragraph + .slack-paragraph {
+    margin-top: 1.6em;
+    margin-top: 1lh;
+  }
+
   .slack-metadata {
     white-space: normal;
   }
