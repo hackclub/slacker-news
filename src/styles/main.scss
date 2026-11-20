@@ -261,6 +261,18 @@ $front-max: 1200px;
   color: #555;
 }
 
+// A carried title travels without its byline: scaled with the title, the
+// mention chips' backgrounds read as a ghost box behind it. The byline is
+// hidden at once and fades back in after the title lands.
+.byline {
+  transition: opacity 0.2s ease-out;
+}
+
+[data-vt-carried] .byline {
+  opacity: 0;
+  transition: none;
+}
+
 // Beside the big uppercase lead headline the byline stays reading size.
 .block-headline .byline {
   font-size: 0.45em;
@@ -1383,12 +1395,18 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-// Both title snapshots scale with the box's width, keeping their proportions,
-// so a headline shrinks into its card title and grows back out of it while
-// the two cross-fade.
-::view-transition-old(*.carried),
+// Only the destination title is drawn. It starts at the clicked title's
+// place and width and scales into its own, so there is one copy of the words
+// throughout. Cross-fading two copies left a ghost: they scale by their box
+// widths, which don't match the text, so the copies drift apart.
+::view-transition-old(*.carried) {
+  animation: none;
+  opacity: 0;
+}
+
 ::view-transition-new(*.carried) {
-  animation-duration: var(--carry-duration, 0.32s);
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 // Excerpts don't travel. A card excerpt and an article body differ too much
@@ -1418,23 +1436,10 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   }
 }
 
-// Dark mode inverts the page with a filter on <html>. Chrome snapshots the
-// outgoing title through that filter and loses the text (it comes out as a
-// solid block), and draws the incoming one without it. So in dark mode only
-// the incoming title moves, starting at the old one's spot, and incoming
-// snapshots get the same filter.
+// Dark mode inverts the page with a filter on <html>, and Chrome draws the
+// destination snapshots without it, so give them the same filter.
 html.dark-mode {
-  &::view-transition-old(*.carried) {
-    animation: none;
-    opacity: 0;
-  }
-
-  &::view-transition-new(*.carried) {
-    filter: invert(1) hue-rotate(180deg);
-    mix-blend-mode: normal;
-    animation-name: title-in-dark;
-  }
-
+  &::view-transition-new(*.carried),
   &::view-transition-new(*.carried-excerpt) {
     filter: invert(1) hue-rotate(180deg);
   }
@@ -1442,26 +1447,10 @@ html.dark-mode {
 
 @media (prefers-color-scheme: dark) {
   html:not(.light-mode):not(.dark-mode) {
-    &::view-transition-old(*.carried) {
-      animation: none;
-      opacity: 0;
-    }
-
-    &::view-transition-new(*.carried) {
-      filter: invert(1) hue-rotate(180deg);
-      mix-blend-mode: normal;
-      animation-name: title-in-dark;
-    }
-
+    &::view-transition-new(*.carried),
     &::view-transition-new(*.carried-excerpt) {
       filter: invert(1) hue-rotate(180deg);
     }
-  }
-}
-
-@keyframes title-in-dark {
-  from {
-    opacity: 0.6;
   }
 }
 

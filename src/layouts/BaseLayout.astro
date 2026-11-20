@@ -92,12 +92,16 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         element.dataset.vtCarried = "";
       }
 
-      function nameCarried(root: Document) {
+      function clearCarried(root: Document) {
         root.querySelectorAll<HTMLElement>("[data-vt-carried]").forEach((element) => {
           element.style.viewTransitionName = "";
           element.style.removeProperty("view-transition-class");
           delete element.dataset.vtCarried;
         });
+      }
+
+      function nameCarried(root: Document) {
+        clearCarried(root);
         for (const path of new Set(paths)) {
           const title = titleTransitionName(path);
           const excerpt = excerptTransitionName(path);
@@ -120,7 +124,11 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       });
 
       document.addEventListener("astro:before-swap", (event) => {
-        nameCarried((event as TransitionBeforeSwapEvent).newDocument);
+        const { newDocument, viewTransition } = event as TransitionBeforeSwapEvent;
+        nameCarried(newDocument);
+        // Unmark once the title has landed, which also brings its byline
+        // back (see .byline in main.scss).
+        void (viewTransition?.finished ?? Promise.resolve()).finally(() => clearCarried(document));
       });
     </script>
 
