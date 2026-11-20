@@ -74,14 +74,20 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 
     <ClientRouter />
     <script>
-      import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
+      import {
+        bylineTransitionName,
+        excerptTransitionName,
+        readingTimeTransitionName,
+        titleTransitionName,
+      } from "../lib/transitions";
       import type {
         TransitionBeforePreparationEvent,
         TransitionBeforeSwapEvent,
       } from "astro:transitions/client";
 
-      // Carry the title and excerpt tied to this navigation: those for the
-      // page being opened and for the page being left. Everything else stays
+      // Carry the title, byline, read time and excerpt tied to this
+      // navigation: those for the page being opened and for the page being
+      // left. Everything else stays
       // unnamed, so the rest of the page swaps without animating.
       let paths: string[] = [];
 
@@ -106,6 +112,14 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           const title = titleTransitionName(path);
           const excerpt = excerptTransitionName(path);
           carry(root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`), title, "carried");
+          const byline = bylineTransitionName(path);
+          carry(root.querySelector(`[data-vt-byline="${CSS.escape(byline)}"]`), byline, "carried");
+          const readingTime = readingTimeTransitionName(path);
+          carry(
+            root.querySelector(`[data-vt-reading-time="${CSS.escape(readingTime)}"]`),
+            readingTime,
+            "carried",
+          );
           // On a card it's the excerpt; on the article, the whole body. It
           // rises into place as the title lands instead of travelling.
           carry(

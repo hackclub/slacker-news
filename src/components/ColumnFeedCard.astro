@@ -3,7 +3,11 @@ import SlackRichText from "./SlackRichText.astro";
 import Byline from "./Byline.astro";
 import type { ColumnFeedItem } from "../lib/column-feed";
 import { truncateWords, formatStoryDate } from "../lib/content";
-import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
+import {
+  excerptTransitionName,
+  readingTimeTransitionName,
+  titleTransitionName,
+} from "../lib/transitions";
 
 interface Props {
   item: ColumnFeedItem;
@@ -39,7 +43,7 @@ const excerptClass = variant === "opinion" ? "opinion-excerpt" : "story-block-ex
     <header class="story-card-header">
       <h3 class={titleClass} data-vt-title={titleTransitionName(href)}>
         <a class="linked-card-title" href={href}>{title}</a>
-        {" "}<Byline {...byline} />
+        {" "}<Byline {...byline} href={href} />
       </h3>
     </header>
     {isSlack ? (
@@ -49,7 +53,7 @@ const excerptClass = variant === "opinion" ? "opinion-excerpt" : "story-block-ex
     ) : (
       <p class={excerptClass} data-vt-excerpt={excerptTransitionName(href)}>{truncatedExcerpt}</p>
     )}
-    <span class="reading-time">{isSlack ? item.readingTime : item.post.readingTime} min read</span>
+    <span class="reading-time" data-vt-reading-time={readingTimeTransitionName(href)}>{isSlack ? item.readingTime : item.post.readingTime} min read</span>
   </article>
 ) : (
   <a href={href} class:list={[cardClass]}>
@@ -64,6 +68,6 @@ const excerptClass = variant === "opinion" ? "opinion-excerpt" : "story-block-ex
     ) : (
       <p class={excerptClass} data-vt-excerpt={excerptTransitionName(href)}>{truncatedExcerpt}</p>
     )}
-    <span class="reading-time">{isSlack ? item.readingTime : item.post.readingTime} min read</span>
+    <span class="reading-time" data-vt-reading-time={readingTimeTransitionName(href)}>{isSlack ? item.readingTime : item.post.readingTime} min read</span>
   </a>
 )}
