@@ -32,7 +32,7 @@ const site = await getSiteConfig();
   </div>
 
   <script>
-    import { tokenize, scoreDocument, type SearchIndex } from "../lib/search";
+    import { tokenize, scoreDocument, type SearchDocument, type SearchIndex } from "../lib/search";
     import {
       bylineTransitionName,
       excerptTransitionName,
@@ -110,6 +110,71 @@ const site = await getSiteConfig();
           return { authorFilter: null, textQuery: query };
         };
 
+        // "by" and each author: Slack users as a mention chip with their
+        // profile picture, everyone else as plain text.
+        const bylineHtml = (doc: SearchDocument) => {
+          const authors = doc.authors ?? [];
+          if (authors.length === 0) return "";
+          const names = authors.map((author) =>
+            author.slackId
+              ? `${author.avatar ? `<span class="byline-avatar"><img src="${escapeHtml(author.avatar)}" alt="" width="20" height="20" decoding="async" onerror="this.parentElement.remove()"></span>` : ""}<span class="slack_user">@${escapeHtml(author.name)}</span>`
+              : escapeHtml(author.name),
+          );
+          const list =
+            names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} &amp; ${names[names.length - 1]}`;
+          return `<span class="search-author" data-vt-byline="${bylineTransitionName(doc.url)}">by ${list}</span>`;
+        };
+
+        // Show the people and channels an excerpt mentions as chips, the way
+        // the article does. Works on escaped HTML; a highlighted word is left
+        // as it is.
+        const chipsHtml = (html: string, doc: SearchDocument) => {
+          const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const chip = (prefix: string, names: string[], className: string, current: string) =>
+            [...new Set(names)]
+              .filter(Boolean)
+              .sort((a, b) => b.length - a.length)
+              .reduce(
+                (out, name) =>
+                  out.replace(
+                    new RegExp(`(^|[\\s(])${escapeRegExp(prefix + escapeHtml(name))}(?=$|[\\s.,;:!?)…])`, "g"),
+                    `$1<span class="${className}">${prefix}${escapeHtml(name)}</span>`,
+                  ),
+                current,
+              );
+          return chip("#", doc.channels ?? [], "slack_channel", chip("@", doc.mentions ?? [], "slack_user", html));
+        };
+
+        const dateLabel = (date: string) =>
+          date
+            ? new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+                timeZone: "UTC",
+              })
+            : "";
+
+        const cardHtml = (doc: SearchDocument, titleHtml: string, previewHtml: string) => {
+          const isSlack = doc.url.startsWith("/slack/");
+          const categoryLabel = isSlack
+            ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
+            : doc.category
+              ? escapeHtml(doc.category)
+              : "";
+          const byline = bylineHtml(doc);
+          const date = dateLabel(doc.date);
+          return `
+              <a href="${doc.url}" class="front-block story-block search-result">
+                <header class="story-card-header">
+                  <h3 class="story-block-title" data-vt-title="${titleTransitionName(doc.url)}">${titleHtml}</h3>
+                  ${date ? `<time class="story-card-date" datetime="${doc.date}">${date}</time>` : ""}
+                </header>
+                <p class="story-block-excerpt" data-vt-excerpt="${excerptTransitionName(doc.url)}">${chipsHtml(previewHtml, doc)}</p>
+                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${byline ? byline + " · " : ""}<span class="search-reading-time" data-vt-reading-time="${readingTimeTransitionName(doc.url)}">${doc.readingTime} min read</span></span>
+              </a>`;
+        };
+
         const render = (query: string) => {
           if (!index) return;
           const { authorFilter, textQuery } = parseQuery(query);
@@ -122,23 +187,7 @@ const site = await getSiteConfig();
             });
             status.textContent = `${all.length} articles.`;
             results.innerHTML = all
-              .map((doc) => {
-                const isSlack = doc.url.startsWith("/slack/");
-                const categoryLabel = isSlack
-                  ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
-                  : doc.category
-                    ? escapeHtml(doc.category)
-                    : "";
-                const authorLabel = doc.author
-                  ? `<span class="search-author" data-vt-byline="${bylineTransitionName(doc.url)}">by ${escapeHtml(doc.author)}</span>`
-                  : "";
-                return `
-              <a href="${doc.url}" class="front-block story-block">
-                <h3 class="story-block-title" data-vt-title="${titleTransitionName(doc.url)}">${escapeHtml(doc.title)}</h3>
-                <p class="story-block-excerpt" data-vt-excerpt="${excerptTransitionName(doc.url)}">${truncateWords(doc.excerpt, 24)}</p>
-                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}<span class="search-reading-time" data-vt-reading-time="${readingTimeTransitionName(doc.url)}">${doc.readingTime} min read</span></span>
-              </a>`;
-              })
+              .map((doc) => cardHtml(doc, escapeHtml(doc.title), escapeHtml(truncateWords(doc.excerpt, 30))))
               .join("");
             return;
           }
@@ -150,7 +199,9 @@ const site = await getSiteConfig();
           if (authorFilter) {
             const authorTerms = tokenize(authorFilter);
             ranked = ranked.filter((entry) => {
-              const docAuthor = entry.doc.author.toLowerCase();
+              const docAuthor = [entry.doc.author, ...(entry.doc.authors ?? []).map((author) => author.name)]
+                .join(" ")
+                .toLowerCase();
               return authorTerms.some((term) => docAuthor.includes(term));
             });
             // Boost author matches
@@ -170,27 +221,15 @@ const site = await getSiteConfig();
 
           status.textContent = `${ranked.length} result${ranked.length === 1 ? "" : "s"} for "${query.trim()}".`;
           results.innerHTML = ranked
-            .map(({ doc }) => {
-              const isSlack = doc.url.startsWith("/slack/");
-              const preview =
+            .map(({ doc }) =>
+              cardHtml(
+                doc,
+                terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title),
                 terms.length > 0
-                  ? buildSnippet(doc.text, terms) ?? highlightText(truncateWords(doc.excerpt, 24), terms)
-                  : truncateWords(doc.excerpt, 24);
-              const categoryLabel = isSlack
-                ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
-                : doc.category
-                  ? escapeHtml(doc.category)
-                  : "";
-              const authorLabel = doc.author
-                ? `<span class="search-author" data-vt-byline="${bylineTransitionName(doc.url)}">by ${escapeHtml(doc.author)}</span>`
-                : "";
-              return `
-              <a href="${doc.url}" class="front-block story-block">
-                <h3 class="story-block-title" data-vt-title="${titleTransitionName(doc.url)}">${terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title)}</h3>
-                <p class="story-block-excerpt" data-vt-excerpt="${excerptTransitionName(doc.url)}">${preview}</p>
-                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}<span class="search-reading-time" data-vt-reading-time="${readingTimeTransitionName(doc.url)}">${doc.readingTime} min read</span></span>
-              </a>`;
-            })
+                  ? buildSnippet(doc.text, terms) ?? highlightText(truncateWords(doc.excerpt, 30), terms)
+                  : escapeHtml(truncateWords(doc.excerpt, 30)),
+              ),
+            )
             .join("");
         };
 
@@ -257,7 +296,6 @@ const site = await getSiteConfig();
     }
 
     .search-author {
-      font-style: italic;
       color: #555;
     }
   </style>
