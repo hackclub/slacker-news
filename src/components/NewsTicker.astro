@@ -559,8 +559,9 @@ const slackColumns = getSlackColumns()
 </script>
 
 <style>
+  /* A shade darker than the paper instead of rules above and below. */
   .news-ticker {
-    background: #f5f5f0;
+    background: #ebebe4;
     color: #000;
     display: flex;
     align-items: stretch;
@@ -569,8 +570,6 @@ const slackColumns = getSlackColumns()
     font-size: 0.8rem;
     letter-spacing: 0.04em;
     line-height: 1;
-    border-top: 3px solid #000;
-    border-bottom: 3px double #000;
   }
 
 
@@ -616,8 +615,7 @@ const slackColumns = getSlackColumns()
     align-items: center;
     justify-content: center;
     border: none;
-    border-left: 2px solid #000;
-    background: #f5f5f0;
+    background: #ebebe4;
     font-size: 0.7rem;
     line-height: 1;
     cursor: pointer;
@@ -627,7 +625,7 @@ const slackColumns = getSlackColumns()
   }
 
   .news-ticker-pause:hover {
-    background: #ebebe4;
+    background: #e0e0d8;
   }
 
   @keyframes ticker-scroll {
