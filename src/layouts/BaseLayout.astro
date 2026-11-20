@@ -146,11 +146,11 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       function excerptBlocks(body: Element, excerptText: string): HTMLElement[] {
         if (!excerptText) return [];
         const excerptOpening = openingWords(excerptText);
-        const blocks = [...body.querySelectorAll<HTMLElement>("p, li")].filter(
-          (block) => !block.querySelector("p, li"),
+        const blocks = [...body.querySelectorAll<HTMLElement>("p, li, .slack-paragraph")].filter(
+          (block) => !block.querySelector("p, li, .slack-paragraph"),
         );
-        // A Slack message page's body is one run of text with no paragraphs:
-        // carry the whole body when it opens the way the excerpt does.
+        // A body with no paragraphs at all: carry the whole of it when it
+        // opens the way the excerpt does.
         if (blocks.length === 0) {
           const text = normalise(body.textContent ?? "");
           return text && (text.includes(excerptOpening) || excerptText.includes(openingWords(text)))
