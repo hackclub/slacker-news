@@ -2,6 +2,7 @@
 // "by @someone" for a homepage title.
 import AuthorList from "./AuthorList.astro";
 import SlackMention from "./SlackMention.astro";
+import SlackAvatar from "./SlackAvatar.astro";
 import type { BylineSource } from "../lib/byline";
 
 type Props = BylineSource;
@@ -16,13 +17,13 @@ const show = hasAuthors || Boolean(slackAuthor) || Boolean(slackUserId);
   <span class="byline">
     by{" "}
     {hasAuthors ? (
-      <AuthorList authors={authors!} slackIds={slackIds} />
+      <AuthorList authors={authors!} slackIds={slackIds} avatars />
     ) : slackAuthorId ? (
-      <SlackMention name="" id={slackAuthorId} />
+      <><SlackAvatar id={slackAuthorId} /><SlackMention name="" id={slackAuthorId} /></>
     ) : slackAuthor ? (
       slackAuthor
     ) : (
-      <SlackMention name={slackUserName || slackUserId!} id={slackUserId!} />
+      <><SlackAvatar id={slackUserId!} /><SlackMention name={slackUserName || slackUserId!} id={slackUserId!} /></>
     )}
   </span>
 )}

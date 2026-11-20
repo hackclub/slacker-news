@@ -1,12 +1,15 @@
 ---
 import SlackMention from "./SlackMention.astro";
+import SlackAvatar from "./SlackAvatar.astro";
 
 interface Props {
   authors: string | string[];
   slackIds?: string[];
+  // Show each Slack author's profile picture before their name.
+  avatars?: boolean;
 }
 
-const { authors, slackIds } = Astro.props;
+const { authors, slackIds, avatars = false } = Astro.props;
 
 const authorArray = Array.isArray(authors) ? authors : [authors];
 
@@ -18,6 +21,7 @@ function normalizeHandle(handle: string): string {
 {
   authorArray.map((author, index) => (
     <>
+      {avatars && slackIds?.[index] && <SlackAvatar id={slackIds[index]} />}
       {slackIds && slackIds[index] ? (
         <SlackMention
           name={normalizeHandle(author)}

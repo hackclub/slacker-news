@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { avatarUrl } from "../lib/avatars";
 import SlackMention from "../components/SlackMention.astro";
 import {
   getAcknowledgementGroups,
@@ -18,11 +19,6 @@ const sections: { title: string; people: Acknowledgement[] }[] = [
   { title: "With thanks", people: other },
 ];
 
-// Cachet redirects this straight to the user's Slack avatar, so the picture
-// costs no API call of our own.
-function avatarUrl(slackId: string): string {
-  return `https://cachet.hackclub.com/users/${encodeURIComponent(slackId)}/r`;
-}
 ---
 
 <BaseLayout

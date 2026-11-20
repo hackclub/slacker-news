@@ -4,6 +4,7 @@ import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
 import { getSiteConfig } from "../lib/content";
 import { getMarkdownColumnArticles, MARKDOWN_COLUMNS } from "../lib/indigest";
 import SlackMention from "../components/SlackMention.astro";
+import SlackAvatar from "../components/SlackAvatar.astro";
 import SlackMrkdwnBody from "../components/SlackMrkdwnBody.astro";
 import SubmitFollowUp from "../components/SubmitFollowUp.astro";
 
@@ -63,8 +64,8 @@ const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[
         </span>
         <span class="story-author">
           By {authorId
-            ? <SlackMention name="" id={authorId} />
-            : article.author ?? <SlackMention name={message.userName || message.userId} id={message.userId} />}
+            ? <><SlackAvatar id={authorId} /><SlackMention name="" id={authorId} /></>
+            : article.author ?? <><SlackAvatar id={message.userId} /><SlackMention name={message.userName || message.userId} id={message.userId} /></>}
         </span>
         {!Number.isNaN(article.date.getTime()) && (
           <>
