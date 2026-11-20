@@ -268,9 +268,8 @@ $front-max: 1200px;
 // the title. A carried element has to be one box, so these never break
 // across lines.
 .byline,
-.story-author,
-[data-vt-reading-time],
-.search-author {
+[data-vt-byline],
+[data-vt-reading-time] {
   display: inline-block;
 }
 
