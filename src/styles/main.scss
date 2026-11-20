@@ -943,17 +943,6 @@ $front-max: 1200px;
     font-size: 1.05rem;
     line-height: 1.4;
 
-    // Avatars stay muted until the box is hovered. The filter sits on the box
-    // rather than the image so that dark mode's own invert on <img> still
-    // applies underneath it; the box's text is black, so graying it is a no-op.
-    filter: grayscale(1);
-    transition: filter 0.15s ease;
-
-    &:hover,
-    &:focus-within {
-      filter: grayscale(0);
-    }
-
     // The mention is the only text in the box, so let it take the space left
     // over and trim rather than push the avatar around.
     .slack_user {
@@ -1331,7 +1320,6 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   border-radius: 3px;
   padding: 0 3px;
   white-space: nowrap;
-  filter: grayscale(100%);
 
   &:visited {
     color: $slack-link-fg;
@@ -1339,7 +1327,6 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   &:hover {
     background: $slack-link-bg-hover;
     color: $slack-link-fg;
-    filter: grayscale(0%);
   }
 }
 
@@ -1349,7 +1336,6 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   border-radius: 3px;
   padding: 0 3px;
   white-space: nowrap;
-  filter: grayscale(100%);
 
   &:visited {
     color: $slack-link-fg;
@@ -1357,32 +1343,11 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   &:hover {
     background: $slack-link-bg-hover;
     color: $slack-link-fg;
-    filter: grayscale(0%);
   }
 }
 
 .slack-rich-link {
   text-decoration: underline;
-}
-
-// Restore color for all Slack entities while their containing card is hovered.
-// The homepage has no boxed cards, so each story and list counts as one.
-.front-block:hover .slack_user,
-.front-block:hover .slack_channel,
-.front-block:hover .emoji,
-.front-lead:hover .slack_user,
-.front-lead:hover .slack_channel,
-.front-lead:hover .emoji,
-.opinion-item:hover .slack_user,
-.opinion-item:hover .slack_channel,
-.opinion-item:hover .emoji,
-.slack-column-block:hover .slack_user,
-.slack-column-block:hover .slack_channel,
-.slack-column-block:hover .emoji,
-.front-pair-col:hover .slack_user,
-.front-pair-col:hover .slack_channel,
-.front-pair-col:hover .emoji {
-  filter: grayscale(0%) !important;
 }
 
 // ─── Page transitions ────────────────────────────────────────────────────────

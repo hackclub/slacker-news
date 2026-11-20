@@ -123,14 +123,6 @@ const thumbnailFallback = `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqde
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Colour is the hover cue, so the still sits quiet until pointed at. */
-    filter: grayscale(1);
-    transition: filter 0.2s;
-  }
-
-  .video-embed-play:hover .video-embed-thumb,
-  .video-embed-play:focus-visible .video-embed-thumb {
-    filter: none;
   }
 
   .video-embed-badge {
@@ -164,13 +156,12 @@ const thumbnailFallback = `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqde
 
   /*
    * Dark mode on this site is a whole-page `invert(1) hue-rotate(180deg)`, with
-   * images re-inverted to put them back. That re-inversion is what was twisting
-   * the thumbnail's colours, so drop the colour instead of fighting it: the
-   * still goes grey, and the player that replaces it on click is re-inverted
-   * normally so the video itself keeps its colours.
+   * images re-inverted to put them back. The still is re-inverted the same way,
+   * and so is the player that replaces it on click. The re-inversion is not
+   * exact, so the still's colours shift a little in dark mode.
    */
   :global(html.dark-mode) .video-embed-thumb {
-    filter: grayscale(1) invert(1) hue-rotate(180deg);
+    filter: invert(1) hue-rotate(180deg);
   }
 
   :global(html.dark-mode) .video-embed-play:hover .video-embed-thumb,
@@ -189,7 +180,7 @@ const thumbnailFallback = `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqde
 
   @media (prefers-color-scheme: dark) {
     :global(html:not(.light-mode):not(.dark-mode)) .video-embed-thumb {
-      filter: grayscale(1) invert(1) hue-rotate(180deg);
+      filter: invert(1) hue-rotate(180deg);
     }
 
     :global(html:not(.light-mode):not(.dark-mode)) .video-embed-play:hover .video-embed-thumb,
