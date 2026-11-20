@@ -33,7 +33,12 @@ const site = await getSiteConfig();
 
   <script>
     import { tokenize, scoreDocument, type SearchIndex } from "../lib/search";
-    import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
+    import {
+      bylineTransitionName,
+      excerptTransitionName,
+      readingTimeTransitionName,
+      titleTransitionName,
+    } from "../lib/transitions";
 
     // Bundled scripts run once per full page load, so re-run on every
     // client-side navigation to set up search on this page again.
@@ -125,13 +130,13 @@ const site = await getSiteConfig();
                     ? escapeHtml(doc.category)
                     : "";
                 const authorLabel = doc.author
-                  ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
+                  ? `<span class="search-author" data-vt-byline="${bylineTransitionName(doc.url)}">by ${escapeHtml(doc.author)}</span>`
                   : "";
                 return `
               <a href="${doc.url}" class="front-block story-block">
                 <h3 class="story-block-title" data-vt-title="${titleTransitionName(doc.url)}">${escapeHtml(doc.title)}</h3>
                 <p class="story-block-excerpt" data-vt-excerpt="${excerptTransitionName(doc.url)}">${truncateWords(doc.excerpt, 24)}</p>
-                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
+                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}<span class="search-reading-time" data-vt-reading-time="${readingTimeTransitionName(doc.url)}">${doc.readingTime} min read</span></span>
               </a>`;
               })
               .join("");
@@ -177,13 +182,13 @@ const site = await getSiteConfig();
                   ? escapeHtml(doc.category)
                   : "";
               const authorLabel = doc.author
-                ? `<span class="search-author">by ${escapeHtml(doc.author)}</span>`
+                ? `<span class="search-author" data-vt-byline="${bylineTransitionName(doc.url)}">by ${escapeHtml(doc.author)}</span>`
                 : "";
               return `
               <a href="${doc.url}" class="front-block story-block">
                 <h3 class="story-block-title" data-vt-title="${titleTransitionName(doc.url)}">${terms.length > 0 ? highlightText(doc.title, terms) : escapeHtml(doc.title)}</h3>
                 <p class="story-block-excerpt" data-vt-excerpt="${excerptTransitionName(doc.url)}">${preview}</p>
-                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}${doc.readingTime} min read</span>
+                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${authorLabel ? authorLabel + " · " : ""}<span class="search-reading-time" data-vt-reading-time="${readingTimeTransitionName(doc.url)}">${doc.readingTime} min read</span></span>
               </a>`;
             })
             .join("");

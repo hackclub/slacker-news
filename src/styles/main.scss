@@ -263,14 +263,24 @@ $front-max: 1200px;
   color: #555;
 }
 
-// A carried title travels without its byline: scaled with the title, the
-// mention chips' backgrounds read as a ghost box behind it. The byline is
-// hidden at once and fades back in after the title lands.
+// Bylines and read times carry across navigation on their own, apart from
+// the title. A carried element has to be one box, so these never break
+// across lines.
+.byline,
+.story-author,
+[data-vt-reading-time],
+.search-author {
+  display: inline-block;
+}
+
+// A byline with no counterpart on the other page would otherwise travel
+// inside its title's snapshot, where its mention chips scale into a ghost
+// box. It is hidden for the flight and fades back in after.
 .byline {
   transition: opacity 0.2s ease-out;
 }
 
-[data-vt-carried] .byline {
+[data-vt-carried] .byline:not([data-vt-carried]) {
   opacity: 0;
   transition: none;
 }
@@ -693,6 +703,9 @@ $front-max: 1200px;
 
 .reading-time {
   display: block;
+  // Only as wide as its text, so it scales evenly when it carries over to an
+  // article's read time.
+  width: fit-content;
   font-size: 0.72rem;
   color: #888;
   margin-top: 6px;
