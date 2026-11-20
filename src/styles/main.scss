@@ -132,18 +132,31 @@ a {
     top: 50%;
     right: 16px;
     transform: translateY(-50%);
-    display: block;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
     border: 0;
     background: none;
     color: #000;
-    font-family: Georgia, serif;
-    font-size: 0.8rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
     cursor: pointer;
+
+    svg {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+  }
+
+  // The icon is drawn in the text colour, so dark mode's filter on <html>
+  // inverts it with the page; it mustn't get the second, undoing filter
+  // that images and other SVGs get.
+  html.dark-mode .nav-toggle svg,
+  html:not(.light-mode):not(.dark-mode) .nav-toggle svg {
+    filter: none;
   }
 
   .nav-toggle-close,

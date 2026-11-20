@@ -475,9 +475,11 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           </a>
                 </div>
         <nav class="site-nav" aria-label="Site">
-          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-menu">
-            <span class="nav-toggle-open">Menu</span>
-            <span class="nav-toggle-close">Close</span>
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Menu">
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+              <path class="nav-toggle-open" d="M2 5h16M2 10h16M2 15h16" />
+              <path class="nav-toggle-close" d="M4 4l12 12M16 4L4 16" />
+            </svg>
           </button>
           <div class="trigger" id="site-menu">
             <a class="page-link" href="/search/">Search</a>
