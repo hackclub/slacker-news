@@ -3,17 +3,18 @@
 import AuthorList from "./AuthorList.astro";
 import SlackMention from "./SlackMention.astro";
 import type { BylineSource } from "../lib/byline";
+import { bylineTransitionName } from "../lib/transitions";
 
 type Props = BylineSource;
 
-const { authors, slackIds, slackAuthor, slackUserId, slackUserName } = Astro.props;
+const { authors, slackIds, slackAuthor, slackUserId, slackUserName, href } = Astro.props;
 const hasAuthors = Array.isArray(authors) ? authors.length > 0 : Boolean(authors?.trim());
 const slackAuthorId = slackAuthor?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[1];
 const show = hasAuthors || Boolean(slackAuthor) || Boolean(slackUserId);
 ---
 
 {show && (
-  <span class="byline">
+  <span class="byline" data-vt-byline={href ? bylineTransitionName(href) : undefined}>
     by{" "}
     {hasAuthors ? (
       <AuthorList authors={authors!} slackIds={slackIds} />
