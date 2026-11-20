@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
+import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../lib/transitions";
 import { getSiteConfig } from "../lib/content";
 import { getMarkdownColumnArticles, MARKDOWN_COLUMNS } from "../lib/indigest";
 import SlackMention from "../components/SlackMention.astro";
@@ -62,7 +62,7 @@ const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[
         <span class="story-category">
           <a class="page-link" href={`/${article.column}/`}>{article.column.toUpperCase()}</a>
         </span>
-        <span class="story-author">
+        <span class="story-author" data-vt-byline={bylineTransitionName(Astro.url.pathname)}>
           By {authorId
             ? <><SlackAvatar id={authorId} /><SlackMention name="" id={authorId} /></>
             : article.author ?? <><SlackAvatar id={message.userId} /><SlackMention name={message.userName || message.userId} id={message.userId} /></>}

@@ -7,4 +7,6 @@ export interface BylineSource {
   slackAuthor?: string;
   slackUserId?: string;
   slackUserName?: string;
+  // The article this byline belongs to, so it can carry across navigation.
+  href?: string;
 }

@@ -172,7 +172,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
           <div class="headline-content">
             <h2 class="block-headline" data-vt-title={titleTransitionName(headline.url)}>
               <a class="linked-card-title" href={headline.url}>{headline.title}</a>
-              {" "}<Byline {...headline.byline} />
+              {" "}<Byline {...headline.byline} href={headline.url} />
             </h2>
             <div class="block-excerpts">
               <p
