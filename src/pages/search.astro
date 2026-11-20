@@ -1,8 +1,22 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getSiteConfig } from "../lib/content";
+import { getSearchIndex } from "../lib/search-documents";
+import { cardHtml, escapeHtml, truncateWords } from "../lib/search-cards";
 
 const site = await getSiteConfig();
+
+// With no query, the full list is part of the page, so it shows at once.
+// The browser fetches the index only to search.
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const listed = query
+  ? []
+  : [...(await getSearchIndex(Boolean(Astro.locals.user))).documents].sort((a, b) =>
+      a.date && b.date ? b.date.localeCompare(a.date) : 0,
+    );
+const listedHtml = listed
+  .map((doc) => cardHtml(doc, escapeHtml(doc.title), escapeHtml(truncateWords(doc.excerpt, 30))))
+  .join("");
 ---
 
 <BaseLayout title="Search" siteTitle={site.title} siteDescription={site.description}>
@@ -22,9 +36,11 @@ const site = await getSiteConfig();
       />
     </form>
 
-    <p id="search-status" class="search-status" role="status" aria-live="polite"></p>
+    <p id="search-status" class="search-status" role="status" aria-live="polite">
+      {query ? "" : `${listed.length} articles.`}
+    </p>
 
-    <div id="search-results" class="archive-list"></div>
+    <div id="search-results" class="archive-list" data-listed={query ? undefined : ""} set:html={listedHtml} />
 
     <noscript>
       <p class="search-status">Search needs JavaScript enabled.</p>
@@ -33,12 +49,7 @@ const site = await getSiteConfig();
 
   <script>
     import { tokenize, scoreDocument, type SearchDocument, type SearchIndex } from "../lib/search";
-    import {
-      bylineTransitionName,
-      excerptTransitionName,
-      readingTimeTransitionName,
-      titleTransitionName,
-    } from "../lib/transitions";
+    import { cardHtml, escapeHtml, truncateWords } from "../lib/search-cards";
 
     // Bundled scripts run once per full page load, so re-run on every
     // client-side navigation to set up search on this page again.
@@ -50,16 +61,6 @@ const site = await getSiteConfig();
       if (input && results && status) {
         let index: SearchIndex | null = null;
         let pending: string | null = null;
-
-        const escapeHtml = (value: string) =>
-          value.replace(/[&<>"']/g, (char) =>
-            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] as string)
-          );
-
-        const truncateWords = (text: string, count: number) => {
-          const words = text.trim().split(/\s+/).filter(Boolean);
-          return words.length <= count ? words.join(" ") : `${words.slice(0, count).join(" ")}…`;
-        };
 
         const wordMatches = (word: string, terms: string[]) => {
           const cores = word.toLowerCase().match(/[a-z0-9]+/g);
@@ -108,71 +109,6 @@ const site = await getSiteConfig();
             return { authorFilter: authorMatch[1], textQuery: query.slice(authorMatch[0].length).trim() };
           }
           return { authorFilter: null, textQuery: query };
-        };
-
-        // "by" and each author: Slack users as a mention chip with their
-        // profile picture, everyone else as plain text.
-        const bylineHtml = (doc: SearchDocument) => {
-          const authors = doc.authors ?? [];
-          if (authors.length === 0) return "";
-          const names = authors.map((author) =>
-            author.slackId
-              ? `${author.avatar ? `<span class="byline-avatar"><img src="${escapeHtml(author.avatar)}" alt="" width="20" height="20" decoding="async" onerror="this.parentElement.remove()"></span>` : ""}<span class="slack_user">@${escapeHtml(author.name)}</span>`
-              : escapeHtml(author.name),
-          );
-          const list =
-            names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} &amp; ${names[names.length - 1]}`;
-          return `<span class="search-author" data-vt-byline="${bylineTransitionName(doc.url)}">by ${list}</span>`;
-        };
-
-        // Show the people and channels an excerpt mentions as chips, the way
-        // the article does. Works on escaped HTML; a highlighted word is left
-        // as it is.
-        const chipsHtml = (html: string, doc: SearchDocument) => {
-          const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const chip = (prefix: string, names: string[], className: string, current: string) =>
-            [...new Set(names)]
-              .filter(Boolean)
-              .sort((a, b) => b.length - a.length)
-              .reduce(
-                (out, name) =>
-                  out.replace(
-                    new RegExp(`(^|[\\s(])${escapeRegExp(prefix + escapeHtml(name))}(?=$|[\\s.,;:!?)…])`, "g"),
-                    `$1<span class="${className}">${prefix}${escapeHtml(name)}</span>`,
-                  ),
-                current,
-              );
-          return chip("#", doc.channels ?? [], "slack_channel", chip("@", doc.mentions ?? [], "slack_user", html));
-        };
-
-        const dateLabel = (date: string) =>
-          date
-            ? new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-                timeZone: "UTC",
-              })
-            : "";
-
-        const cardHtml = (doc: SearchDocument, titleHtml: string, previewHtml: string) => {
-          const isSlack = doc.url.startsWith("/slack/");
-          const categoryLabel = isSlack
-            ? `<span class="slack-column-badge">${escapeHtml(doc.category)}</span>`
-            : doc.category
-              ? escapeHtml(doc.category)
-              : "";
-          const byline = bylineHtml(doc);
-          const date = dateLabel(doc.date);
-          return `
-              <a href="${doc.url}" class="front-block story-block search-result">
-                <header class="story-card-header">
-                  <h3 class="story-block-title" data-vt-title="${titleTransitionName(doc.url)}">${titleHtml}</h3>
-                  ${date ? `<time class="story-card-date" datetime="${doc.date}">${date}</time>` : ""}
-                </header>
-                <p class="story-block-excerpt" data-vt-excerpt="${excerptTransitionName(doc.url)}">${chipsHtml(previewHtml, doc)}</p>
-                <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${byline ? byline + " · " : ""}<span class="search-reading-time" data-vt-reading-time="${readingTimeTransitionName(doc.url)}">${doc.readingTime} min read</span></span>
-              </a>`;
         };
 
         const render = (query: string) => {
@@ -243,14 +179,18 @@ const site = await getSiteConfig();
           input.value = initialQuery;
           pending = initialQuery;
         }
-        status.textContent = "Loading index…";
+        // The server already listed every article when there's no query;
+        // keep that until the reader types.
+        const listed = results.hasAttribute("data-listed") && !initialQuery;
+        if (!listed) status.textContent = "Loading index…";
         input.focus();
 
         fetch("/search-index.json")
           .then((response) => response.json())
           .then((data: SearchIndex) => {
             index = data;
-            render(pending ?? input.value);
+            const query = pending ?? input.value;
+            if (!listed || query.trim()) render(query);
           })
           .catch(() => {
             status.textContent = "Could not load the search index.";
