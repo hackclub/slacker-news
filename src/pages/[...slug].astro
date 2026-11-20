@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
+import { bylineTransitionName, excerptTransitionName, readingTimeTransitionName, titleTransitionName } from "../lib/transitions";
 import AuthorList from "../components/AuthorList.astro";
 import SubmitFollowUp from "../components/SubmitFollowUp.astro";
 import { formatStoryDate, getPosts, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../lib/content";
@@ -82,14 +82,14 @@ const followUpLinks =
         }
         {
           post.author && (
-            <span class="story-author">
+            <span class="story-author" data-vt-byline={bylineTransitionName(Astro.url.pathname)}>
               By <AuthorList authors={post.author} slackIds={post.authorSlackIds} />
             </span>
           )
         }
         {post.author && " — "}
         <time>{formatStoryDate(new Date(post.date))}</time>
-        <span class="story-reading-time"> &middot; {post.readingTime} min read</span>
+        <span class="story-reading-time"> &middot; <span data-vt-reading-time={readingTimeTransitionName(Astro.url.pathname)}>{post.readingTime} min read</span></span>
       </div>
       <hr class="story-rule" />
     </header>

@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { excerptTransitionName, titleTransitionName } from "../../../lib/transitions";
+import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../../../lib/transitions";
 import { getSiteConfig } from "../../../lib/content";
 import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn,  slackLinkFromMessageId } from "../../../lib/indigest";
 import IndigestMetadata from "../../../components/IndigestMetadata.astro";
@@ -76,7 +76,7 @@ if (!column || !message) {
           <span class="story-category">
             <a class="page-link" href={`/slack/${encodeURIComponent(channel)}/`}>{column.title}</a>
           </span>
-          <span class="story-author">
+          <span class="story-author" data-vt-byline={bylineTransitionName(Astro.url.pathname)}>
             By <SlackMention name={message.userName || message.userId} id={message.userId} />
           </span>
           {" — "}

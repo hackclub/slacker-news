@@ -74,7 +74,7 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
               >
                 {cardTitle(column, message)}
               </a>
-              {" "}<Byline slackUserId={message.userId} slackUserName={message.userName} />
+              {" "}<Byline slackUserId={message.userId} slackUserName={message.userName} href={`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`} />
             </h3>
             <span data-vt-excerpt={excerptTransitionName(`/slack/${encodeURIComponent(column.column)}/${encodeURIComponent(message.slackTs)}/`)}><SlackRichText text={message.text} /></span>
             {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={column.metadataSchema} compact />}
