@@ -8,7 +8,6 @@ import {
   getChangelogEntries,
   getPosts,
   getSiteConfig,
-  truncateWords,
   type LongChangelogEntry,
   type ChangelogEntry,
 } from "../lib/content";
@@ -19,6 +18,7 @@ import Byline from "../components/Byline.astro";
 import type { BylineSource } from "../lib/byline";
 import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../lib/transitions";
 import { getColumnFeedItems } from "../lib/column-feed";
+import { paragraphsHtml, renderOpeningHtml } from "../lib/lead-excerpt";
 import { stripSlackMrkdwn } from "../lib/search";
 import { parseSlackBlocks } from "../lib/slack-rich-text";
 
@@ -49,6 +49,7 @@ const slackNewsCandidates = newsItems.flatMap((item) =>
         url: item.article.url,
         title: item.article.title,
         excerpt: "",
+        body: undefined as string | undefined,
         // Same blocks as the article page, so quotes (including a leading
         // italic note) stay out of the excerpt, as they do for posts.
         paragraphs: parseSlackBlocks(item.message.formattedText || item.message.text)
@@ -67,34 +68,20 @@ const slackNewsCandidates = newsItems.flatMap((item) =>
 
 const allCandidates = [
   ...slackNewsCandidates,
-  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, date: p.date, leadingImage: p.leadingImage, byline: { authors: p.author, slackIds: p.authorSlackIds } as BylineSource })),
-  ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage, byline: { authors: c.author, slackIds: c.slackIds } as BylineSource })),
+  ...allNews.map((p) => ({ slug: p.slug, url: p.url, title: p.title, excerpt: p.excerpt, paragraphs: p.paragraphs, body: p.entry.body, date: p.date, leadingImage: p.leadingImage, byline: { authors: p.author, slackIds: p.authorSlackIds } as BylineSource })),
+  ...longChangelogs.map((c) => ({ slug: c.slug, url: c.url, title: c.title, excerpt: c.excerpt, paragraphs: c.paragraphs, body: c.entry.body, date: new Date(`${c.date}T00:00:00Z`), leadingImage: c.leadingImage, byline: { authors: c.author, slackIds: c.slackIds } as BylineSource })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
 const headline = site.headlineOverride
   ? allCandidates.find((c) => c.slug === site.headlineOverride) ?? allCandidates[0]
   : allCandidates[0];
-const headlineExcerptWordLimit = headline?.leadingImage ? 110 : 160;
-const headlineExcerpts = (() => {
-  const paras = headline?.paragraphs ?? [];
-  const filtered = paras.filter((p) => {
-    const s = p.replace(/\s+/g, " ").trim();
-    if (!s) return false;
-    if (/^#{1,6}\s+/.test(s)) return false;
-    if (/^[=-]{3,}\s*$/.test(s)) return false;
-    if (/^>\s/.test(s)) return false;
-    if (s.startsWith("\u201C")) return false;
-    const words = s.split(/\s+/).length;
-    if (words < 6) return false;
-    if (s.length < 40) return false;
-    return true;
-  });
-
-  // The lead column is wide, so hand the fitting script more than it needs;
-  // it trims to whole sentences that fit beside the opinion rail.
-  return filtered.slice(0, headline?.leadingImage ? 5 : 8);
-})();
-const headlineExcerptText = headlineExcerpts.join("\n\n");
+// The lead excerpt is the article's opening blocks as real HTML. It holds
+// more than fits; the script below trims it to the space beside the opinion
+// rail.
+const headlineExcerptLimit = headline?.leadingImage ? 5 : 8;
+const headlineExcerptHtml = headline?.body
+  ? await renderOpeningHtml(headline.body, headlineExcerptLimit)
+  : paragraphsHtml(headline?.paragraphs ?? [], headlineExcerptLimit);
 
 const displayOpinion = opinionItems.slice(0, 3);
 
@@ -175,14 +162,12 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
               {" "}<Byline {...headline.byline} href={headline.url} />
             </h2>
             <div class="block-excerpts">
-              <p
+              <div
                 id="headline-excerpt"
                 data-vt-excerpt={excerptTransitionName(headline.url)}
                 class="block-excerpt"
-                data-source={headlineExcerptText}
-              >
-                {truncateWords(headlineExcerptText, headlineExcerptWordLimit)}
-              </p>
+                set:html={headlineExcerptHtml}
+              />
             </div>
           </div>
         </article>
@@ -293,136 +278,135 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
   </div>
 
   <script>
-    import { layout, prepare } from "@chenglou/pretext";
-
-    // Bundled scripts run once per full page load, so re-run on every
-    // client-side navigation to fit the headline excerpt on this page again.
+    // Fit the lead excerpt beside the opinion rail: drop whole trailing
+    // blocks until it fits, then trim the last paragraph or list item to the
+    // sentences that fit, keeping its formatting. Where the excerpt isn't
+    // boxed in (narrow screens, the lead stacks above the rail) it keeps its
+    // first three blocks instead.
     document.addEventListener("astro:page-load", () => {
       const excerpt = document.getElementById("headline-excerpt");
+      const box = excerpt?.parentElement;
+      if (!(excerpt instanceof HTMLElement) || !(box instanceof HTMLElement)) return;
 
-      if (excerpt instanceof HTMLElement) {
-        const source = excerpt.dataset.source ?? "";
-        const sourceWords = source.trim().split(/\s+/).filter(Boolean);
+      const original = excerpt.innerHTML;
+      const segmenter =
+        typeof Intl !== "undefined" && "Segmenter" in Intl
+          ? new Intl.Segmenter(undefined, { granularity: "sentence" })
+          : null;
 
-        if (sourceWords.length > 0) {
-          const sourceParagraphs = source.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
-          let frame = 0;
+      const leaves = () =>
+        [...excerpt.querySelectorAll<HTMLElement>("p, li")].filter((block) => !block.querySelector("p, li"));
+      const overflows = () => excerpt.scrollHeight > box.clientHeight + 1;
 
-          function splitSentences(paragraph: string): string[] {
-            if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
-              const segmenter = new Intl.Segmenter(undefined, { granularity: "sentence" });
-              return Array.from(segmenter.segment(paragraph), (segment) => segment.segment.trim()).filter(Boolean);
-            }
+      // Remove a block, and any list or wrapper left empty by it.
+      const removeBlock = (block: Element) => {
+        let node = block;
+        while (node.parentElement && node.parentElement !== excerpt && node.parentElement.children.length === 1) {
+          node = node.parentElement;
+        }
+        node.remove();
+      };
 
-            return paragraph
-              .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
-              ?.map((sentence) => sentence.trim())
-              .filter(Boolean) ?? [paragraph];
+      // Character offsets where each sentence of this text ends.
+      const sentenceEnds = (text: string): number[] => {
+        if (segmenter) {
+          return [...segmenter.segment(text)].map((part) => part.index + part.segment.trimEnd().length);
+        }
+        const ends: number[] = [];
+        for (const match of text.matchAll(/[^.!?]+[.!?]+["\u201d\u2019)]*|[^.!?]+$/g)) {
+          ends.push((match.index ?? 0) + match[0].trimEnd().length);
+        }
+        return ends;
+      };
+
+      // Cut a block's content after the given text offset, keeping its markup.
+      const cutAfter = (block: HTMLElement, html: string, offset: number) => {
+        block.innerHTML = html;
+        const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+        let seen = 0;
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text;
+          if (seen + node.length >= offset) {
+            const range = document.createRange();
+            range.setStart(node, offset - seen);
+            range.setEndAfter(block.lastChild!);
+            range.deleteContents();
+            return;
           }
+          seen += node.length;
+        }
+      };
 
-          const paragraphSentenceGroups = sourceParagraphs.map((paragraph) => splitSentences(paragraph));
+      const fit = () => {
+        excerpt.innerHTML = original;
+        const blocks = leaves();
+        if (!getComputedStyle(box).contain.includes("size")) {
+          blocks.slice(3).forEach(removeBlock);
+          return;
+        }
+        if (box.clientHeight <= 0) return;
 
-          const buildCandidate = (sentenceCount: number) => {
-            let remaining = sentenceCount;
-            const chunks = [];
+        // Drop whole blocks from the end until the rest fits.
+        let dropped: { block: HTMLElement; parent: Node; next: Node | null; outer: Element } | null = null;
+        while (overflows() && blocks.length > 1) {
+          const block = blocks.pop()!;
+          let outer: Element = block;
+          while (outer.parentElement && outer.parentElement !== excerpt && outer.parentElement.children.length === 1) {
+            outer = outer.parentElement;
+          }
+          dropped = { block, parent: outer.parentNode!, next: outer.nextSibling, outer };
+          outer.remove();
+        }
 
-            for (const paragraphSentences of paragraphSentenceGroups) {
-              if (remaining <= 0) {
-                break;
-              }
-
-              const take = Math.min(remaining, paragraphSentences.length);
-              if (take > 0) {
-                chunks.push(paragraphSentences.slice(0, take).join(" "));
-                remaining -= take;
-              }
-
-              if (remaining > 0 && take === paragraphSentences.length) {
-                chunks.push("\n\n");
-              } else {
-                break;
-              }
-            }
-
-            return chunks.join("");
-          };
-
-          const fitExcerpt = () => {
-            const excerptBox = excerpt.parentElement;
-
-            if (!(excerptBox instanceof HTMLElement)) {
-              return;
-            }
-
-            const maxWidth = excerptBox.clientWidth;
-            const maxHeight = excerptBox.clientHeight;
-
-            if (maxWidth <= 0 || maxHeight <= 0) {
-              return;
-            }
-
-            const style = getComputedStyle(excerpt);
-            const fontSize = Number.parseFloat(style.fontSize);
-            const lineHeight = Number.parseFloat(style.lineHeight);
-            const resolvedLineHeight = Number.isFinite(lineHeight) && lineHeight > 0
-              ? lineHeight
-              : Math.round(fontSize * 1.5);
-            const font = `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
-              .replace(/\s+/g, " ")
-              .trim();
-            const cache = new Map();
-
-            const fits = (sentenceCount: number) => {
-              const cached = cache.get(sentenceCount);
-
-              if (cached !== undefined) {
-                return cached <= maxHeight;
-              }
-
-              const candidate = buildCandidate(sentenceCount);
-              const prepared = prepare(candidate, font, { whiteSpace: "pre-wrap" });
-              const measured = layout(prepared, maxWidth, resolvedLineHeight).height;
-              cache.set(sentenceCount, measured);
-              return measured <= maxHeight;
-            };
-
-            let lo = 1;
-            let hi = paragraphSentenceGroups.reduce((total, paragraphSentences) => total + paragraphSentences.length, 0);
-            let best = 0;
-
-            while (lo <= hi) {
-              const mid = Math.floor((lo + hi) / 2);
-
-              if (fits(mid)) {
-                best = mid;
-                lo = mid + 1;
-              } else {
-                hi = mid - 1;
-              }
-            }
-
-            excerpt.textContent = buildCandidate(best);
-          };
-
-          const scheduleFit = () => {
-            window.cancelAnimationFrame(frame);
-            frame = window.requestAnimationFrame(fitExcerpt);
-          };
-
-          scheduleFit();
-
-          window.addEventListener("resize", scheduleFit);
-          document.addEventListener(
-            "astro:before-swap",
-            () => window.removeEventListener("resize", scheduleFit),
-            { once: true },
-          );
-
-          if (document.fonts) {
-            void document.fonts.ready.then(scheduleFit);
+        // Then fill the room left with as many sentences as fit: of the
+        // first dropped block if one was dropped, else of the only block.
+        let last: HTMLElement;
+        if (dropped) {
+          dropped.parent.insertBefore(dropped.outer, dropped.next);
+          last = dropped.block;
+        } else if (overflows()) {
+          last = blocks[0];
+        } else {
+          return;
+        }
+        if (!last) return;
+        const html = last.innerHTML;
+        const ends = sentenceEnds(last.textContent ?? "");
+        let lo = 1;
+        let hi = ends.length;
+        let best = 0;
+        while (lo <= hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          cutAfter(last, html, ends[mid - 1]);
+          if (overflows()) hi = mid - 1;
+          else {
+            best = mid;
+            lo = mid + 1;
           }
         }
-      }
+        if (best === 0) {
+          // Not even one sentence of it fits: leave it out, unless it's the
+          // only block, which keeps its first sentence.
+          if (dropped) removeBlock(dropped.block);
+          else cutAfter(last, html, ends[0]);
+        } else if (best < ends.length) {
+          cutAfter(last, html, ends[best - 1]);
+        } else {
+          last.innerHTML = html;
+        }
+      };
+
+      let frame = 0;
+      const scheduleFit = () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(fit);
+      };
+      scheduleFit();
+      window.addEventListener("resize", scheduleFit);
+      document.addEventListener("astro:before-swap", () => window.removeEventListener("resize", scheduleFit), {
+        once: true,
+      });
+      void document.fonts?.ready.then(scheduleFit);
     });
   </script>
 </BaseLayout>

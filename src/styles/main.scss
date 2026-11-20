@@ -414,18 +414,49 @@ $front-max: 1200px;
     text-underline-offset: 7px;
   }
 
+  // The excerpt fills whatever height the opinion rail gives the lead and
+  // never sets that height itself (contain: size), so the fitting script
+  // trims it to the rail. It keeps room for a few lines when the rail is short.
   .block-excerpts {
     flex: 1;
-    min-height: 0;
+    min-height: 8em;
     overflow: hidden;
+    contain: size;
   }
 
   .block-excerpt {
     font-size: 1.18rem;
     line-height: 1.65;
     color: #2a2a2a;
-    margin: 0;
-    white-space: pre-wrap;
+
+    p,
+    ul,
+    ol {
+      margin: 0 0 0.9em;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.4em;
+    }
+
+    li {
+      margin: 0 0 0.4em;
+
+      > p {
+        margin: 0;
+      }
+    }
+
+    > :last-child,
+    li:last-child {
+      margin-bottom: 0;
+    }
+
+    .excerpt-link {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
   }
 }
 
@@ -660,6 +691,11 @@ $front-max: 1200px;
 
   .front-lead .block-headline {
     font-size: 2rem;
+  }
+
+  .front-lead .block-excerpts {
+    contain: none;
+    min-height: 0;
   }
 
   .front-section {
