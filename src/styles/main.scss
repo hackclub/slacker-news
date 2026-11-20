@@ -237,6 +237,19 @@ $front-max: 1200px;
 .linked-card {
   position: relative;
 
+  // Hovering anywhere on the card underlines all its text, as when each card
+  // was a single link.
+  &:hover {
+    .linked-card-title,
+    .story-block-excerpt,
+    .opinion-excerpt,
+    .block-excerpt,
+    .reading-time {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
   .linked-card-cover {
     position: absolute;
     inset: 0;
