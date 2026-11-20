@@ -17,7 +17,7 @@ import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
 import ColumnFeedCard from "../components/ColumnFeedCard.astro";
 import Byline from "../components/Byline.astro";
 import type { BylineSource } from "../lib/byline";
-import { excerptTransitionName, titleTransitionName } from "../lib/transitions";
+import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../lib/transitions";
 import { getColumnFeedItems } from "../lib/column-feed";
 import { stripSlackMrkdwn } from "../lib/search";
 import { parseSlackBlocks } from "../lib/slack-rich-text";
@@ -262,7 +262,11 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
               <span class="changelog-change">{entry.change}</span>
             )}
             <span class="changelog-meta">
-              {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} avatars />
+              {entry.date} &middot;{" "}
+              <span
+                class="changelog-byline"
+                data-vt-byline={entry.kind === "long" ? bylineTransitionName(entry.url) : undefined}
+              ><AuthorList authors={entry.author} slackIds={entry.slackIds} avatars /></span>
             </span>
           </div>
         ))}
