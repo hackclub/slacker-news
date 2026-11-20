@@ -92,12 +92,25 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       // unnamed, so the rest of the page swaps without animating.
       let paths: string[] = [];
 
+      // An element on the page being left only carries if some of it is on
+      // screen. One scrolled out of view would otherwise fly in from off the
+      // edge; left unnamed, its counterpart just appears in place.
+      function onScreen(element: Element): boolean {
+        const box = element.getBoundingClientRect();
+        return box.bottom > 0 && box.top < innerHeight && box.right > 0 && box.left < innerWidth;
+      }
+
       function carry(element: Element | null, name: string, kind: string) {
         if (!(element instanceof HTMLElement)) return;
+        if (element.ownerDocument === document && document.contains(element) && !onScreen(element)) return;
         element.style.viewTransitionName = name;
         element.style.setProperty("view-transition-class", kind);
         element.dataset.vtCarried = "";
       }
+
+      // Bumped on every navigation, so a transition that finishes late (it
+      // was cut short by another click) doesn't clear the next one's names.
+      let generation = 0;
 
       function clearCarried(root: Document) {
         root.querySelectorAll<HTMLElement>("[data-vt-carried]").forEach((element) => {
@@ -194,6 +207,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       }
 
       document.addEventListener("astro:before-preparation", (event) => {
+        generation += 1;
         const { from, to } = event as TransitionBeforePreparationEvent;
         paths = [to.pathname, from.pathname];
         excerptTexts = new Map();
@@ -232,7 +246,8 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         );
         const match = pattern.exec(full);
         if (!match) return null;
-        const index = starts.findLastIndex((start) => start <= match.index);
+        let index = 0;
+        while (index + 1 < starts.length && starts[index + 1] <= match.index) index += 1;
         const node = nodes[index];
         const offset = match.index - starts[index];
         const range = document.createRange();
@@ -246,8 +261,14 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       // at its opening words inside the clicked card's excerpt; coming back,
       // the card's excerpt starts at its paragraph in the article. A piece
       // with no source just rises a little into place.
+      type Flight = { element: HTMLElement; from: DOMRect | null };
+
+      // A source position only counts if it's on screen.
+      const visibleBox = (box: DOMRect | null | undefined) =>
+        box && box.bottom > 0 && box.top < innerHeight && box.right > 0 && box.left < innerWidth ? box : null;
+
       function planExcerptFlights(newDocument: Document) {
-        const flights: { element: HTMLElement; from: DOMRect | null }[] = [];
+        const flights: Flight[] = [];
         for (const path of new Set(paths)) {
           const excerpt = excerptTransitionName(path);
           const oldCard = document.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
@@ -265,13 +286,13 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
                 const block = excerptBlocks(oldBody, text)[0];
                 from = block ? block.getBoundingClientRect() : null;
               }
-              flights.push({ element, from });
+              flights.push({ element, from: visibleBox(from) });
             });
         }
         return flights;
       }
 
-      function flyExcerpts(flights: { element: HTMLElement; from: DOMRect | null }[]) {
+      function flyExcerpts(flights: Flight[]) {
         if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
         // Same timing as the titles (--carry-duration in main.scss).
         const duration =
@@ -297,11 +318,29 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       document.addEventListener("astro:before-swap", (event) => {
         const { newDocument, viewTransition } = event as TransitionBeforeSwapEvent;
         nameCarried(newDocument);
-        const flights = planExcerptFlights(newDocument);
-        void viewTransition?.ready.then(() => flyExcerpts(flights)).catch(() => {});
+        // Measuring and flying are extras: if either fails in some browser,
+        // the transition carries on without them rather than stalling.
+        let flights: Flight[] = [];
+        try {
+          flights = planExcerptFlights(newDocument);
+        } catch {
+          flights = [];
+        }
+        void viewTransition?.ready
+          .then(() => {
+            try {
+              flyExcerpts(flights);
+            } catch {
+              // ignore
+            }
+          })
+          .catch(() => {});
         // Unmark once the title has landed, which also brings its byline
         // back (see .byline in main.scss).
-        void (viewTransition?.finished ?? Promise.resolve()).finally(() => clearCarried(document));
+        const current = generation;
+        void (viewTransition?.finished ?? Promise.resolve()).finally(() => {
+          if (current === generation) clearCarried(document);
+        });
       });
     </script>
 
