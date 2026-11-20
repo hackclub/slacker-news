@@ -102,10 +102,11 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           const title = titleTransitionName(path);
           const excerpt = excerptTransitionName(path);
           carry(root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`), title);
-          // On a card it's the excerpt; on the article, its first paragraph.
+          // On a card it's the excerpt; on the article, the whole body, so
+          // the live text stays hidden until the excerpt has landed on it.
           carry(
             root.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`) ??
-              root.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"] p`),
+              root.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"]`),
             excerpt,
           );
         }

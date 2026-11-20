@@ -1382,14 +1382,15 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-// Titles and excerpts change size and line breaks between pages, and stretching one
-// snapshot into the other's box distorts the letters. Both snapshots keep
-// their own size, pinned top-left, and cross-fade while the box moves.
+// Titles and excerpts change size and line breaks between pages, and
+// stretching one snapshot into the other's box distorts the letters. Both
+// snapshots keep their natural size, pinned top-left, and cross-fade while
+// the box moves. Neither is clipped to the box, so a card's excerpt shows in
+// full as it fades into the article body it lands on.
 ::view-transition-old(*.carried),
 ::view-transition-new(*.carried) {
-  height: 100%;
-  object-fit: none;
-  object-position: left top;
+  width: auto;
+  height: auto;
   animation-duration: var(--carry-duration, 0.32s);
 }
 
