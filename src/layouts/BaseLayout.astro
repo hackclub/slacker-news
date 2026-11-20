@@ -85,10 +85,10 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       // unnamed, so the rest of the page swaps without animating.
       let paths: string[] = [];
 
-      function carry(element: Element | null, name: string) {
+      function carry(element: Element | null, name: string, kind: string) {
         if (!(element instanceof HTMLElement)) return;
         element.style.viewTransitionName = name;
-        element.style.setProperty("view-transition-class", "carried");
+        element.style.setProperty("view-transition-class", kind);
         element.dataset.vtCarried = "";
       }
 
@@ -101,13 +101,14 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         for (const path of new Set(paths)) {
           const title = titleTransitionName(path);
           const excerpt = excerptTransitionName(path);
-          carry(root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`), title);
-          // On a card it's the excerpt; on the article, the whole body, so
-          // the live text stays hidden until the excerpt has landed on it.
+          carry(root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`), title, "carried");
+          // On a card it's the excerpt; on the article, the whole body. It
+          // rises into place as the title lands instead of travelling.
           carry(
             root.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`) ??
               root.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"]`),
             excerpt,
+            "carried-excerpt",
           );
         }
       }
