@@ -39,7 +39,7 @@ function cardTitle(
 }
 
 function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number {
-  return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 3), 1), 3);
+  return Math.min(Math.max(Math.round(column.homepageMessagesPerRow ?? 4), 1), 4);
 }
 ---
 
@@ -47,7 +47,7 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
   {visibleHomepageColumns.map((column) => (
   <>
     <section class="front-section slack-column-row">
-      <header class="front-section-aside">
+      <header class="front-section-head">
         <h2 class="front-section-title"><a href={`/slack/${encodeURIComponent(column.column)}/`}>{column.title}</a></h2>
         {column.subtitle && <span class="front-section-note">{column.subtitle}</span>}
         <a class="front-section-more" href={`/slack/${encodeURIComponent(column.column)}/`}>All {column.title} &rarr;</a>
@@ -86,7 +86,6 @@ function getMessagesPerRow(column: { homepageMessagesPerRow?: number }): number 
   ))}
   {protectedHomepageColumns.length > 0 && (
     <section class="front-section slack-auth-prompt">
-      <div class="front-section-aside" aria-hidden="true"></div>
       <p class="front-section-body">
         <a href={`/auth/login?returnTo=${encodeURIComponent(returnTo)}`}>
 
