@@ -1389,9 +1389,10 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
   mix-blend-mode: normal;
 }
 
-// Excerpts don't travel. A card excerpt and an article body differ too much
-// in size and place for a flight to read well, so the destination rises a
-// few pixels into place as the title lands, and the outgoing one is dropped.
+// Excerpt pieces (a card's excerpt, or the article paragraphs it showed)
+// are moved by BaseLayout's script: each flies from where its words were on
+// the page being left. The outgoing copy is dropped and the incoming one
+// fades in, so the words are never doubled.
 ::view-transition-group(*.carried-excerpt) {
   animation: none;
 }
@@ -1411,8 +1412,7 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 
 @keyframes excerpt-in {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    opacity: 0.5;
   }
 }
 
