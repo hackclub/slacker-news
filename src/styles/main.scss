@@ -8,6 +8,7 @@ $text-color: #111111;
 $background-color: #f5f5f0;
 // One paper colour for every surface: page, masthead, footer and cards.
 $paper: #f5f5f0;
+$hairline: #d8d8cf;
 $code-background-color: #e8e8e8;
 $border-color-01: #000000;
 $border-color-02: #333333;
@@ -107,9 +108,122 @@ a {
   }
   .nav-pip {
     color: #999;
-    @media screen and (max-width: 600px) {
-      display: none;
+  }
+}
+
+.nav-toggle {
+  display: none;
+}
+
+// Phones: the links fold into a menu under a plain "Menu" button beside the
+// logo. Open, it drops over the newswire as a full-width list on the paper,
+// one link per row, ruled with hairlines, closed off by a black rule.
+@media screen and (max-width: 600px) {
+  .site-header .wrapper {
+    position: relative;
+  }
+
+  .site-nav {
+    margin-top: 0;
+  }
+
+  html.js .nav-toggle {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #000;
+    cursor: pointer;
+
+    svg {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
     }
+  }
+
+  // The icon is drawn in the text colour, so dark mode's filter on <html>
+  // inverts it with the page; it mustn't get the second, undoing filter
+  // that images and other SVGs get.
+  html.dark-mode .nav-toggle svg,
+  html:not(.light-mode):not(.dark-mode) .nav-toggle svg {
+    filter: none;
+  }
+
+  .nav-toggle-close,
+  .site-nav--open .nav-toggle-open {
+    display: none;
+  }
+
+  .site-nav--open .nav-toggle-close {
+    display: inline;
+  }
+
+  // Without JavaScript the links stay out, wrapped under the logo.
+  html.no-js .site-nav .trigger {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 14px;
+    margin-top: 6px;
+  }
+
+  html.js .site-nav .nav-pip,
+  html.no-js .site-nav .nav-pip {
+    display: none;
+  }
+
+  html.js .site-nav .trigger {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: calc(50% - 50vw);
+    z-index: 50;
+    box-sizing: border-box;
+    width: 100vw;
+    padding: 0 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: $paper;
+    border-bottom: 2px solid #000;
+    text-align: left;
+  }
+
+  html.js .site-nav--open .trigger {
+    display: flex;
+  }
+
+  html.js .site-nav .trigger > .page-link,
+  html.js .site-nav .trigger > .action-button {
+    display: block;
+    margin: 0 !important;
+    padding: 14px 0;
+    border-top: 1px solid $hairline;
+    border-radius: 0;
+    background: none;
+    color: #000 !important;
+    font-family: Georgia, serif;
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  html.js .site-nav .trigger > :first-child {
+    border-top: 0;
+  }
+
+  html.js .site-nav .trigger > .action-button {
+    font-weight: 700;
   }
 }
 
@@ -211,7 +325,6 @@ a {
   margin: 0;
 }
 
-$hairline: #d8d8cf;
 
 // Homepage layout. The page breaks out of the 800px reading wrapper to a
 // wider measure. Each section is a two-column row: the section's name and

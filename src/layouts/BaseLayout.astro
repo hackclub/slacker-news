@@ -458,6 +458,37 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
           updateThemeButtonLabel();
         });
 
+        // The phone menu. The header is replaced on every navigation, so a
+        // fresh page always starts with it closed.
+        function setMenuOpen(nav, open) {
+          nav.classList.toggle("site-nav--open", open);
+          var toggle = nav.querySelector(".nav-toggle");
+          if (toggle) toggle.setAttribute("aria-expanded", String(open));
+        }
+
+        document.addEventListener("click", function (event) {
+          var openNav = document.querySelector(".site-nav--open");
+          var toggle = event.target.closest && event.target.closest(".nav-toggle");
+          if (toggle) {
+            var nav = toggle.closest(".site-nav");
+            setMenuOpen(nav, !nav.classList.contains("site-nav--open"));
+            return;
+          }
+          // A tap outside the menu, or on a link in it, closes it.
+          if (openNav && (!openNav.contains(event.target) || event.target.closest("a"))) {
+            setMenuOpen(openNav, false);
+          }
+        });
+
+        document.addEventListener("keydown", function (event) {
+          if (event.key !== "Escape") return;
+          var openNav = document.querySelector(".site-nav--open");
+          if (!openNav) return;
+          setMenuOpen(openNav, false);
+          var toggle = openNav.querySelector(".nav-toggle");
+          if (toggle) toggle.focus();
+        });
+
         updateThemeButtonLabel();
         document.addEventListener("astro:page-load", updateThemeButtonLabel);
       })();
@@ -471,16 +502,14 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
             <img src="/Core%20SN%20logo.svg" alt={siteTitle} style="height: 2em; vertical-align: middle;" />
           </a>
                 </div>
-        <nav class="site-nav">
-          <input type="checkbox" id="nav-trigger" class="nav-trigger" />
-          <label for="nav-trigger">
-            <span class="menu-icon">
-              <svg viewBox="0 0 18 15" width="18px" height="15px">
-                <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z" />
-              </svg>
-            </span>
-          </label>
-          <div class="trigger">
+        <nav class="site-nav" aria-label="Site">
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Menu">
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+              <path class="nav-toggle-open" d="M2 5h16M2 10h16M2 15h16" />
+              <path class="nav-toggle-close" d="M4 4l12 12M16 4L4 16" />
+            </svg>
+          </button>
+          <div class="trigger" id="site-menu">
             <a class="page-link" href="/search/">Search</a>
             <span class="nav-pip">|</span>
             <a class="page-link" href="/about/">About</a>
