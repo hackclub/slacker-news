@@ -1,0 +1,24 @@
+---
+// A small round Slack profile picture to sit before a name. Decorative: the
+// name beside it says who it is, so the image has empty alt text. If Cachet
+// has no picture, the image removes itself rather than show a broken icon.
+import { avatarUrl } from "../lib/avatars";
+
+interface Props {
+  id: string;
+}
+
+const { id } = Astro.props;
+---
+
+<span class="byline-avatar"
+  ><img
+    src={avatarUrl(id)}
+    alt=""
+    width="20"
+    height="20"
+    loading="lazy"
+    decoding="async"
+    onerror="this.parentElement.remove()"
+  /></span
+>

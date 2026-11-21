@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import AuthorList from "../components/AuthorList.astro";
+import SlackAvatar from "../components/SlackAvatar.astro";
 import SlackMention from "../components/SlackMention.astro";
 import {
   getAcknowledgements,
@@ -265,7 +266,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
               <span
                 class="changelog-byline"
                 data-vt-byline={entry.kind === "long" ? bylineTransitionName(entry.url) : undefined}
-              ><AuthorList authors={entry.author} slackIds={entry.slackIds} /></span>
+              ><AuthorList authors={entry.author} slackIds={entry.slackIds} avatars /></span>
             </span>
           </div>
         ))}
@@ -282,7 +283,7 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
           const userName = person.name.trim().replace(/^@+/, "");
           return (
             <span class="acknowledgement-name">
-              {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
+              {person.slackId ? <><SlackAvatar id={person.slackId} /><SlackMention name={userName} id={person.slackId} /></> : person.name}
             </span>
           );
         })}

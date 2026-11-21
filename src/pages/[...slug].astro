@@ -70,7 +70,7 @@ const followUpsLinks = linkedStories(post.followUps?.map((ref) => ref.slug), all
         {
           post.author && (
             <span class="story-author" data-vt-byline={bylineTransitionName(Astro.url.pathname)}>
-              By <AuthorList authors={post.author} slackIds={post.authorSlackIds} />
+              By <AuthorList authors={post.author} slackIds={post.authorSlackIds} avatars />
             </span>
           )
         }

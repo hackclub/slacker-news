@@ -299,6 +299,25 @@ $front-max: 1200px;
   transition: none;
 }
 
+// Profile picture before a Slack author's name.
+.byline-avatar {
+  display: inline-block;
+  width: 1.35em;
+  height: 1.35em;
+  margin-right: 0.3em;
+  vertical-align: -0.35em;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e8e8e2;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
 // Beside the big lead headline the byline stays reading size.
 .block-headline .byline {
   font-size: 0.45em;

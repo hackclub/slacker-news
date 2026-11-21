@@ -52,7 +52,7 @@ const followUpLinks = linkedStories(changelog.followUpTo?.map((ref) => ref.slug)
       <div class="story-meta">
         <span class="story-category">CHANGELOG</span>
         <span class="story-author" data-vt-byline={bylineTransitionName(Astro.url.pathname)}>
-          By <AuthorList authors={changelog.author} slackIds={changelog.slackIds} />
+          By <AuthorList authors={changelog.author} slackIds={changelog.slackIds} avatars />
         </span>
         {" — "}
         <time>{formatStoryDate(new Date(`${changelog.date}T00:00:00Z`))}</time>
