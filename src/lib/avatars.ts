@@ -1,5 +1,14 @@
-// Cachet redirects this straight to the user's Slack avatar, so the picture
-// costs no API call of our own.
+import { getSlackUserAvatarUrl } from "./slack-users";
+
+// A Slack profile picture through our own cached route
+// (src/pages/api/avatars/[id].ts).
 export function avatarUrl(slackId: string): string {
-  return `https://cachet.hackclub.com/users/${encodeURIComponent(slackId)}/r`;
+  return `/api/avatars/${encodeURIComponent(slackId)}`;
+}
+
+// Where an avatar should load from: Slack's CDN directly when the page's own
+// Cachet lookup (the one that also finds the user's name) names the picture,
+// so it costs no request to us; otherwise the cached route.
+export async function avatarSrc(slackId: string): Promise<string> {
+  return (await getSlackUserAvatarUrl(slackId)) ?? avatarUrl(slackId);
 }

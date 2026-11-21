@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { avatarUrl } from "../lib/avatars";
+import { avatarSrc, avatarUrl } from "../lib/avatars";
 import SlackMention from "../components/SlackMention.astro";
 import {
   getAcknowledgementGroups,
@@ -19,6 +19,15 @@ const sections: { title: string; people: Acknowledgement[] }[] = [
   { title: "With thanks", people: other },
 ];
 
+
+const avatars = new Map(
+  await Promise.all(
+    sections
+      .flatMap((section) => section.people)
+      .flatMap((person) => (person.slackId ? [person.slackId] : []))
+      .map(async (id) => [id, await avatarSrc(id)] as const),
+  ),
+);
 ---
 
 <BaseLayout
@@ -44,7 +53,9 @@ const sections: { title: string; people: Acknowledgement[] }[] = [
                   {person.slackId && (
                     <img
                       class="acknowledgement-avatar"
-                      src={avatarUrl(person.slackId)}
+                      src={avatars.get(person.slackId)}
+                      data-fallback={avatars.get(person.slackId)?.startsWith("/") ? undefined : avatarUrl(person.slackId)}
+                      onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; delete this.dataset.fallback; } else { this.remove(); }"
                       alt=""
                       loading="lazy"
                       decoding="async"

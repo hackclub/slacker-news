@@ -1,24 +1,27 @@
 ---
 // A small round Slack profile picture to sit before a name. Decorative: the
-// name beside it says who it is, so the image has empty alt text. If Cachet
-// has no picture, the image removes itself rather than show a broken icon.
-import { avatarUrl } from "../lib/avatars";
+// name beside it says who it is, so the image has empty alt text. If the
+// picture fails it retries once through our cached route, then removes
+// itself rather than show a broken icon.
+import { avatarSrc, avatarUrl } from "../lib/avatars";
 
 interface Props {
   id: string;
 }
 
 const { id } = Astro.props;
+const src = await avatarSrc(id);
+const fallback = avatarUrl(id);
 ---
 
 <span class="byline-avatar"
   ><img
-    src={avatarUrl(id)}
+    src={src}
     alt=""
     width="20"
     height="20"
-    loading="lazy"
     decoding="async"
-    onerror="this.parentElement.remove()"
+    data-fallback={src === fallback ? undefined : fallback}
+    onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; delete this.dataset.fallback; } else { this.parentElement.remove(); }"
   /></span
 >

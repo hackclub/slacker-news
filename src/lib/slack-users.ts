@@ -1,4 +1,40 @@
 const userPromises = new Map<string, Promise<string | undefined>>();
+const cachetPromises = new Map<string, Promise<unknown>>();
+
+// One Cachet lookup per user, shared by the name and the profile picture.
+// A failed lookup is forgotten so the next render tries again.
+function cachetUser(id: string): Promise<unknown> {
+  const cached = cachetPromises.get(id);
+  if (cached) return cached;
+  const request = fetch(
+    `https://cachet.hackclub.com/users/${encodeURIComponent(id)}`,
+    { headers: { Accept: "application/json" } },
+  )
+    .then((response) => (response.ok ? response.json() : undefined))
+    .catch(() => undefined);
+  cachetPromises.set(id, request);
+  void request.then((payload) => {
+    if (payload === undefined && cachetPromises.get(id) === request) {
+      cachetPromises.delete(id);
+    }
+  });
+  return request;
+}
+
+// The user's Slack profile picture at 72px, straight from Slack's CDN, or
+// undefined when Cachet doesn't know it. Slack serves each picture at several
+// sizes; 72px is plenty for avatars shown at 20-40px.
+export async function getSlackUserAvatarUrl(
+  id: string,
+): Promise<string | undefined> {
+  if (!/^[UW][A-Z0-9]+$/i.test(id)) return undefined;
+  const payload = (await cachetUser(id)) as { imageUrl?: unknown } | undefined;
+  const imageUrl = payload?.imageUrl;
+  if (typeof imageUrl !== "string" || !imageUrl.startsWith("https://")) {
+    return undefined;
+  }
+  return imageUrl.replace(/_(\d+|original)\.(png|jpe?g|gif|webp)$/i, "_72.$2");
+}
 
 // Lookup services answer with a stand-in name while they cannot reach Slack.
 // Treat those like no answer, so the next source (or the supplied name) wins.
@@ -57,15 +93,8 @@ export function getSlackUserDisplayName(
   const cached = userPromises.get(id);
   if (cached) return cached;
 
-  const request = fetch(
-    `https://cachet.hackclub.com/users/${encodeURIComponent(id)}`,
-    {
-      headers: { Accept: "application/json" },
-    },
-  )
-    .then(async (response) =>
-      response.ok ? nameFromPayload(await response.json()) : undefined,
-    )
+  const request = cachetUser(id)
+    .then((payload) => (payload ? nameFromPayload(payload) : undefined))
     .then(async (displayName) => {
       if (displayName) return displayName;
 
