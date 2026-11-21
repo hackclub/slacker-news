@@ -516,6 +516,21 @@ export async function getAcknowledgementGroups(): Promise<AcknowledgementGroups>
   return { editors, technical, content, other };
 }
 
+// How many stories each person has a byline on, by normalised handle.
+export async function getStoryCounts(): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  for (const post of await getPosts()) {
+    const bylines = Array.isArray(post.author) ? post.author : post.author ? [post.author] : [];
+    const handles = new Set(bylines.flatMap(splitAuthors).map(normalizeHandle).filter(Boolean));
+    for (const handle of handles) counts.set(handle, (counts.get(handle) ?? 0) + 1);
+  }
+  return counts;
+}
+
+export function handleKey(name: string): string {
+  return normalizeHandle(name);
+}
+
 export async function getRecentChangelogEntries(
   days: number,
 ): Promise<ChangelogEntry[]> {

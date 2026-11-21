@@ -5,75 +5,101 @@ import SlackMention from "../components/SlackMention.astro";
 import {
   getAcknowledgementGroups,
   getSiteConfig,
+  getStoryCounts,
+  handleKey,
   type Acknowledgement,
 } from "../lib/content";
 
 const site = await getSiteConfig();
-const { editors, technical, content, other } =
-  await getAcknowledgementGroups();
+const { editors, technical, content, other } = await getAcknowledgementGroups();
+const storyCounts = await getStoryCounts();
 
-const sections: { title: string; people: Acknowledgement[] }[] = [
-  { title: "Editors", people: editors },
-  { title: "Technical contributors", people: technical },
-  { title: "Content contributors", people: content },
-  { title: "With thanks", people: other },
-];
+const sections: {
+  id: string;
+  title: string;
+  note: string;
+  people: Acknowledgement[];
+  stories?: boolean;
+}[] = [
+  { id: "editors", title: "Editors", note: "Choose, edit and publish the stories.", people: editors },
+  { id: "technical", title: "Technical", note: "Build and run the site.", people: technical },
+  { id: "content", title: "Writers", note: "Wrote for Slacker News.", people: content, stories: true },
+  { id: "thanks", title: "With thanks", note: "Helped along the way.", people: other },
+].filter((section) => section.people.length > 0);
 
+const everyone = new Set(sections.flatMap((section) => section.people.map((person) => handleKey(person.name))));
 
 const avatars = new Map(
   await Promise.all(
-    sections
-      .flatMap((section) => section.people)
-      .flatMap((person) => (person.slackId ? [person.slackId] : []))
-      .map(async (id) => [id, await avatarSrc(id)] as const),
+    [...new Set(sections.flatMap((section) => section.people).flatMap((person) => (person.slackId ? [person.slackId] : [])))].map(
+      async (id) => [id, await avatarSrc(id)] as const,
+    ),
   ),
 );
+
+// A writer's stories, through search's author filter (one word of the handle).
+function storiesLink(person: Acknowledgement): { href: string; label: string } | undefined {
+  const count = storyCounts.get(handleKey(person.name));
+  if (!count) return undefined;
+  const word = person.name.trim().replace(/^@+/, "").split(/\s+/)[0];
+  return {
+    href: `/search/?q=${encodeURIComponent(`@${word}`)}`,
+    label: `${count} ${count === 1 ? "story" : "stories"}`,
+  };
+}
 ---
 
-<BaseLayout
-  title="Acknowledgements"
-  siteTitle={site.title}
-  siteDescription={site.description}
->
-  <article class="story-page">
-    <header class="story-header">
-      <h1 class="story-title">Acknowledgements</h1>
-      <hr class="story-rule" />
+<BaseLayout title="Acknowledgements" siteTitle={site.title} siteDescription={site.description}>
+  <div class="credits">
+    <header class="credits-head">
+      <h1 class="credits-title">Acknowledgements</h1>
+      <p class="credits-lede">
+        Slacker News is written, edited and built by Hack Clubbers. These are
+        the {everyone.size} people who make it.
+      </p>
     </header>
 
-    <div class="story-body">
-      {sections.filter((section) => section.people.length > 0).map((section) => (
-        <section class="acknowledgements-section">
-          <h2 class="acknowledgements-heading">{section.title}</h2>
-          <div class="acknowledgements-full-grid">
-            {section.people.map((person) => {
-              const userName = person.name.trim().replace(/^@+/, "");
-              return (
-                <span class="acknowledgement-name">
-                  {person.slackId && (
-                    <img
-                      class="acknowledgement-avatar"
-                      src={avatars.get(person.slackId)}
-                      data-fallback={avatars.get(person.slackId)?.startsWith("/") ? undefined : avatarUrl(person.slackId)}
-                      onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; delete this.dataset.fallback; } else { this.remove(); }"
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      width="32"
-                      height="32"
-                    />
+    {sections.map((section) => (
+      <section class="credits-section" aria-labelledby={`credits-${section.id}`}>
+        <div class="credits-aside">
+          <h2 class="credits-section-title" id={`credits-${section.id}`}>{section.title}</h2>
+          <p class="credits-section-note">{section.note}</p>
+        </div>
+        <ul class:list={["credits-people", { "credits-people--lead": section.id === "editors" }]}>
+          {section.people.map((person) => {
+            const userName = person.name.trim().replace(/^@+/, "");
+            const stories = section.stories ? storiesLink(person) : undefined;
+            const src = person.slackId ? avatars.get(person.slackId) : undefined;
+            return (
+              <li class="credits-person">
+                {person.slackId && src ? (
+                  <img
+                    class="credits-avatar"
+                    src={src}
+                    data-fallback={src.startsWith("/") ? undefined : avatarUrl(person.slackId)}
+                    onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; delete this.dataset.fallback; } else { this.replaceWith(Object.assign(document.createElement('span'), { className: 'credits-avatar credits-avatar--blank' })); }"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    width="44"
+                    height="44"
+                  />
+                ) : (
+                  <span class="credits-avatar credits-avatar--blank" aria-hidden="true" />
+                )}
+                <span class="credits-who">
+                  <span class="credits-name">
+                    {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
+                  </span>
+                  {stories && (
+                    <a class="credits-stories" href={stories.href}>{stories.label}</a>
                   )}
-                  {person.slackId ? <SlackMention name={userName} id={person.slackId} /> : person.name}
                 </span>
-              );
-            })}
-          </div>
-        </section>
-      ))}
-    </div>
-
-    <footer class="story-footer">
-      <a href="/">&larr; Back to front page</a>
-    </footer>
-  </article>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))}
+  </div>
 </BaseLayout>

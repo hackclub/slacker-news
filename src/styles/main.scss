@@ -1130,63 +1130,162 @@ $front-max: 1200px;
   font-style: italic;
 }
 
-// ─── Acknowledgements block ──────────────────────────────────────────────────
+// ─── Acknowledgements page ───────────────────────────────────────────────────
+// Laid out like the homepage: wider than the reading column, each group of
+// people a row with its name in the left margin, separated by hairlines.
 
-.acknowledgements-section {
-  margin-bottom: 32px;
+$credits-max: 1040px;
 
-  &:last-child {
-    margin-bottom: 0;
-  }
+.credits {
+  --credits-gutter: 48px;
+  margin: 40px calc(50% - min(#{$credits-max} / 2, 50vw - var(--credits-gutter)))
+    80px;
 }
 
-.acknowledgements-heading {
+.credits-head {
+  max-width: 40rem;
+  margin-bottom: 48px;
+}
+
+.credits-title {
+  margin: 0 0 14px;
   font-family: Georgia, serif;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  margin: 0 0 10px;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
 }
 
-.acknowledgements-full-grid {
+.credits-lede {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: #333;
+}
+
+.credits-section {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 48px;
+  padding: 36px 0 44px;
+  border-top: 1px solid $hairline;
+}
 
-  .acknowledgement-name {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-    padding: 8px 12px;
-    border: 2px solid #000;
-    border-radius: 10px;
-    background: $paper;
-    font-size: 1.05rem;
-    line-height: 1.4;
+.credits-aside {
+  align-self: start;
+  position: sticky;
+  top: 24px;
+}
 
-    // The mention is the only text in the box, so let it take the space left
-    // over and trim rather than push the avatar around.
-    .slack_user {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+.credits-section-title {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.credits-section-note {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #666;
+}
+
+.credits-people {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 22px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.credits-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.credits-avatar {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e4e4dc;
+
+  &--blank {
+    display: block;
+    background-image: radial-gradient(circle, rgb(0 0 0 / 0.16) 1.2px, transparent 1.5px);
+    background-size: 6px 6px;
+  }
+}
+
+.credits-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.credits-name {
+  overflow: hidden;
+  font-size: 1.05rem;
+  font-weight: bold;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.credits .credits-stories {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: #666;
+
+  &:hover {
+    color: #000;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+// Editors run the paper, so they get bigger portraits.
+.credits-people--lead {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+
+  .credits-avatar {
+    width: 64px;
+    height: 64px;
   }
 
-  .acknowledgement-avatar {
-    flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
-    border: 1px solid #000;
-    border-radius: 6px;
-    object-fit: cover;
-    background: #e8e8e0;
+  .credits-name {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 800px) {
+  .credits-section {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 28px 0 36px;
   }
 
-  @media screen and (max-width: 600px) {
-    grid-template-columns: 1fr 1fr;
+  .credits-aside {
+    position: static;
+  }
+}
+
+@media (max-width: 600px) {
+  .credits {
+    --credits-gutter: 16px;
+    margin-top: 28px;
+  }
+
+  .credits-people {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px 16px;
   }
 }
 
