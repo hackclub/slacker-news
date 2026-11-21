@@ -109,3 +109,30 @@ export const cardHtml = (
         <span class="reading-time">${categoryLabel ? categoryLabel + " · " : ""}${byline ? byline + " · " : ""}<span class="search-reading-time" data-vt-reading-time="${readingTimeTransitionName(doc.url)}">${doc.readingTime} min read</span></span>
       </a>`;
 };
+
+// A section's name as the filters show it: Slack columns keep their channel
+// name, the rest are capitalised.
+export const sectionLabel = (category: string, slack: boolean) =>
+  slack ? `#${category}` : category.charAt(0).toUpperCase() + category.slice(1);
+
+const monthLabel = (date: string) =>
+  date
+    ? new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+    : "Undated";
+
+// The whole archive, newest first, under a heading for each month.
+export const archiveHtml = (docs: SearchDocument[]) => {
+  let month = "";
+  return docs
+    .map((doc) => {
+      const label = monthLabel(doc.date);
+      const heading = label === month ? "" : `<h2 class="search-month">${escapeHtml(label)}</h2>`;
+      month = label;
+      return heading + cardHtml(doc, escapeHtml(doc.title), escapeHtml(truncateWords(doc.excerpt, 30)));
+    })
+    .join("");
+};
