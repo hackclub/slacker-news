@@ -1759,6 +1759,32 @@ html.dark-mode {
 
 $wipe-rim: 150px;
 
+// The circle, centred at (x, y) in the masked layer's own box.
+@mixin wipe-mask($x, $y) {
+  animation: theme-wipe var(--wipe-duration, 650ms) cubic-bezier(0.4, 0, 0.2, 1)
+    both;
+  mix-blend-mode: normal;
+  // Solid inside the rim, then a dot screen faded across the rim.
+  mask-image:
+    radial-gradient(
+      circle at $x $y,
+      #000 calc(var(--wipe) - #{$wipe-rim}),
+      transparent calc(var(--wipe) - #{$wipe-rim} + 1px)
+    ),
+    radial-gradient(circle, #000 2.6px, transparent 3.4px),
+    radial-gradient(
+      circle at $x $y,
+      #000 calc(var(--wipe) - #{$wipe-rim}),
+      transparent var(--wipe)
+    );
+  mask-size:
+    100% 100%,
+    9px 9px,
+    100% 100%;
+  mask-repeat: no-repeat, repeat, no-repeat;
+  mask-composite: add, intersect;
+}
+
 html.theme-wiping {
   view-transition-name: root;
 
@@ -1767,61 +1793,48 @@ html.theme-wiping {
   }
 
   &::view-transition-new(root) {
-    animation: theme-wipe var(--wipe-duration, 650ms) cubic-bezier(0.4, 0, 0.2, 1)
-      both;
-    mix-blend-mode: normal;
-    // Solid inside the rim, then a dot screen faded across the rim.
-    mask-image:
-      radial-gradient(
-        circle at var(--wipe-x) var(--wipe-y),
-        #000 calc(var(--wipe) - #{$wipe-rim}),
-        transparent calc(var(--wipe) - #{$wipe-rim} + 1px)
-      ),
-      radial-gradient(circle, #000 2.6px, transparent 3.4px),
-      radial-gradient(
-        circle at var(--wipe-x) var(--wipe-y),
-        #000 calc(var(--wipe) - #{$wipe-rim}),
-        transparent var(--wipe)
-      );
-    mask-size:
-      100% 100%,
-      9px 9px,
-      100% 100%;
-    mask-repeat: no-repeat, repeat, no-repeat;
-    mask-composite: add, intersect;
+    @include wipe-mask(var(--wipe-x), var(--wipe-y));
   }
-}
 
-// A snapshot is a still picture, so the newswire gets a layer of its own
-// that stays live and keeps scrolling. It takes the new colours at once.
-// The old copy is hidden: Chrome can't snapshot it under dark mode's filter.
-html.theme-wiping {
+  // A snapshot is a still picture, which would stop the newswire mid-scroll.
+  // So it gets live layers of its own: underneath, a copy of the ticker in
+  // the old colours (the script adds it, in step with the original); on
+  // top, the ticker itself in the new colours, inside the same circle.
   #news-ticker {
+    position: relative;
+    z-index: 1;
     view-transition-name: theme-wipe-ticker;
   }
 
-  &::view-transition-group(theme-wipe-ticker) {
+  .theme-wipe-ticker-copy {
+    z-index: 0;
+    view-transition-name: theme-wipe-ticker-copy;
+  }
+
+  &::view-transition-group(theme-wipe-ticker),
+  &::view-transition-group(theme-wipe-ticker-copy),
+  &::view-transition-new(theme-wipe-ticker-copy) {
     animation: none;
   }
 
-  &::view-transition-old(theme-wipe-ticker) {
+  // Old snapshots are dropped: Chrome can't take them under dark mode's
+  // filter, and the copy stands in for the old ticker.
+  &::view-transition-old(theme-wipe-ticker),
+  &::view-transition-old(theme-wipe-ticker-copy) {
     display: none;
   }
 
   &::view-transition-new(theme-wipe-ticker) {
-    animation: none;
+    @include wipe-mask(var(--wipe-tx), var(--wipe-ty));
   }
 }
 
-// The live layer is drawn outside dark mode's filter, so it gets its own.
-html.theme-wiping.dark-mode::view-transition-new(theme-wipe-ticker) {
+// Live layers are drawn outside dark mode's filter, so each takes it on
+// directly: the ticker when the new theme is dark, the copy when the old one
+// was. (After the switch, exactly one of the two classes is set.)
+html.theme-wiping.dark-mode::view-transition-new(theme-wipe-ticker),
+html.theme-wiping.light-mode::view-transition-new(theme-wipe-ticker-copy) {
   filter: invert(1) hue-rotate(180deg);
-}
-
-@media (prefers-color-scheme: dark) {
-  html.theme-wiping:not(.light-mode):not(.dark-mode)::view-transition-new(theme-wipe-ticker) {
-    filter: invert(1) hue-rotate(180deg);
-  }
 }
 
 @keyframes theme-wipe {

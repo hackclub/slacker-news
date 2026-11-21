@@ -28,6 +28,39 @@ export function themeWipe(from: Element | null, swap: () => void) {
   // Far enough to pass the farthest corner, rim included.
   const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 160;
 
+  // The newswire keeps scrolling: a copy in the old colours goes underneath
+  // it, in step with it, and both stay live through the wipe (main.scss).
+  const ticker = document.getElementById("news-ticker");
+  let copy: HTMLElement | null = null;
+  if (ticker) {
+    const at = ticker.getBoundingClientRect();
+    copy = ticker.cloneNode(true) as HTMLElement;
+    copy.removeAttribute("id");
+    copy.removeAttribute("data-astro-transition-persist");
+    copy.setAttribute("aria-hidden", "true");
+    copy.inert = true;
+    copy.classList.add("theme-wipe-ticker-copy");
+    Object.assign(copy.style, {
+      position: "absolute",
+      top: `${ticker.offsetTop}px`,
+      left: `${ticker.offsetLeft}px`,
+      width: `${at.width}px`,
+      height: `${at.height}px`,
+      margin: "0",
+      pointerEvents: "none",
+    });
+    ticker.before(copy);
+    const running = ticker.getAnimations({ subtree: true });
+    copy.getAnimations({ subtree: true }).forEach((animation, index) => {
+      const original = running[index];
+      if (!original) return;
+      animation.currentTime = original.currentTime;
+      if (original.playState === "paused") animation.pause();
+    });
+    root.style.setProperty("--wipe-tx", `${x - at.left}px`);
+    root.style.setProperty("--wipe-ty", `${y - at.top}px`);
+  }
+
   root.style.setProperty("--wipe-x", `${x}px`);
   root.style.setProperty("--wipe-y", `${y}px`);
   root.style.setProperty("--wipe-end", `${end}px`);
@@ -37,7 +70,8 @@ export function themeWipe(from: Element | null, swap: () => void) {
 
   const done = () => {
     root.classList.remove("theme-wiping");
-    for (const name of ["--wipe-x", "--wipe-y", "--wipe-end", "--wipe-duration"]) {
+    copy?.remove();
+    for (const name of ["--wipe-x", "--wipe-y", "--wipe-tx", "--wipe-ty", "--wipe-end", "--wipe-duration"]) {
       root.style.removeProperty(name);
     }
     busy = false;
