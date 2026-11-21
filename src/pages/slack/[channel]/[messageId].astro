@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../../../lib/transitions";
 import { getSiteConfig } from "../../../lib/content";
 import { getIndigestMessage, getIndigestMetadataSchema, getSlackColumn,  slackLinkFromMessageId } from "../../../lib/indigest";
 import IndigestMetadata from "../../../components/IndigestMetadata.astro";
@@ -23,6 +24,22 @@ const [message, metadataSchema] = column
     ])
   : [undefined, undefined];
 const site = await getSiteConfig();
+
+// The message split into paragraphs at blank lines, never inside a code
+// block. Each paragraph is its own block, so a page transition can carry just
+// the ones the homepage excerpt showed, as it does for markdown articles.
+function slackParagraphs(text: string): string[] {
+  const paragraphs: string[] = [];
+  for (const part of text.split(/\n{2,}/)) {
+    const previous = paragraphs.at(-1);
+    if (previous !== undefined && (previous.match(/```/g)?.length ?? 0) % 2 === 1) {
+      paragraphs[paragraphs.length - 1] = `${previous}\n\n${part}`;
+    } else {
+      paragraphs.push(part);
+    }
+  }
+  return paragraphs.map((paragraph) => paragraph.trim()).filter(Boolean);
+}
 
 function firstMetadataValue(metadata: Record<string, unknown> | string | undefined): string | undefined {
   let parsed: Record<string, unknown> | undefined;
@@ -70,12 +87,12 @@ if (!column || !message) {
   {column && message ? (
     <article class="story-page slack-story-page">
       <header class="story-header">
-        <h1 class="story-title">{messageTitle}</h1>
+        <h1 class="story-title" data-vt-title={titleTransitionName(Astro.url.pathname)}>{messageTitle}</h1>
         <div class="story-meta">
           <span class="story-category">
             <a class="page-link" href={`/slack/${encodeURIComponent(channel)}/`}>{column.title}</a>
           </span>
-          <span class="story-author">
+          <span class="story-author" data-vt-byline={bylineTransitionName(Astro.url.pathname)}>
             By <SlackMention name={message.userName || message.userId} id={message.userId} />
           </span>
           {" — "}
@@ -86,8 +103,10 @@ if (!column || !message) {
         <hr class="story-rule" />
       </header>
 
-      <div class="story-body slack-story-body">
-        <SlackRichText text={message.text} />
+      <div class="story-body slack-story-body" data-vt-body={excerptTransitionName(Astro.url.pathname)}>
+        {slackParagraphs(message.text).map((paragraph) => (
+          <div class="slack-paragraph"><SlackRichText text={paragraph} /></div>
+        ))}
         {column.showMetadata && <IndigestMetadata metadata={message.metadata} schema={metadataSchema} />}
       </div>
 

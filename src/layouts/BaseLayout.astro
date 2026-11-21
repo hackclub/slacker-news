@@ -73,6 +73,301 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
     <meta property="og:image:alt" content={socialImageAlt} />
 
     <ClientRouter />
+    <script>
+      import {
+        bylineTransitionName,
+        excerptTransitionName,
+        readingTimeTransitionName,
+        titleTransitionName,
+      } from "../lib/transitions";
+      import type {
+        TransitionBeforePreparationEvent,
+        TransitionBeforeSwapEvent,
+      } from "astro:transitions/client";
+
+      // Carry the title, byline, read time and excerpt tied to this
+      // navigation: those for the page being opened and for the page being
+      // left. Everything else stays
+      // unnamed, so the rest of the page swaps without animating.
+      let paths: string[] = [];
+
+      // An element on the page being left only carries if some of it is on
+      // screen. One scrolled out of view would otherwise fly in from off the
+      // edge; left unnamed, its counterpart just appears in place.
+      function onScreen(element: Element): boolean {
+        const box = element.getBoundingClientRect();
+        return box.bottom > 0 && box.top < innerHeight && box.right > 0 && box.left < innerWidth;
+      }
+
+      function carry(element: Element | null, name: string, kind: string) {
+        if (!(element instanceof HTMLElement)) return;
+        if (element.ownerDocument === document && document.contains(element) && !onScreen(element)) return;
+        element.style.viewTransitionName = name;
+        element.style.setProperty("view-transition-class", kind);
+        element.dataset.vtCarried = "";
+      }
+
+      // Bumped on every navigation, so a transition that finishes late (it
+      // was cut short by another click) doesn't clear the next one's names.
+      let generation = 0;
+
+      function clearCarried(root: Document) {
+        root.querySelectorAll<HTMLElement>("[data-vt-carried]").forEach((element) => {
+          element.style.viewTransitionName = "";
+          element.style.removeProperty("view-transition-class");
+          delete element.dataset.vtCarried;
+        });
+      }
+
+      // The text of the excerpt the reader clicked, by excerpt key, read from
+      // the page being left so the article side can find the same passage.
+      let excerptTexts = new Map<string, string>();
+
+      // Text reduced to lowercase letters, digits and single spaces, so a
+      // homepage excerpt and the article match however each was formatted:
+      // curly or straight quotes, Slack's *bold* and _italic_ markers,
+      // trailing ellipses.
+      function normalise(text: string): string {
+        return text
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s]+/gu, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function openingWords(text: string): string {
+        return text.split(" ").slice(0, 5).join(" ");
+      }
+
+      // The run of paragraphs and list items in an article body that the
+      // excerpt showed, matched by their opening words. Anything before the
+      // first match (an italic note, say) is skipped; the run ends at the
+      // first full-length block after it that the excerpt didn't include.
+      function excerptBlocks(body: Element, excerptText: string): HTMLElement[] {
+        if (!excerptText) return [];
+        const excerptOpening = openingWords(excerptText);
+        const blocks = [...body.querySelectorAll<HTMLElement>("p, li, .slack-paragraph")].filter(
+          (block) => !block.querySelector("p, li, .slack-paragraph"),
+        );
+        // A body with no paragraphs at all: carry the whole of it when it
+        // opens the way the excerpt does.
+        if (blocks.length === 0) {
+          const text = normalise(body.textContent ?? "");
+          return text && (text.includes(excerptOpening) || excerptText.includes(openingWords(text)))
+            ? [body as HTMLElement]
+            : [];
+        }
+        const found: HTMLElement[] = [];
+        for (const block of blocks) {
+          const text = normalise(block.textContent ?? "");
+          if (!text) continue;
+          const shown = excerptText.includes(openingWords(text)) || text.includes(excerptOpening);
+          // The homepage leaves out short lines ("Here are the requirements:"),
+          // so they don't end the run.
+          const short = text.split(" ").length < 6 || text.length < 35;
+          if (shown) found.push(block);
+          else if (found.length > 0 && !short) break;
+          if (found.length >= 12) break;
+        }
+        return found;
+      }
+
+      // The part of an excerpt the reader can actually see. A card can hold a
+      // whole Slack message and clip it to a few lines; only the words above
+      // the clip count, or the article would carry paragraphs the card never
+      // showed.
+      function shownText(element: Element): string {
+        let bottom = element.getBoundingClientRect().bottom;
+        for (let ancestor = element.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {
+          if (getComputedStyle(ancestor).overflowY !== "visible") {
+            bottom = Math.min(bottom, ancestor.getBoundingClientRect().bottom);
+          }
+        }
+        let text = "";
+        const range = document.createRange();
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text;
+          for (const word of node.data.matchAll(/\S+/g)) {
+            range.setStart(node, word.index);
+            range.setEnd(node, word.index + word[0].length);
+            const box = range.getClientRects()[0];
+            // Clipped words sit below the clip (line-clamp, a fixed height).
+            if (box && box.top + box.height / 2 > bottom) return text + node.data.slice(0, word.index);
+          }
+          text += node.data;
+        }
+        return text;
+      }
+
+      function nameCarried(root: Document) {
+        clearCarried(root);
+        for (const path of new Set(paths)) {
+          const title = titleTransitionName(path);
+          const excerpt = excerptTransitionName(path);
+          carry(root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`), title, "carried");
+          const byline = bylineTransitionName(path);
+          carry(root.querySelector(`[data-vt-byline="${CSS.escape(byline)}"]`), byline, "carried");
+          const readingTime = readingTimeTransitionName(path);
+          carry(
+            root.querySelector(`[data-vt-reading-time="${CSS.escape(readingTime)}"]`),
+            readingTime,
+            "carried",
+          );
+          // On a card it's the excerpt. On the article it's just the
+          // paragraphs that excerpt showed; the rest of the body swaps in with
+          // the page. They rise into place as the title lands.
+          const card = root.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
+          if (card) {
+            carry(card, excerpt, "carried-excerpt");
+          } else {
+            const body = root.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"]`);
+            if (body) {
+              excerptBlocks(body, excerptTexts.get(excerpt) ?? "").forEach((block, index) =>
+                carry(block, `${excerpt}-${index}`, "carried-excerpt"),
+              );
+            }
+          }
+        }
+      }
+
+      document.addEventListener("astro:before-preparation", (event) => {
+        generation += 1;
+        const { from, to } = event as TransitionBeforePreparationEvent;
+        paths = [to.pathname, from.pathname];
+        excerptTexts = new Map();
+        for (const path of paths) {
+          const excerpt = excerptTransitionName(path);
+          const card = document.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
+          if (card) excerptTexts.set(excerpt, normalise(shownText(card)));
+        }
+        nameCarried(document);
+      });
+
+      // Where a passage of text starts on screen: the first character of the
+      // first match for these opening words inside root.
+      function textStart(root: Element, words: string): DOMRect | null {
+        const nodes: Text[] = [];
+        const starts: number[] = [];
+        let full = "";
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text;
+          starts.push(full.length);
+          nodes.push(node);
+          full += node.data;
+        }
+        // The words are normalised (letters and digits only), so let any
+        // punctuation or markup sit inside and between them on the page.
+        const pattern = new RegExp(
+          words
+            .split(" ")
+            .filter(Boolean)
+            .map((word) =>
+              [...word].map((char) => char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[^\\p{L}\\p{N}\\s]*"),
+            )
+            .join("[^\\p{L}\\p{N}]+"),
+          "iu",
+        );
+        const match = pattern.exec(full);
+        if (!match) return null;
+        let index = 0;
+        while (index + 1 < starts.length && starts[index + 1] <= match.index) index += 1;
+        const node = nodes[index];
+        const offset = match.index - starts[index];
+        const range = document.createRange();
+        range.setStart(node, offset);
+        range.setEnd(node, Math.min(offset + 1, node.length));
+        return range.getBoundingClientRect();
+      }
+
+      // Each carried excerpt piece flies from where its words were on the page
+      // being left to where they land. Going out, an article paragraph starts
+      // at its opening words inside the clicked card's excerpt; coming back,
+      // the card's excerpt starts at its paragraph in the article. A piece
+      // with no source just rises a little into place.
+      type Flight = { element: HTMLElement; from: DOMRect | null };
+
+      // A source position only counts if it's on screen.
+      const visibleBox = (box: DOMRect | null | undefined) =>
+        box && box.bottom > 0 && box.top < innerHeight && box.right > 0 && box.left < innerWidth ? box : null;
+
+      function planExcerptFlights(newDocument: Document) {
+        const flights: Flight[] = [];
+        for (const path of new Set(paths)) {
+          const excerpt = excerptTransitionName(path);
+          const oldCard = document.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
+          const oldBody = document.querySelector(`[data-vt-body="${CSS.escape(excerpt)}"]`);
+          newDocument
+            .querySelectorAll<HTMLElement>("[data-vt-carried]")
+            .forEach((element) => {
+              const name = element.style.viewTransitionName;
+              if (name !== excerpt && !name.startsWith(`${excerpt}-`)) return;
+              const words = openingWords(normalise(element.textContent ?? ""));
+              let from: DOMRect | null = null;
+              if (oldCard) from = textStart(oldCard, words.split(" ").slice(0, 4).join(" "));
+              else if (oldBody) {
+                const text = normalise(element.textContent ?? "");
+                const block = excerptBlocks(oldBody, text)[0];
+                from = block ? block.getBoundingClientRect() : null;
+              }
+              flights.push({ element, from: visibleBox(from) });
+            });
+        }
+        return flights;
+      }
+
+      function flyExcerpts(flights: Flight[]) {
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        // Same timing as the titles (--carry-duration in main.scss).
+        const duration =
+          parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--carry-duration") || "0.32") *
+            1000 || 320;
+        for (const { element, from } of flights) {
+          const pseudoElement = `::view-transition-group(${element.style.viewTransitionName})`;
+          // The browser places each group with a transform of its own, so the
+          // flight starts from an offset added to that, not a bare translate.
+          const end = getComputedStyle(document.documentElement, pseudoElement).transform;
+          const placed = end && end !== "none" ? end : "";
+          const to = element.getBoundingClientRect();
+          const offset = from
+            ? `translate(${from.left - to.left}px, ${from.top - to.top}px)`
+            : "translateY(8px)";
+          document.documentElement.animate(
+            { transform: [`${offset} ${placed}`.trim(), placed || "none"] },
+            { duration, easing: "cubic-bezier(0.2, 0, 0, 1)", pseudoElement },
+          );
+        }
+      }
+
+      document.addEventListener("astro:before-swap", (event) => {
+        const { newDocument, viewTransition } = event as TransitionBeforeSwapEvent;
+        nameCarried(newDocument);
+        // Measuring and flying are extras: if either fails in some browser,
+        // the transition carries on without them rather than stalling.
+        let flights: Flight[] = [];
+        try {
+          flights = planExcerptFlights(newDocument);
+        } catch {
+          flights = [];
+        }
+        void viewTransition?.ready
+          .then(() => {
+            try {
+              flyExcerpts(flights);
+            } catch {
+              // ignore
+            }
+          })
+          .catch(() => {});
+        // Unmark once the title has landed, which also brings its byline
+        // back (see .byline in main.scss).
+        const current = generation;
+        void (viewTransition?.finished ?? Promise.resolve()).finally(() => {
+          if (current === generation) clearCarried(document);
+        });
+      });
+    </script>
 
 
     {openGraphType === "article" && articlePublishedTime && (

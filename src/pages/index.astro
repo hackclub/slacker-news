@@ -16,6 +16,7 @@ import HomepageSlackColumns from "../components/HomepageSlackColumns.astro";
 import ColumnFeedCard from "../components/ColumnFeedCard.astro";
 import Byline from "../components/Byline.astro";
 import type { BylineSource } from "../lib/byline";
+import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../lib/transitions";
 import { getColumnFeedItems } from "../lib/column-feed";
 import { stripSlackMrkdwn } from "../lib/search";
 import { parseSlackBlocks } from "../lib/slack-rich-text";
@@ -168,13 +169,14 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
           )}
 
           <div class="headline-content">
-            <h2 class="block-headline">
+            <h2 class="block-headline" data-vt-title={titleTransitionName(headline.url)}>
               <a class="linked-card-title" href={headline.url}>{headline.title}</a>
-              {" "}<Byline {...headline.byline} />
+              {" "}<Byline {...headline.byline} href={headline.url} />
             </h2>
             <div class="block-excerpts">
               <p
                 id="headline-excerpt"
+                data-vt-excerpt={excerptTransitionName(headline.url)}
                 class="block-excerpt"
                 data-source={headlineExcerptText}
               >
@@ -254,12 +256,16 @@ function getSlackHomepageLimit(column: { homepageLimit?: number; homepageFetchLi
         {recentChangelog.map((entry) => (
           <div class="changelog-item">
             {entry.kind === "long" ? (
-              <a href={entry.url} class="changelog-change changelog-change-link">{entry.title}</a>
+              <a href={entry.url} class="changelog-change changelog-change-link" data-vt-title={titleTransitionName(entry.url)}>{entry.title}</a>
             ) : (
               <span class="changelog-change">{entry.change}</span>
             )}
             <span class="changelog-meta">
-              {entry.date} &middot; <AuthorList authors={entry.author} slackIds={entry.slackIds} />
+              {entry.date} &middot;{" "}
+              <span
+                class="changelog-byline"
+                data-vt-byline={entry.kind === "long" ? bylineTransitionName(entry.url) : undefined}
+              ><AuthorList authors={entry.author} slackIds={entry.slackIds} /></span>
             </span>
           </div>
         ))}

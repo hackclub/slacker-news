@@ -274,6 +274,28 @@ $front-max: 1200px;
   color: #555;
 }
 
+// Bylines and read times carry across navigation on their own, apart from
+// the title. A carried element has to be one box, so these never break
+// across lines.
+.byline,
+[data-vt-byline],
+[data-vt-reading-time],
+.linked-story-title {
+  display: inline-block;
+}
+
+// A byline with no counterpart on the other page would otherwise travel
+// inside its title's snapshot, where its mention chips scale into a ghost
+// box. It is hidden for the flight and fades back in after.
+.byline {
+  transition: opacity 0.2s ease-out;
+}
+
+[data-vt-carried] .byline:not([data-vt-carried]) {
+  opacity: 0;
+  transition: none;
+}
+
 // Beside the big lead headline the byline stays reading size.
 .block-headline .byline {
   font-size: 0.45em;
@@ -692,6 +714,9 @@ $front-max: 1200px;
 
 .reading-time {
   display: block;
+  // Only as wide as its text, so it scales evenly when it carries over to an
+  // article's read time.
+  width: fit-content;
   font-size: 0.72rem;
   color: #888;
   margin-top: 6px;
@@ -888,6 +913,12 @@ $front-max: 1200px;
 
 .slack-story-body {
   white-space: pre-wrap;
+
+  // One blank line between paragraphs, as the message had.
+  .slack-paragraph + .slack-paragraph {
+    margin-top: 1.6em;
+    margin-top: 1lh;
+  }
 
   .slack-metadata {
     white-space: normal;
@@ -1381,4 +1412,92 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 .front-pair-col:hover .slack_channel,
 .front-pair-col:hover .emoji {
   filter: grayscale(0%) !important;
+}
+
+// ─── Page transitions ────────────────────────────────────────────────────────
+// The page swaps without animating (<html transition:animate="none">). Only
+// the title shared by the two pages moves, from where it was to where it
+// lands, the way the persisted newswire ticker carries across navigation,
+// and the matching excerpt or article body rises into place with it.
+// BaseLayout's script gives them the "carried" and "carried-excerpt" classes.
+
+// The page itself is never snapshotted: it doesn't animate, so the browser
+// can show the live new page under the carried pieces. A full-page snapshot
+// costs a lot of memory on phones, and iOS can paint it blank (white) for
+// the length of the transition.
+:root {
+  view-transition-name: none;
+}
+
+::view-transition-group(*.carried) {
+  animation-duration: var(--carry-duration, 0.32s);
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+// Only the destination title is drawn. It starts at the clicked title's
+// place and width and scales into its own, so there is one copy of the words
+// throughout. Cross-fading two copies left a ghost: they scale by their box
+// widths, which don't match the text, so the copies drift apart.
+::view-transition-old(*.carried) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(*.carried) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+// Excerpt pieces (a card's excerpt, or the article paragraphs it showed)
+// are moved by BaseLayout's script: each flies from where its words were on
+// the page being left. The outgoing copy is dropped and the incoming one
+// fades in, so the words are never doubled.
+::view-transition-group(*.carried-excerpt) {
+  animation: none;
+}
+
+::view-transition-old(*.carried-excerpt) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(*.carried-excerpt) {
+  width: auto;
+  height: auto;
+  mix-blend-mode: normal;
+  animation: excerpt-in var(--carry-duration, 0.32s) cubic-bezier(0.2, 0, 0, 1)
+    both;
+}
+
+@keyframes excerpt-in {
+  from {
+    opacity: 0.5;
+  }
+}
+
+// Dark mode inverts the page with a filter on <html>, and Chrome draws the
+// destination snapshots without it, so give them the same filter.
+html.dark-mode {
+  &::view-transition-new(*.carried),
+  &::view-transition-new(*.carried-excerpt) {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-mode):not(.dark-mode) {
+    &::view-transition-new(*.carried),
+    &::view-transition-new(*.carried-excerpt) {
+      filter: invert(1) hue-rotate(180deg);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*.carried),
+  ::view-transition-old(*.carried),
+  ::view-transition-new(*.carried),
+  ::view-transition-new(*.carried-excerpt) {
+    animation: none !important;
+  }
 }

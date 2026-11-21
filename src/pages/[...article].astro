@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../lib/transitions";
 import { getSiteConfig } from "../lib/content";
 import { getMarkdownColumnArticles, MARKDOWN_COLUMNS } from "../lib/indigest";
 import SlackMention from "../components/SlackMention.astro";
@@ -55,12 +56,12 @@ const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[
 >
   <article class="story-page slack-story-page">
     <header class="story-header">
-      <h1 class="story-title">{article.title}</h1>
+      <h1 class="story-title" data-vt-title={titleTransitionName(Astro.url.pathname)}>{article.title}</h1>
       <div class="story-meta">
         <span class="story-category">
           <a class="page-link" href={`/${article.column}/`}>{article.column.toUpperCase()}</a>
         </span>
-        <span class="story-author">
+        <span class="story-author" data-vt-byline={bylineTransitionName(Astro.url.pathname)}>
           By {authorId
             ? <SlackMention name="" id={authorId} />
             : article.author ?? <SlackMention name={message.userName || message.userId} id={message.userId} />}
@@ -79,7 +80,7 @@ const authorId = article.author?.match(/^<?@?([UW][A-Z0-9]+)(?:\|[^>]*)?>?$/)?.[
       <hr class="story-rule" />
     </header>
 
-    <div class="story-body">
+    <div class="story-body" data-vt-body={excerptTransitionName(Astro.url.pathname)}>
       <SlackMrkdwnBody text={message.formattedText || message.text} />
     </div>
 
