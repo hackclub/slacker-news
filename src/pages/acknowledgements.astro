@@ -27,8 +27,6 @@ const sections: {
   { id: "thanks", title: "With thanks", note: "Helped along the way.", people: other },
 ].filter((section) => section.people.length > 0);
 
-const everyone = new Set(sections.flatMap((section) => section.people.map((person) => handleKey(person.name))));
-
 const avatars = new Map(
   await Promise.all(
     [...new Set(sections.flatMap((section) => section.people).flatMap((person) => (person.slackId ? [person.slackId] : [])))].map(
@@ -54,8 +52,7 @@ function storiesLink(person: Acknowledgement): { href: string; label: string } |
     <header class="credits-head">
       <h1 class="credits-title">Acknowledgements</h1>
       <p class="credits-lede">
-        Slacker News is written, edited and built by Hack Clubbers. These are
-        the {everyone.size} people who make it.
+        Slacker News is written, edited and built by Hack Clubbers.
       </p>
     </header>
 
