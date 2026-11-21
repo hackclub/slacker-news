@@ -3,7 +3,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../../lib/transitions";
 import AuthorList from "../../components/AuthorList.astro";
 import SubmitFollowUp from "../../components/SubmitFollowUp.astro";
-import { formatStoryDate, getChangelogEntries, getSiteConfig, type LongChangelogEntry } from "../../lib/content";
+import { formatStoryDate, getChangelogEntries, getPosts, getSiteConfig, linkedStories, type LongChangelogEntry } from "../../lib/content";
+import Byline from "../../components/Byline.astro";
 import { render } from "astro:content";
 
 export const prerender = true;
@@ -30,6 +31,9 @@ if (!changelog) {
 }
 
 const { Content } = await render(changelog.entry);
+const posts = await getPosts();
+const responseLinks = linkedStories(changelog.responseTo?.map((ref) => ref.slug), posts, entries);
+const followUpLinks = linkedStories(changelog.followUpTo?.map((ref) => ref.slug), posts, entries);
 ---
 
 <BaseLayout
@@ -56,23 +60,29 @@ const { Content } = await render(changelog.entry);
       <hr class="story-rule" />
     </header>
 
-    {changelog.responseTo && changelog.responseTo.length > 0 && (
+    {responseLinks.length > 0 && (
       <div class="story-response-banner">
         <strong>This is a response to:</strong>
         <ul class="response-links">
-          {changelog.responseTo.map((link) => (
-            <li><a href={link.url}>{link.title}</a></li>
+          {responseLinks.map((link) => (
+            <li>
+              <a class="linked-story-title" href={link.url} data-vt-title={titleTransitionName(link.url)}>{link.title}</a>
+              {" "}<Byline authors={link.authors} slackIds={link.slackIds} href={link.url} />
+            </li>
           ))}
         </ul>
       </div>
     )}
 
-    {changelog.followUpTo && changelog.followUpTo.length > 0 && (
+    {followUpLinks.length > 0 && (
       <div class="story-followup-banner">
         <strong>This is a follow-up to:</strong>
         <ul class="followup-links">
-          {changelog.followUpTo.map((link) => (
-            <li><a href={link.url}>{link.title}</a></li>
+          {followUpLinks.map((link) => (
+            <li>
+              <a class="linked-story-title" href={link.url} data-vt-title={titleTransitionName(link.url)}>{link.title}</a>
+              {" "}<Byline authors={link.authors} slackIds={link.slackIds} href={link.url} />
+            </li>
           ))}
         </ul>
       </div>

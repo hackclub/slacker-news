@@ -547,3 +547,30 @@ export async function getPageEntry(
 }
 
 export { truncateWords };
+
+// A linked story with who wrote it, for the follow-up and response lists on
+// an article page. Slugs that match nothing are dropped.
+export type LinkedStory = PostReference & {
+  authors?: string | string[];
+  slackIds?: string[];
+};
+
+export function linkedStories(
+  slugs: string[] | undefined,
+  posts: Post[],
+  changelogs: ChangelogEntry[],
+): LinkedStory[] {
+  return (slugs ?? []).flatMap((slug): LinkedStory[] => {
+    const post = posts.find((entry) => entry.slug === slug);
+    if (post) {
+      return [{ slug, title: post.title, url: post.url, authors: post.author, slackIds: post.authorSlackIds }];
+    }
+    const changelog = changelogs.find(
+      (entry): entry is LongChangelogEntry => entry.kind === "long" && entry.slug === slug,
+    );
+    if (changelog) {
+      return [{ slug, title: changelog.title, url: changelog.url, authors: changelog.author, slackIds: changelog.slackIds }];
+    }
+    return [];
+  });
+}
