@@ -67,6 +67,17 @@ const STOPWORDS = new Set([
 
 export type TermFrequency = Record<string, number>;
 
+// An author as a result card shows them: a name, and for Slack users their
+// ID and profile picture.
+export type SearchAuthor = {
+  name: string;
+  slackId?: string;
+  avatar?: string;
+};
+
+// Who wrote a document, before names and pictures are looked up.
+export type SearchAuthorRef = { handle?: string; slackId?: string };
+
 export type SearchDocument = {
   url: string;
   title: string;
@@ -76,6 +87,11 @@ export type SearchDocument = {
   text: string;
   author: string;
   date: string;
+  authors?: SearchAuthor[];
+  authorRefs?: SearchAuthorRef[];
+  // Names of people and channels mentioned in the text, shown as chips.
+  mentions?: string[];
+  channels?: string[];
   titleTerms: TermFrequency;
   bodyTerms: TermFrequency;
   authorTerms: TermFrequency;
@@ -127,7 +143,17 @@ export function slackMessageToDocument(
       ? article.author
       : "";
 
-  const cleanText = stripSlackMrkdwn(message.text);
+  // Keep user mentions as @{ID} placeholders; the index route swaps in names.
+  const cleanText = stripSlackMrkdwn(
+    message.text.replace(/<@([UW][A-Z0-9]+)(?:\|[^>]*)?>/g, "@{$1}"),
+  );
+  const authorRefs: SearchAuthorRef[] = /^<?@?[UW][A-Z0-9]+/.test(
+    article.author ?? "",
+  )
+    ? [{ slackId: article.author!.match(/[UW][A-Z0-9]+/)![0] }]
+    : article.author
+      ? [{ handle: article.author }]
+      : [{ handle: message.userName, slackId: message.userId }];
   const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
   const url = article.url;
@@ -140,6 +166,7 @@ export function slackMessageToDocument(
     readingTime,
     text: cleanText,
     author,
+    authorRefs,
     date: Number.isNaN(article.date.getTime())
       ? ""
       : article.date.toISOString().slice(0, 10),
@@ -155,7 +182,7 @@ export function tokenize(text: string): string[] {
   );
 }
 
-function termFrequency(text: string): TermFrequency {
+export function termFrequency(text: string): TermFrequency {
   const freq: TermFrequency = {};
   for (const token of tokenize(text)) {
     freq[token] = (freq[token] ?? 0) + 1;
@@ -168,6 +195,27 @@ export function buildSearchIndex(
   slackDocuments: SearchDocument[] = [],
 ): SearchIndex {
   const postDocuments: SearchDocument[] = posts.map((post) => ({
+    authorRefs: (Array.isArray(post.author)
+      ? post.author
+      : post.author
+        ? [post.author]
+        : []
+    ).map((handle, index) => ({
+      handle: handle.replace(/^@+/, ""),
+      slackId: post.authorSlackIds?.[index],
+    })),
+    mentions: [
+      ...(post.entry.body ?? "").matchAll(
+        /<SlackMention\b[^>]*\bname="([^"]+)"/g,
+      ),
+    ].map((match) => match[1].replace(/^@+/, "")),
+    channels: [
+      ...(post.entry.body ?? "").matchAll(
+        /<SlackChannel\b[^>]*\bid="([^"]+)"/g,
+      ),
+    ]
+      .map((match) => match[1])
+      .filter((id) => !/^C[A-Z0-9]{6,}$/.test(id)),
     url: post.url,
     title: post.title,
     excerpt: post.excerpt,

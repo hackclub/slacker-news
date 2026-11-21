@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { bylineTransitionName, excerptTransitionName, readingTimeTransitionName, titleTransitionName } from "../lib/transitions";
+import { dateTransitionName, bylineTransitionName, excerptTransitionName, readingTimeTransitionName, titleTransitionName } from "../lib/transitions";
 import AuthorList from "../components/AuthorList.astro";
 import SubmitFollowUp from "../components/SubmitFollowUp.astro";
 import { formatStoryDate, getPosts, getChangelogEntries, getSiteConfig, linkedStories } from "../lib/content";
@@ -75,7 +75,7 @@ const followUpsLinks = linkedStories(post.followUps?.map((ref) => ref.slug), all
           )
         }
         {post.author && " — "}
-        <time>{formatStoryDate(new Date(post.date))}</time>
+        <time data-vt-date={dateTransitionName(Astro.url.pathname)}>{formatStoryDate(new Date(post.date))}</time>
         <span class="story-reading-time"> &middot; <span data-vt-reading-time={readingTimeTransitionName(Astro.url.pathname)}>{post.readingTime} min read</span></span>
       </div>
       <hr class="story-rule" />

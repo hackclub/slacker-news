@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { bylineTransitionName, excerptTransitionName, titleTransitionName } from "../../lib/transitions";
+import { dateTransitionName, bylineTransitionName, excerptTransitionName, titleTransitionName } from "../../lib/transitions";
 import AuthorList from "../../components/AuthorList.astro";
 import SubmitFollowUp from "../../components/SubmitFollowUp.astro";
 import { formatStoryDate, getChangelogEntries, getPosts, getSiteConfig, linkedStories, type LongChangelogEntry } from "../../lib/content";
@@ -55,7 +55,7 @@ const followUpLinks = linkedStories(changelog.followUpTo?.map((ref) => ref.slug)
           By <AuthorList authors={changelog.author} slackIds={changelog.slackIds} avatars />
         </span>
         {" — "}
-        <time>{formatStoryDate(new Date(`${changelog.date}T00:00:00Z`))}</time>
+        <time data-vt-date={dateTransitionName(Astro.url.pathname)}>{formatStoryDate(new Date(`${changelog.date}T00:00:00Z`))}</time>
       </div>
       <hr class="story-rule" />
     </header>
