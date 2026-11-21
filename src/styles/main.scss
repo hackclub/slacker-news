@@ -1792,6 +1792,38 @@ html.theme-wiping {
   }
 }
 
+// A snapshot is a still picture, so the newswire gets a layer of its own
+// that stays live and keeps scrolling. It takes the new colours at once.
+// The old copy is hidden: Chrome can't snapshot it under dark mode's filter.
+html.theme-wiping {
+  #news-ticker {
+    view-transition-name: theme-wipe-ticker;
+  }
+
+  &::view-transition-group(theme-wipe-ticker) {
+    animation: none;
+  }
+
+  &::view-transition-old(theme-wipe-ticker) {
+    display: none;
+  }
+
+  &::view-transition-new(theme-wipe-ticker) {
+    animation: none;
+  }
+}
+
+// The live layer is drawn outside dark mode's filter, so it gets its own.
+html.theme-wiping.dark-mode::view-transition-new(theme-wipe-ticker) {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+@media (prefers-color-scheme: dark) {
+  html.theme-wiping:not(.light-mode):not(.dark-mode)::view-transition-new(theme-wipe-ticker) {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
 @keyframes theme-wipe {
   from {
     --wipe: 0px;
