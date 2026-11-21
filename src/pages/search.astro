@@ -2,54 +2,132 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getSiteConfig } from "../lib/content";
 import { getSearchIndex } from "../lib/search-documents";
-import { cardHtml, escapeHtml, truncateWords } from "../lib/search-cards";
+import { archiveHtml, sectionLabel } from "../lib/search-cards";
 
 const site = await getSiteConfig();
 
-// With no query, the full list is part of the page, so it shows at once.
-// The browser fetches the index only to search.
-const query = Astro.url.searchParams.get("q")?.trim() ?? "";
-const listed = query
-  ? []
-  : [...(await getSearchIndex(Boolean(Astro.locals.user))).documents].sort((a, b) =>
-      a.date && b.date ? b.date.localeCompare(a.date) : 0,
-    );
-const listedHtml = listed
-  .map((doc) => cardHtml(doc, escapeHtml(doc.title), escapeHtml(truncateWords(doc.excerpt, 30))))
-  .join("");
+// The query, section and sort live in the URL, so a search can be shared
+// and the back button returns to it.
+const params = Astro.url.searchParams;
+const query = params.get("q")?.trim() ?? "";
+const sort = params.get("sort") === "newest" ? "newest" : "best";
+
+const documents = [...(await getSearchIndex(Boolean(Astro.locals.user))).documents].sort((a, b) =>
+  a.date && b.date ? b.date.localeCompare(a.date) : 0,
+);
+
+// Sections, largest first, with how many stories each holds.
+const counts = new Map<string, { label: string; count: number }>();
+for (const doc of documents) {
+  const entry = counts.get(doc.category) ?? {
+    label: sectionLabel(doc.category, doc.url.startsWith("/slack/")),
+    count: 0,
+  };
+  entry.count += 1;
+  counts.set(doc.category, entry);
+}
+const sections = [...counts.entries()]
+  .map(([id, entry]) => ({ id, ...entry }))
+  .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+const section = counts.has(params.get("section") ?? "") ? params.get("section")! : "";
+
+// With no query, the archive is part of the page, so it shows at once. The
+// browser fetches the index only to search.
+const listed = query ? [] : documents.filter((doc) => !section || doc.category === section);
+
+const sectionHref = (id: string) => {
+  const next = new URLSearchParams();
+  if (query) next.set("q", query);
+  if (id) next.set("section", id);
+  if (sort === "newest") next.set("sort", sort);
+  const search = next.toString();
+  return `/search/${search ? `?${search}` : ""}`;
+};
 ---
 
 <BaseLayout title="Search" siteTitle={site.title} siteDescription={site.description}>
-  <div class="archive-page search-page">
-    <div class="section-label">SEARCH</div>
-    <hr class="section-rule" />
+  <div class="search-page">
+    <aside class="search-aside">
+      <h1 class="search-title">Search</h1>
+      <p class="search-note">{documents.length} stories in the archive.</p>
 
-    <form class="search-form" role="search" action="/search/" method="get">
-      <input
-        type="search"
-        id="search-input"
-        name="q"
-        class="search-input"
-        placeholder="Search articles…"
-        autocomplete="off"
-        aria-label="Search articles"
+      <nav class="search-sections" aria-label="Sections">
+        <a
+          class="search-section"
+          href={sectionHref("")}
+          data-section=""
+          aria-current={section === "" ? "true" : undefined}
+        >
+          <span>Everything</span><span class="search-section-count">{documents.length}</span>
+        </a>
+        {sections.map((entry) => (
+          <a
+            class="search-section"
+            href={sectionHref(entry.id)}
+            data-section={entry.id}
+            aria-current={section === entry.id ? "true" : undefined}
+          >
+            <span>{entry.label}</span><span class="search-section-count">{entry.count}</span>
+          </a>
+        ))}
+      </nav>
+    </aside>
+
+    <div class="search-main">
+      <form class="search-form" role="search" action="/search/" method="get">
+        <input
+          type="search"
+          id="search-input"
+          name="q"
+          class="search-input"
+          value={query}
+          placeholder="Search stories, or @author"
+          autocomplete="off"
+          aria-label="Search stories"
+          aria-keyshortcuts="/"
+        />
+        {section && <input type="hidden" name="section" value={section} />}
+        <kbd class="search-key" aria-hidden="true">/</kbd>
+      </form>
+
+      <div class="search-bar">
+        <p id="search-status" class="search-status" role="status" aria-live="polite">
+          {query ? "" : `${listed.length} ${listed.length === 1 ? "story" : "stories"}.`}
+        </p>
+        <div class="search-sort" role="group" aria-label="Sort results" hidden={!query}>
+          <button type="button" data-sort="best" aria-pressed={sort === "best" ? "true" : "false"}>Best match</button>
+          <button type="button" data-sort="newest" aria-pressed={sort === "newest" ? "true" : "false"}>Newest</button>
+        </div>
+      </div>
+
+      <div
+        id="search-results"
+        class="archive-list search-results"
+        data-listed={query ? undefined : ""}
+        set:html={archiveHtml(listed)}
       />
-    </form>
 
-    <p id="search-status" class="search-status" role="status" aria-live="polite">
-      {query ? "" : `${listed.length} articles.`}
-    </p>
-
-    <div id="search-results" class="archive-list" data-listed={query ? undefined : ""} set:html={listedHtml} />
-
-    <noscript>
-      <p class="search-status">Search needs JavaScript enabled.</p>
-    </noscript>
+      <noscript>
+        <p class="search-status">Searching needs JavaScript; the sections above work without it.</p>
+      </noscript>
+    </div>
   </div>
 
   <script>
-    import { tokenize, scoreDocument, type SearchDocument, type SearchIndex } from "../lib/search";
-    import { cardHtml, escapeHtml, truncateWords } from "../lib/search-cards";
+    import { tokenize, scoreDocument, type SearchIndex } from "../lib/search";
+    import { archiveHtml, cardHtml, escapeHtml, truncateWords } from "../lib/search-cards";
+
+    // "/" jumps to the search box from anywhere on the page.
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable]")) return;
+      const input = document.getElementById("search-input") as HTMLInputElement | null;
+      if (!input) return;
+      event.preventDefault();
+      input.focus();
+      input.select();
+    });
 
     // Bundled scripts run once per full page load, so re-run on every
     // client-side navigation to set up search on this page again.
@@ -57,10 +135,15 @@ const listedHtml = listed
       const input = document.getElementById("search-input") as HTMLInputElement | null;
       const results = document.getElementById("search-results");
       const status = document.getElementById("search-status");
+      const sortGroup = document.querySelector<HTMLElement>(".search-sort");
+      const sectionLinks = [...document.querySelectorAll<HTMLAnchorElement>(".search-section")];
 
-      if (input && results && status) {
+      if (input && results && status && sortGroup) {
         let index: SearchIndex | null = null;
         let pending: string | null = null;
+        const initial = new URLSearchParams(window.location.search);
+        let section = initial.get("section") ?? "";
+        let sort = initial.get("sort") === "newest" ? "newest" : "best";
 
         const wordMatches = (word: string, terms: string[]) => {
           const cores = word.toLowerCase().match(/[a-z0-9]+/g);
@@ -111,24 +194,46 @@ const listedHtml = listed
           return { authorFilter: null, textQuery: query };
         };
 
+        // Keep the address in step with the search, without adding history
+        // entries for every keystroke.
+        const syncUrl = () => {
+          const next = new URLSearchParams();
+          if (input.value.trim()) next.set("q", input.value.trim());
+          if (section) next.set("section", section);
+          if (sort === "newest") next.set("sort", sort);
+          const search = next.toString();
+          history.replaceState(history.state, "", `/search/${search ? `?${search}` : ""}`);
+        };
+
+        const showControls = () => {
+          sortGroup.hidden = !input.value.trim();
+          sortGroup.querySelectorAll<HTMLButtonElement>("[data-sort]").forEach((button) => {
+            button.setAttribute("aria-pressed", String(button.dataset.sort === sort));
+          });
+          for (const link of sectionLinks) {
+            if ((link.dataset.section ?? "") === section) link.setAttribute("aria-current", "true");
+            else link.removeAttribute("aria-current");
+          }
+        };
+
         const render = (query: string) => {
           if (!index) return;
+          showControls();
           const { authorFilter, textQuery } = parseQuery(query);
           const terms = tokenize(textQuery);
+          const documents = index.documents.filter((doc) => !section || doc.category === section);
 
           if (terms.length === 0 && !authorFilter) {
-            const all = [...index.documents].sort((a, b) => {
+            const all = [...documents].sort((a, b) => {
               if (a.date && b.date) return b.date.localeCompare(a.date);
               return 0;
             });
-            status.textContent = `${all.length} articles.`;
-            results.innerHTML = all
-              .map((doc) => cardHtml(doc, escapeHtml(doc.title), escapeHtml(truncateWords(doc.excerpt, 30))))
-              .join("");
+            status.textContent = `${all.length} ${all.length === 1 ? "story" : "stories"}.`;
+            results.innerHTML = archiveHtml(all);
             return;
           }
 
-          let ranked = index.documents
+          let ranked = documents
             .map((doc) => ({ doc, score: scoreDocument(doc, terms.length > 0 ? terms : [""], index!.weights) }))
             .filter((entry) => entry.score > 0);
 
@@ -147,7 +252,8 @@ const listedHtml = listed
             }));
           }
 
-          ranked.sort((a, b) => b.score - a.score);
+          if (sort === "newest") ranked.sort((a, b) => b.doc.date.localeCompare(a.doc.date));
+          else ranked.sort((a, b) => b.score - a.score);
 
           if (ranked.length === 0) {
             results.innerHTML = "";
@@ -169,21 +275,55 @@ const listedHtml = listed
             .join("");
         };
 
-        input.addEventListener("input", () => {
+        const update = () => {
+          syncUrl();
           if (index) render(input.value);
           else pending = input.value;
+        };
+
+        input.addEventListener("input", update);
+
+        // Esc clears the box; a second Esc leaves it.
+        input.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape") return;
+          if (input.value) {
+            event.preventDefault();
+            input.value = "";
+            update();
+          } else {
+            input.blur();
+          }
         });
 
-        const initialQuery = new URLSearchParams(window.location.search).get("q");
-        if (initialQuery) {
-          input.value = initialQuery;
-          pending = initialQuery;
+        // Typing already searches; Enter just keeps the page where it is.
+        input.form?.addEventListener("submit", (event) => {
+          event.preventDefault();
+          input.blur();
+        });
+
+        for (const link of sectionLinks) {
+          link.addEventListener("click", (event) => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+            event.preventDefault();
+            section = link.dataset.section ?? "";
+            update();
+            if (!index) showControls();
+          });
         }
-        // The server already listed every article when there's no query;
-        // keep that until the reader types.
-        const listed = results.hasAttribute("data-listed") && !initialQuery;
+
+        sortGroup.addEventListener("click", (event) => {
+          const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-sort]");
+          if (!button) return;
+          sort = button.dataset.sort === "newest" ? "newest" : "best";
+          update();
+        });
+
+        if (input.value) pending = input.value;
+        // The server already listed the archive when there's no query; keep
+        // that until the reader types.
+        const listed = results.hasAttribute("data-listed") && !input.value;
         if (!listed) status.textContent = "Loading index…";
-        input.focus();
+        if (!matchMedia("(hover: none)").matches) input.focus();
 
         fetch("/search-index.json")
           .then((response) => response.json())
@@ -199,44 +339,238 @@ const listedHtml = listed
     });
   </script>
 
-  <style>
+  <style lang="scss">
+    // Laid out like the homepage: wider than the reading column, with the
+    // page's name and the section filters in the left margin.
+    $search-max: 1040px;
+
+    .search-page {
+      --search-gutter: 48px;
+      display: grid;
+      grid-template-columns: 200px minmax(0, 1fr);
+      gap: 56px;
+      margin: 40px calc(50% - min(#{$search-max} / 2, 50vw - var(--search-gutter))) 80px;
+    }
+
+    .search-aside {
+      align-self: start;
+      position: sticky;
+      top: 24px;
+    }
+
+    .search-title {
+      margin: 0;
+      font-family: Georgia, serif;
+      font-size: 2.4rem;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .search-note {
+      margin: 8px 0 24px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .search-sections {
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid #d8d8cf;
+    }
+
+    .search-section {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid #d8d8cf;
+      color: #333;
+      font-size: 0.95rem;
+
+      &:hover {
+        color: #000;
+      }
+
+      &[aria-current="true"] {
+        color: #000;
+        font-weight: bold;
+        box-shadow: inset 3px 0 0 var(--hc-red);
+        padding-left: 12px;
+      }
+    }
+
+    .search-section-count {
+      color: #888;
+      font-variant-numeric: tabular-nums;
+      font-weight: normal;
+    }
+
     .search-form {
-      margin-bottom: 16px;
+      position: relative;
+      margin: 0 0 14px;
     }
 
     .search-input {
       width: 100%;
       box-sizing: border-box;
-      padding: 10px 12px;
+      padding: 14px 48px 14px 0;
       font-family: Georgia, "Times New Roman", serif;
-      font-size: 1rem;
+      font-size: 1.6rem;
       color: #111;
-      background: #fff;
-      border: 1px solid #000;
+      background: transparent;
+      border: 0;
+      border-bottom: 2px solid #000;
       border-radius: 0;
+
+      &::placeholder {
+        color: #999;
+      }
+
+      &:focus {
+        outline: none;
+        border-bottom-color: var(--hc-red);
+      }
     }
 
-    .search-input:focus {
-      outline: 2px solid #000;
-      outline-offset: 1px;
+    .search-key {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 1px 7px;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      color: #888;
+      pointer-events: none;
+    }
+
+    .search-input:focus ~ .search-key,
+    .search-input:not(:placeholder-shown) ~ .search-key {
+      display: none;
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 1.6em;
+      margin-bottom: 20px;
     }
 
     .search-status {
-      font-size: 0.78rem;
-      font-family: Georgia, serif;
-      letter-spacing: 0.04em;
+      margin: 0;
+      font-size: 0.85rem;
       color: #555;
-      margin: 0 0 16px;
-      min-height: 1em;
     }
 
-    .slack-column-badge {
+    .search-sort {
+      display: flex;
+      gap: 14px;
+
+      &[hidden] {
+        display: none;
+      }
+
+      button {
+        padding: 0;
+        border: 0;
+        background: none;
+        font-family: Georgia, serif;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #777;
+        cursor: pointer;
+
+        &[aria-pressed="true"] {
+          color: #000;
+          text-decoration: underline;
+          text-decoration-color: var(--hc-red);
+          text-decoration-thickness: 2px;
+          text-underline-offset: 5px;
+        }
+      }
+    }
+
+    .search-results :global(.search-month) {
+      margin: 36px 0 4px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #d8d8cf;
+      font-family: Georgia, serif;
+      font-size: 0.8rem;
+      font-weight: bold;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #555;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    .search-results :global(.slack-column-badge) {
       display: inline;
       font-weight: bold;
     }
 
-    .search-author {
+    .search-results :global(.search-author) {
       color: #555;
+    }
+
+    @media (max-width: 800px) {
+      .search-page {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .search-aside {
+        position: static;
+      }
+
+      .search-note {
+        margin-bottom: 14px;
+      }
+
+      // The sections become a row of filters that scrolls sideways.
+      .search-sections {
+        flex-direction: row;
+        gap: 18px;
+        overflow-x: auto;
+        border-top: 0;
+        border-bottom: 1px solid #d8d8cf;
+        scrollbar-width: none;
+      }
+
+      .search-section {
+        flex: 0 0 auto;
+        gap: 6px;
+        border-bottom: 0;
+        white-space: nowrap;
+
+        &[aria-current="true"] {
+          padding-left: 0;
+          box-shadow: inset 0 -2px 0 var(--hc-red);
+        }
+      }
+
+      .search-key {
+        display: none;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .search-page {
+        --search-gutter: 16px;
+        margin-top: 24px;
+      }
+
+      .search-input {
+        font-size: 1.3rem;
+      }
     }
   </style>
 </BaseLayout>
