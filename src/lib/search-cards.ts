@@ -110,10 +110,10 @@ export const cardHtml = (
       </a>`;
 };
 
-// A section's name as the filters show it: Slack columns keep their channel
-// name, the rest are capitalised.
+// A section's name as the filters show it: Slack columns already carry
+// their display name ("Help Wanted"), the rest are capitalised.
 export const sectionLabel = (category: string, slack: boolean) =>
-  slack ? `#${category}` : category.charAt(0).toUpperCase() + category.slice(1);
+  slack ? category : category.charAt(0).toUpperCase() + category.slice(1);
 
 const monthLabel = (date: string) =>
   date
