@@ -256,6 +256,8 @@ const sectionHref = (id: string) => {
           else ranked.sort((a, b) => b.score - a.score);
 
           if (ranked.length === 0) {
+            // Nothing to sort.
+            sortGroup.hidden = true;
             results.innerHTML = "";
             status.textContent = `No results for "${query.trim()}".`;
             return;
