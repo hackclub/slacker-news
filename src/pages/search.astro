@@ -50,6 +50,18 @@ const listedHtml = listed
   <script>
     import { tokenize, scoreDocument, type SearchDocument, type SearchIndex } from "../lib/search";
     import { cardHtml, escapeHtml, truncateWords } from "../lib/search-cards";
+    import { mountHalftone } from "../lib/halftone";
+
+    // The halftone plate shown when a search finds nothing, so it can be
+    // stopped when the results change or the reader leaves the page.
+    let stopPlate: (() => void) | undefined;
+    let plateTimer = 0;
+    const clearPlate = () => {
+      clearTimeout(plateTimer);
+      stopPlate?.();
+      stopPlate = undefined;
+    };
+    document.addEventListener("astro:before-swap", clearPlate);
 
     // Bundled scripts run once per full page load, so re-run on every
     // client-side navigation to set up search on this page again.
@@ -113,6 +125,7 @@ const listedHtml = listed
 
         const render = (query: string) => {
           if (!index) return;
+          clearPlate();
           const { authorFilter, textQuery } = parseQuery(query);
           const terms = tokenize(textQuery);
 
@@ -152,6 +165,14 @@ const listedHtml = listed
           if (ranked.length === 0) {
             results.innerHTML = "";
             status.textContent = `No results for "${query.trim()}".`;
+            // Once the reader stops typing, the query they searched for is
+            // set in halftone where the results would be.
+            plateTimer = window.setTimeout(() => {
+              const text = query.trim().slice(0, 40);
+              results.innerHTML = `<div class="halftone-plate search-empty-plate"><canvas aria-hidden="true"></canvas><p class="halftone-fallback" aria-hidden="true">${escapeHtml(text)}</p></div>`;
+              const plate = results.querySelector<HTMLElement>(".search-empty-plate");
+              if (plate) stopPlate = mountHalftone(plate, text);
+            }, 400);
             return;
           }
 

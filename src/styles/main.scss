@@ -688,10 +688,32 @@ $front-max: 1200px;
   margin: 0;
 }
 
+// A faint halftone screen that breathes while the column loads.
 .slack-column-placeholder {
   min-height: 140px;
   border-radius: 4px;
-  background: #ecece6;
+  background-color: #ecece6;
+  background-image: radial-gradient(circle, rgb(0 0 0 / 0.13) 1.2px, transparent 1.5px);
+  background-size: 7px 7px;
+  animation: placeholder-print 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes placeholder-print {
+  from {
+    background-size: 7px 7px;
+    opacity: 0.6;
+  }
+
+  to {
+    background-size: 7.5px 7.5px;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slack-column-placeholder {
+    animation: none;
+  }
 }
 
 .slack-auth-prompt p {
@@ -1636,5 +1658,89 @@ html.dark-mode {
   ::view-transition-new(*.carried),
   ::view-transition-new(*.carried-excerpt) {
     animation: none !important;
+  }
+}
+
+// ─── Halftone plates ─────────────────────────────────────────────────────────
+// Text set as ink dots by src/lib/halftone.ts. The search page shows the
+// query this way when nothing matches it.
+
+.halftone-plate {
+  position: relative;
+  touch-action: pan-y;
+  cursor: crosshair;
+
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.halftone-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  overflow: hidden;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(48px, 10vw, 110px);
+  font-weight: 900;
+  white-space: nowrap;
+  color: #000;
+
+  .is-drawn > & {
+    visibility: hidden;
+  }
+}
+
+.search-empty-plate {
+  height: clamp(140px, 24vw, 240px);
+  margin: 24px 0 8px;
+}
+
+// ─── Spot colour ─────────────────────────────────────────────────────────────
+// Hack Club red as a second ink, used sparingly: for selected text, a press
+// misregistration on the logo, and the mark that ends an article.
+
+::selection {
+  background: var(--hc-red);
+  color: #fff;
+}
+
+// Hovering the logo knocks the red plate off register for a moment.
+.site-title:hover {
+  animation: misregister 0.5s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes misregister {
+  0% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+
+  30% {
+    filter: drop-shadow(4px 2px 0 var(--hc-red));
+  }
+
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+}
+
+// The end of an article, marked the way magazines do.
+.story-body > p:last-child::after,
+.slack-story-body > :nth-last-child(1 of .slack-paragraph)::after {
+  content: "■";
+  margin-left: 0.4em;
+  font-size: 0.8em;
+  color: var(--hc-red);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-title:hover {
+    animation: none;
   }
 }
