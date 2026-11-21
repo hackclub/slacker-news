@@ -1,4 +1,4 @@
-import { getPosts } from "./content";
+import { getChangelogEntries, getPosts, type LongChangelogEntry, type Post } from "./content";
 import { getSlackColumns, getIndigestMessages } from "./indigest";
 import {
   buildSearchIndex,
@@ -75,8 +75,32 @@ export function getSearchIndex(authenticated: boolean): Promise<SearchIndex> {
   return index;
 }
 
+// A longform changelog has its own page, byline and body like a post, so it
+// is searched like one, under "changelogs". (One-line changelog entries have
+// no page of their own to link to.)
+function changelogAsPost(entry: LongChangelogEntry): Post {
+  return {
+    id: entry.entry.id,
+    slug: entry.slug,
+    url: entry.url,
+    title: entry.title,
+    author: entry.author,
+    authorSlackIds: entry.slackIds,
+    category: "changelogs",
+    date: new Date(`${entry.date}T00:00:00Z`),
+    excerpt: entry.excerpt,
+    paragraphs: entry.paragraphs,
+    readingTime: entry.readingTime,
+    // Only the body is read from the entry.
+    entry: entry.entry as unknown as Post["entry"],
+  };
+}
+
 async function buildIndex(authenticated: boolean): Promise<SearchIndex> {
-  const posts = await getPosts();
+  const changelogs = (await getChangelogEntries()).filter(
+    (entry): entry is LongChangelogEntry => entry.kind === "long",
+  );
+  const posts = [...(await getPosts()), ...changelogs.map(changelogAsPost)];
 
   const columns = getSlackColumns();
 
