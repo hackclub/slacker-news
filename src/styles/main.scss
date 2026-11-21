@@ -396,7 +396,8 @@ $front-max: 1200px;
 .byline,
 [data-vt-byline],
 [data-vt-date],
-[data-vt-reading-time] {
+[data-vt-reading-time],
+.linked-story-title {
   display: inline-block;
 }
 
