@@ -55,9 +55,10 @@ a {
 
 // ─── Masthead ────────────────────────────────────────────────────────────────
 
+// No rules above or below the masthead: the newswire band under it, a
+// shade darker than the paper, is the break between masthead and page.
 .site-header {
   position: relative;
-  border-top: 5px solid #000;
   background-color: $paper;
   text-align: center;
   padding: 0;
