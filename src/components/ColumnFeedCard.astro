@@ -1,5 +1,6 @@
 ---
 import SlackRichText from "./SlackRichText.astro";
+import Byline from "./Byline.astro";
 import type { ColumnFeedItem } from "../lib/column-feed";
 import { truncateWords, formatStoryDate } from "../lib/content";
 
@@ -16,20 +17,52 @@ const date = isSlack ? item.article.date : item.post.date;
 const href = isSlack ? item.article.url : item.post.url;
 const excerpt = isSlack ? item.message.text : item.post.excerpt;
 const truncatedExcerpt = truncateWords(excerpt, 18);
+const byline = isSlack
+  ? {
+      slackAuthor: item.article.author,
+      slackUserId: item.message.userId,
+      slackUserName: item.message.userName,
+    }
+  : { authors: item.post.author, slackIds: item.post.authorSlackIds };
+
+const cardClass = variant === "opinion" ? "opinion-item" : ["front-block", "story-block"];
+const titleClass = variant === "opinion" ? "opinion-title" : "story-block-title";
+const excerptClass = variant === "opinion" ? "opinion-excerpt" : "story-block-excerpt";
 ---
 
-<a href={href} class:list={[variant === "opinion" ? "opinion-item" : ["front-block", "story-block"]]}>
-   <header class="story-card-header">
-             <h3 class:list={[variant === "opinion" ? "opinion-title" : "story-block-title"]}>{title}</h3>
-
-             {date && !homepage ? (<time class="story-card-date" datetime={date.toISOString()}>{formatStoryDate(date)}</time>) : null}
-          </header>
-{isSlack ? (
-    <p class:list={[variant === "opinion" ? "opinion-excerpt" : "story-block-excerpt", "slack-feed-excerpt"]}>
-      <SlackRichText text={truncatedExcerpt} />
-    </p>
-  ) : (
-    <p class:list={[variant === "opinion" ? "opinion-excerpt" : "story-block-excerpt"]}>{truncatedExcerpt}</p>
-  )}
-  <span class="reading-time">{isSlack ? item.readingTime : item.post.readingTime} min read</span>
-</a>
+{homepage ? (
+  // On the homepage the byline holds Slack mention links, and links cannot
+  // nest, so the whole-card link is a cover behind the content instead.
+  <article class:list={[cardClass, "linked-card"]}>
+    <a class="linked-card-cover" href={href} aria-hidden="true" tabindex="-1"></a>
+    <header class="story-card-header">
+      <h3 class={titleClass}>
+        <a class="linked-card-title" href={href}>{title}</a>
+        {" "}<Byline {...byline} />
+      </h3>
+    </header>
+    {isSlack ? (
+      <p class:list={[excerptClass, "slack-feed-excerpt"]}>
+        <SlackRichText text={truncatedExcerpt} />
+      </p>
+    ) : (
+      <p class={excerptClass}>{truncatedExcerpt}</p>
+    )}
+    <span class="reading-time">{isSlack ? item.readingTime : item.post.readingTime} min read</span>
+  </article>
+) : (
+  <a href={href} class:list={[cardClass]}>
+    <header class="story-card-header">
+      <h3 class={titleClass}>{title}</h3>
+      {date ? (<time class="story-card-date" datetime={date.toISOString()}>{formatStoryDate(date)}</time>) : null}
+    </header>
+    {isSlack ? (
+      <p class:list={[excerptClass, "slack-feed-excerpt"]}>
+        <SlackRichText text={truncatedExcerpt} />
+      </p>
+    ) : (
+      <p class={excerptClass}>{truncatedExcerpt}</p>
+    )}
+    <span class="reading-time">{isSlack ? item.readingTime : item.post.readingTime} min read</span>
+  </a>
+)}
