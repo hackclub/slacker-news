@@ -130,9 +130,11 @@ export async function submitterGate(
     if (!reading) return refuse("Not allowed.");
     // The list: only what they wrote. (Articles shared with them are on the
     // newsroom's "Shared with me" page.)
-    if (context.url.searchParams.get("authorId") === user.id) return next();
+    // Exactly one authorId, so a second one cannot widen the list.
+    const authors = context.url.searchParams.getAll("authorId");
+    if (authors.length === 1 && authors[0] === user.id) return next();
     // Asked for more than that: sent back to ask for their own. (The admin's
-    // requests follow the redirect.)
+    // requests follow the redirect.) `set` drops any other authorId.
     const narrowed = new URL(context.url);
     narrowed.searchParams.set("authorId", user.id);
     return context.redirect(`${narrowed.pathname}${narrowed.search}`, 307);
