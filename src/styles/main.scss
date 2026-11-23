@@ -1829,31 +1829,12 @@ html.dark-mode {
 }
 
 // ─── Spot colour ─────────────────────────────────────────────────────────────
-// Hack Club red as a second ink, used sparingly: for selected text, a press
-// misregistration on the logo, and the mark that ends an article.
+// Hack Club red as a second ink, used sparingly: for selected text and the
+// mark that ends an article.
 
 ::selection {
   background: var(--hc-red);
   color: #fff;
-}
-
-// Hovering the logo knocks the red plate off register for a moment.
-.site-title:hover {
-  animation: misregister 0.5s cubic-bezier(0.2, 0, 0, 1);
-}
-
-@keyframes misregister {
-  0% {
-    filter: drop-shadow(0 0 0 transparent);
-  }
-
-  30% {
-    filter: drop-shadow(4px 2px 0 var(--hc-red));
-  }
-
-  100% {
-    filter: drop-shadow(0 0 0 transparent);
-  }
 }
 
 // The end of an article, marked the way magazines do.
@@ -1863,12 +1844,6 @@ html.dark-mode {
   margin-left: 0.4em;
   font-size: 0.8em;
   color: var(--hc-red);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .site-title:hover {
-    animation: none;
-  }
 }
 
 // ─── Theme wipe ──────────────────────────────────────────────────────────────
