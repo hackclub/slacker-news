@@ -34,6 +34,11 @@ export function themeWipe(from: Element | null, swap: () => void) {
   let copy: HTMLElement | null = null;
   if (ticker) {
     const at = ticker.getBoundingClientRect();
+    // offsetTop and offsetLeft round to whole pixels, and the ticker sits at
+    // a fractional height (under a 89.6px logo). Measured that way the copy
+    // lands a fraction of a pixel off and its edge shows as a line under the
+    // ticker for the length of the wipe. Place it from the exact boxes.
+    const parent = (ticker.offsetParent ?? document.body).getBoundingClientRect();
     copy = ticker.cloneNode(true) as HTMLElement;
     copy.removeAttribute("id");
     copy.removeAttribute("data-astro-transition-persist");
@@ -42,8 +47,8 @@ export function themeWipe(from: Element | null, swap: () => void) {
     copy.classList.add("theme-wipe-ticker-copy");
     Object.assign(copy.style, {
       position: "absolute",
-      top: `${ticker.offsetTop}px`,
-      left: `${ticker.offsetLeft}px`,
+      top: `${at.top - parent.top}px`,
+      left: `${at.left - parent.left}px`,
       width: `${at.width}px`,
       height: `${at.height}px`,
       margin: "0",

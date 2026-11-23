@@ -94,6 +94,11 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       // left. Everything else stays
       // unnamed, so the rest of the page swaps without animating.
       let paths: string[] = [];
+      // Listing to listing (homepage, search, archives): the titles of the
+      // stories on screen, which carry to wherever the same stories sit on
+      // the next page.
+      let listingTitles: string[] = [];
+      const cardSelector = ".search-result, .story-block, .opinion-item, .front-lead, .slack-column-block";
 
       // An element on the page being left only carries if some of it is on
       // screen. One scrolled out of view would otherwise fly in from off the
@@ -206,6 +211,25 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
 
       function nameCarried(root: Document) {
         clearCarried(root);
+        for (const title of listingTitles) {
+          const story = title.replace(/^title-/, "");
+          carry(root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`), title, "carried");
+          for (const kind of ["byline", "date", "reading-time"]) {
+            const name = `${kind}-${story}`;
+            carry(root.querySelector(`[data-vt-${kind}="${CSS.escape(name)}"]`), name, "carried");
+          }
+          // Card excerpts differ in length from page to page, so they move
+          // like the article excerpts do (see planExcerptFlights).
+          const excerpt = `excerpt-${story}`;
+          carry(root.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`), excerpt, "carried-excerpt");
+          // The card itself (its box, and anything not carried on its own)
+          // comes part of the way from where the story was.
+          carry(
+            root.querySelector(`[data-vt-title="${CSS.escape(title)}"]`)?.closest(cardSelector) ?? null,
+            `card-${story}`,
+            "carried-card",
+          );
+        }
         for (const path of new Set(paths)) {
           const title = titleTransitionName(path);
           const excerpt = excerptTransitionName(path);
@@ -241,6 +265,23 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         generation += 1;
         const { from, to } = event as TransitionBeforePreparationEvent;
         paths = [to.pathname, from.pathname];
+        // Not opening or leaving an article: carry the stories on screen.
+        const articleNavigation = paths.some((path) =>
+          document.querySelector(`[data-vt-title="${CSS.escape(titleTransitionName(path))}"]`),
+        );
+        // Leaving the homepage for search swaps without carrying anything;
+        // coming back from search carries the stories on screen.
+        const homeToSearch = from.pathname === "/" && to.pathname.startsWith("/search");
+        listingTitles = articleNavigation || homeToSearch
+          ? []
+          : [...document.querySelectorAll<HTMLElement>("[data-vt-title]")]
+              .filter((title) => {
+                const box = title.getBoundingClientRect();
+                return box.bottom > 0 && box.top < innerHeight && box.width > 0;
+              })
+              .map((title) => title.dataset.vtTitle!)
+              .filter((title, index, all) => all.indexOf(title) === index)
+              .slice(0, 16);
         excerptTexts = new Map();
         for (const path of paths) {
           const excerpt = excerptTransitionName(path);
@@ -292,7 +333,7 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
       // at its opening words inside the clicked card's excerpt; coming back,
       // the card's excerpt starts at its paragraph in the article. A piece
       // with no source just rises a little into place.
-      type Flight = { element: HTMLElement; from: DOMRect | null };
+      type Flight = { element: HTMLElement; from: DOMRect | null; share?: number };
 
       // A source position only counts if it's on screen.
       const visibleBox = (box: DOMRect | null | undefined) =>
@@ -320,6 +361,24 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
               flights.push({ element, from: visibleBox(from) });
             });
         }
+        // Listing to listing: each card excerpt flies from the same story's
+        // excerpt on the page being left.
+        for (const title of listingTitles) {
+          const excerpt = title.replace(/^title-/, "excerpt-");
+          const element = newDocument.querySelector<HTMLElement>(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
+          const old = document.querySelector(`[data-vt-excerpt="${CSS.escape(excerpt)}"]`);
+          if (element?.dataset.vtCarried !== undefined) {
+            flights.push({ element, from: old ? old.getBoundingClientRect() : null });
+          }
+          // The card moves two thirds of the way its title does.
+          const card = newDocument
+            .querySelector(`[data-vt-title="${CSS.escape(title)}"]`)
+            ?.closest<HTMLElement>(cardSelector);
+          const oldTitle = document.querySelector(`[data-vt-title="${CSS.escape(title)}"]`);
+          if (card?.dataset.vtCarried !== undefined && oldTitle) {
+            flights.push({ element: card, from: oldTitle.getBoundingClientRect(), share: 2 / 3 });
+          }
+        }
         return flights;
       }
 
@@ -329,15 +388,17 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         const duration =
           parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--carry-duration") || "0.32") *
             1000 || 320;
-        for (const { element, from } of flights) {
+        for (const { element, from, share = 1 } of flights) {
           const pseudoElement = `::view-transition-group(${element.style.viewTransitionName})`;
           // The browser places each group with a transform of its own, so the
           // flight starts from an offset added to that, not a bare translate.
           const end = getComputedStyle(document.documentElement, pseudoElement).transform;
           const placed = end && end !== "none" ? end : "";
-          const to = element.getBoundingClientRect();
+          // A card is measured by its title, the thing that moves with it.
+          const anchor = share < 1 ? (element.querySelector("[data-vt-title]") ?? element) : element;
+          const to = anchor.getBoundingClientRect();
           const offset = from
-            ? `translate(${from.left - to.left}px, ${from.top - to.top}px)`
+            ? `translate(${(from.left - to.left) * share}px, ${(from.top - to.top) * share}px)`
             : "translateY(8px)";
           document.documentElement.animate(
             { transform: [`${offset} ${placed}`.trim(), placed || "none"] },
