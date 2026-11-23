@@ -2,5 +2,7 @@
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "types": ["node"]
-  }
+  },
+  // Tests run with bun test, which the type checker has no types for.
+  "exclude": ["dist", "**/*.test.ts"]
 }

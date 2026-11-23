@@ -1,0 +1,28 @@
+---
+// Scrolls to the comment a link points at (#comment-...) or to the comments
+// (#comments). Comments load after the page, so the target is not there when
+// the browser looks for it; this waits for it to appear.
+---
+
+<script>
+  const hash = window.location.hash;
+  if (/^#comments?(-|$)/.test(hash)) {
+    const id = decodeURIComponent(hash.slice(1));
+    const show = () => {
+      const target = document.getElementById(id);
+      if (!target) return false;
+      target.scrollIntoView({ block: "start" });
+      if (id !== "comments") target.classList.add("comment-target");
+      return true;
+    };
+
+    if (!show()) {
+      const observer = new MutationObserver(() => {
+        if (show()) observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      // Give up if comments never arrive.
+      window.setTimeout(() => observer.disconnect(), 15000);
+    }
+  }
+</script>

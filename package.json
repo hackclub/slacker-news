@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "test": "bun test",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "lint": "oxlint",

@@ -1,0 +1,73 @@
+---
+import { LOGGED_IN_COOKIE } from "../lib/comments";
+
+// Stands in for the comments while they load, for readers who are logged in.
+// The page is prerendered, so it cannot know who is reading: the skeleton is
+// hidden unless the reader's browser holds the marker the comments set when
+// they last loaded. Logged-out readers, and anyone who has never loaded
+// comments, see nothing until the real section arrives.
+const enabled = Boolean(import.meta.env.COMMENTS_CHANNEL_ID?.trim());
+---
+
+{
+  enabled && (
+    <section class="comments-skeleton" aria-busy="true" aria-label="Loading comments" hidden>
+      <h2 class="comments-skeleton-title">Comments</h2>
+      <div class="skeleton-line skeleton-meta" />
+      <div class="skeleton-line" />
+      <div class="skeleton-line skeleton-short" />
+      <div class="skeleton-line skeleton-meta" />
+      <div class="skeleton-line skeleton-short" />
+    </section>
+    <script is:inline define:vars={{ cookie: LOGGED_IN_COOKIE }}>
+      if (document.cookie.split("; ").indexOf(cookie + "=1") !== -1) {
+        document.currentScript.previousElementSibling.hidden = false;
+      }
+    </script>
+  )
+}
+
+<style>
+  .comments-skeleton {
+    margin: 2rem 0 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #000;
+  }
+
+  .comments-skeleton-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .skeleton-line {
+    height: 0.9rem;
+    margin: 0.5rem 0;
+    border-radius: 3px;
+    background: #ddd;
+    animation: skeleton-pulse 1.4s ease-in-out infinite;
+  }
+
+  .skeleton-meta {
+    width: 35%;
+    height: 0.75rem;
+    margin-top: 1.1rem;
+  }
+
+  .skeleton-short {
+    width: 70%;
+  }
+
+  @keyframes skeleton-pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-line {
+      animation: none;
+    }
+  }
+</style>

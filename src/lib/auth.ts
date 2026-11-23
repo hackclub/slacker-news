@@ -1,7 +1,21 @@
 import { betterAuth, type User } from "better-auth";
 import { genericOAuth } from "better-auth/plugins";
 
-const baseURL = import.meta.env.BETTER_AUTH_URL ?? "http://localhost:4000";
+const configuredBaseURL =
+  import.meta.env.BETTER_AUTH_URL ?? "http://localhost:4000";
+
+// Every Vercel preview is its own origin, and Hack Club Auth sends the reader
+// back to the origin the login started from. A single BETTER_AUTH_URL cannot
+// name them all, so previews use the host of the request, within Vercel's
+// preview domains. Production and local development keep the configured URL.
+const baseURL =
+  (process.env.VERCEL_ENV ?? import.meta.env.VERCEL_ENV) === "preview"
+    ? {
+        allowedHosts: ["*.hackclub.dev", "*.vercel.app"],
+        protocol: "https" as const,
+        fallback: configuredBaseURL,
+      }
+    : configuredBaseURL;
 const configuredSecret =
   import.meta.env.BETTER_AUTH_SECRET ?? import.meta.env.AUTH_SECRET;
 
