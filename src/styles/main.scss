@@ -1727,6 +1727,30 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
     both;
 }
 
+// Listing to listing, the destination card (its box and whatever isn't
+// carried on its own) comes part of the way from where its story was, and
+// fades in. BaseLayout's script moves it.
+::view-transition-group(*.carried-card) {
+  animation: none;
+}
+
+::view-transition-old(*.carried-card) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(*.carried-card) {
+  mix-blend-mode: normal;
+  animation: card-in var(--carry-duration, 0.32s) cubic-bezier(0.2, 0, 0, 1)
+    both;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes excerpt-in {
   from {
     opacity: 0.5;
@@ -1737,7 +1761,8 @@ $slack-link-bg-hover: rgba(18, 100, 163, 0.2);
 // destination snapshots without it, so give them the same filter.
 html.dark-mode {
   &::view-transition-new(*.carried),
-  &::view-transition-new(*.carried-excerpt) {
+  &::view-transition-new(*.carried-excerpt),
+  &::view-transition-new(*.carried-card) {
     filter: invert(1) hue-rotate(180deg);
   }
 }
@@ -1745,7 +1770,8 @@ html.dark-mode {
 @media (prefers-color-scheme: dark) {
   html:not(.light-mode):not(.dark-mode) {
     &::view-transition-new(*.carried),
-    &::view-transition-new(*.carried-excerpt) {
+    &::view-transition-new(*.carried-excerpt),
+    &::view-transition-new(*.carried-card) {
       filter: invert(1) hue-rotate(180deg);
     }
   }
@@ -1755,7 +1781,8 @@ html.dark-mode {
   ::view-transition-group(*.carried),
   ::view-transition-old(*.carried),
   ::view-transition-new(*.carried),
-  ::view-transition-new(*.carried-excerpt) {
+  ::view-transition-new(*.carried-excerpt),
+  ::view-transition-new(*.carried-card) {
     animation: none !important;
   }
 }
