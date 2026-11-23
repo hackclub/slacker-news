@@ -82,12 +82,17 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         titleTransitionName,
       } from "../lib/transitions";
       import { themeWipe } from "../lib/theme-wipe";
+      import { initStoryPrefetch } from "../lib/story-prefetch";
       import type {
         TransitionBeforePreparationEvent,
         TransitionBeforeSwapEvent,
       } from "astro:transitions/client";
 
       (window as unknown as { __themeWipe?: typeof themeWipe }).__themeWipe = themeWipe;
+
+      // Module scripts run once, and the listeners sit on the document, so
+      // they keep working across client-side navigations.
+      initStoryPrefetch();
 
       // Carry the title, byline, read time and excerpt tied to this
       // navigation: those for the page being opened and for the page being

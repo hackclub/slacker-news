@@ -16,6 +16,9 @@ export default defineConfig({
     rehypePlugins: [rehypeKatex],
   },
   integrations: [mdx()],
+  // Needed for src/lib/story-prefetch.ts, which decides itself which links to
+  // fetch early. No link opts in to Astro's own strategies.
+  prefetch: { prefetchAll: false },
   image: {
     domains: ["cdn.hackclub.com", "user-cdn.hackclub-assets.com"],
   },
