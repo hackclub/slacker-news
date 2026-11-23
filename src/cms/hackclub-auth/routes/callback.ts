@@ -70,8 +70,9 @@ const MESSAGES: Record<string, string> = {
  *   they followed;
  * - anyone listed in EMDASH_HACKCLUB_ADMINS, as an administrator;
  * - while the site has no administrator yet: whoever signs in first, unless
- *   EMDASH_HACKCLUB_ADMINS is set, in which case only the people it lists.
- * Everyone else is turned away.
+ *   EMDASH_HACKCLUB_ADMINS is set, in which case only the people it lists;
+ * - anyone else with a verified Hack Club email, as a Contributor (an external
+ *   contributor). Editors can raise their role later.
  */
 export const GET: APIRoute = async ({ request, locals, session, redirect }) => {
   const db = locals.emdash?.db;
@@ -140,7 +141,7 @@ export const GET: APIRoute = async ({ request, locals, session, redirect }) => {
           async () =>
             listedAdmin || (isFirstUser && !adminsAreListed)
               ? { allowed: true, role: Role.ADMIN }
-              : null,
+              : { allowed: true, role: Role.CONTRIBUTOR },
           { requireVerifiedEmail: true },
         );
 

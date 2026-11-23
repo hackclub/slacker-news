@@ -381,13 +381,16 @@ The CMS uses `HACKCLUB_CLIENT_ID` and `HACKCLUB_CLIENT_SECRET`, the same app as
 reader sign-in. To give it an app of its own, set
 `EMDASH_OAUTH_HACKCLUB_CLIENT_ID` and `EMDASH_OAUTH_HACKCLUB_CLIENT_SECRET`.
 
-Every Hack Club member can sign in to Hack Club Auth, so signing in is not
-enough to get into the CMS. A person is let in when:
+Any Hack Club member with a verified email can sign in to the CMS. A person
+who signs in for the first time becomes a Contributor: an external contributor
+who works only on their own articles. An editor or administrator can raise
+their role afterwards. Exceptions:
 
-- their Hack Club account is already linked to a CMS user;
-- their verified email matches a CMS user, or the invite link they followed;
-- they are listed in `EMDASH_HACKCLUB_ADMINS`, which makes them an
-  administrator. It takes Slack IDs or email addresses, separated by commas.
+- a Hack Club account already linked to a CMS user signs in as that user;
+- a verified email that matches a CMS user, or the invite link followed, signs
+  in as that user, with that user's or invite's role;
+- people listed in `EMDASH_HACKCLUB_ADMINS` become administrators. It takes
+  Slack IDs or email addresses, separated by commas.
 
 Until the site has an administrator, the first person to sign in becomes one.
 Set `EMDASH_HACKCLUB_ADMINS` before deploying to a public address, so that
