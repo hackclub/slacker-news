@@ -80,7 +80,7 @@ export const POLL_QUESTIONS: PollQuestion[] = [
     key: "headings",
     question: "Section headings",
     newLabel: "Ruled row above the stories",
-    oldLabel: "Name in the left margin",
+    oldLabel: "No heading, \"All …\" link under the stories",
     oldClass: "poll-old-headings",
   },
 ];

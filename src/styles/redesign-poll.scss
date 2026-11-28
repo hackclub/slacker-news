@@ -12,18 +12,25 @@ html.poll-old-colour {
   .slack_user,
   .slack_channel,
   .footer-hc-inline,
-  .acknowledgements-full-grid .acknowledgement-name {
+  .acknowledgements-full-grid .acknowledgement-name,
+  .byline-avatar,
+  .credits-person {
     filter: grayscale(100%);
     transition: filter 0.15s ease;
   }
 
+  // Avatars are greyed through their wrapper (or the whole credit), not the
+  // <img>, so dark mode's own invert on images still applies underneath.
+  .credits-person:hover,
+  .credits-person:focus-within,
   .emoji:hover,
   .slack_user:hover,
   .slack_channel:hover,
+  .byline:hover .byline-avatar,
   .acknowledgements-full-grid .acknowledgement-name:hover,
   .acknowledgements-full-grid .acknowledgement-name:focus-within,
   :is(.front-lead, .opinion-item, .story-block, .slack-column-block, .front-pair-col):hover
-    :is(.slack_user, .slack_channel, .emoji) {
+    :is(.slack_user, .slack_channel, .emoji, .byline-avatar) {
     filter: none;
   }
 
@@ -110,9 +117,26 @@ html.poll-old-cards .newspaper-front {
 html.poll-old-width .newspaper-front {
   margin: 28px 0 48px;
 
+  // Lead story and opinion side by side, as on master.
   .front-top {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 40px;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 20px;
+    padding-bottom: 48px;
+  }
+
+  .front-lead .block-headline {
+    font-size: 2rem;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+
+  .front-lead .block-excerpt {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .opinion-item .opinion-title {
+    font-size: 1.05rem;
   }
 
   .front-grid {
@@ -122,15 +146,11 @@ html.poll-old-width .newspaper-front {
   .slack-column-row-items {
     --front-grid-columns: 2;
   }
+}
 
-  .front-lead .block-headline {
-    font-size: 2.2rem;
-  }
-
-  .front-lead .block-excerpts {
-    flex: none;
-    contain: none;
-    max-height: 12em;
+@media (max-width: 700px) {
+  html.poll-old-width .newspaper-front .front-top {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -166,70 +186,53 @@ html.poll-old-paper {
   }
 }
 
-// ─── Section headings in the left margin ─────────────────────────────────────
+// ─── Section headings: link under the stories, as on master ──────────────────
+// The news, essays and Slack rows lose their heading; a heavy rule sets each
+// apart and its "All … →" link sits under the stories, at the right. The
+// opinion rail and the changelog pair keep their name, with the link moved
+// to the bottom.
 
 html.poll-old-headings .newspaper-front {
+  .front-section,
+  .front-rail,
+  .front-pair-col {
+    display: flex;
+    flex-direction: column;
+  }
+
   .front-section {
-    display: grid;
-    grid-template-columns: 250px minmax(0, 1fr);
-    gap: 56px;
-    padding: 48px 0 72px;
-    border-top: 1px solid #d8d8cf;
+    padding: 24px 0 32px;
+    border-top: 2px solid #000;
+  }
+
+  :is(.front-section, .front-rail, .front-pair-col) > .front-section-head {
+    display: contents;
+
+    &::after {
+      content: none;
+    }
   }
 
   .front-section > .front-section-head {
-    display: block;
-    align-self: start;
-    position: sticky;
-    top: 24px;
-    margin: 0;
-
-    &::after {
-      content: none;
-    }
-
+    .front-section-title,
     .front-section-note {
-      display: block;
-      margin-top: 6px;
-    }
-
-    .front-section-more {
-      display: inline-block;
-      margin-top: 14px;
+      display: none;
     }
   }
 
-  // The opinion rail and the changelog pair kept a plain row: name, then
-  // the archive link at the far end.
-  .front-rail > .front-section-head,
-  .front-pair-col > .front-section-head {
-    justify-content: space-between;
-    margin-bottom: 20px;
+  :is(.front-rail, .front-pair-col) .front-section-title {
+    margin-bottom: 16px;
+  }
 
-    &::after {
-      content: none;
-    }
+  .front-section-more {
+    order: 99;
+    align-self: flex-end;
+    margin-top: 20px;
+    font-size: 0.78rem;
   }
 
   .front-pair {
-    padding-top: 48px;
-    border-top: 1px solid #d8d8cf;
-  }
-}
-
-html.poll-old-headings.poll-old-width .newspaper-front .front-section,
-html.poll-old-headings .newspaper-front .front-section:is(.slack-auth-prompt) {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
-}
-
-@media (max-width: 1100px) {
-  html.poll-old-headings .newspaper-front .front-section {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-
-    > .front-section-head {
-      position: static;
-    }
+    padding-top: 24px;
+    border-top: 2px solid #000;
   }
 }

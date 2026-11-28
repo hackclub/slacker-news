@@ -22,11 +22,7 @@ const loginHref = `/auth/login?returnTo=${encodeURIComponent(POLL_PATH)}`;
 
       <form class="poll-form" novalidate>
         <header class="poll-head">
-          <h1>Slacker News Redesign Poll</h1>
-          <p>
-            Pick new or old for each change. The page on the left updates as you
-            go, and you can click around it.
-          </p>
+          <h1>Build your perfect homepage</h1>
           <p class="poll-who">
             {user ? (
               <>Voting as <strong>{user.name}</strong>.</>
@@ -52,12 +48,10 @@ const loginHref = `/auth/login?returnTo=${encodeURIComponent(POLL_PATH)}`;
             <label class="poll-option">
               <input type="radio" name={question.key} value="new" required />
               <span>{question.newLabel}</span>
-              <span class="poll-option-tag">new</span>
             </label>
             <label class="poll-option">
               <input type="radio" name={question.key} value="old" />
               <span>{question.oldLabel}</span>
-              <span class="poll-option-tag">old</span>
             </label>
           </fieldset>
         ))}
@@ -113,6 +107,41 @@ const loginHref = `/auth/login?returnTo=${encodeURIComponent(POLL_PATH)}`;
       save();
 
       form.addEventListener("change", save);
+
+      // Whether an emoji image animates. Cachet emoji are checked by the
+      // server (src/pages/api/emoji-animated.ts); any other image counts as
+      // animated when it is a GIF. Results are cached per URL.
+      const animatedCache = new Map();
+      function isAnimated(src) {
+        if (!animatedCache.has(src)) {
+          const url = new URL(src, location.href);
+          const cachet = url.hostname === "cachet.hackclub.com" && url.pathname.match(/^\/emojis\/([^/]+)\//);
+          animatedCache.set(
+            src,
+            cachet
+              ? fetch(`/api/emoji-animated?name=${cachet[1]}`)
+                  .then((response) => response.json())
+                  .then((body) => body.animated === true)
+                  .catch(() => false)
+              : Promise.resolve(url.pathname.toLowerCase().endsWith(".gif"))
+          );
+        }
+        return animatedCache.get(src);
+      }
+
+      // Picking an emoji answer scrolls the preview to its first animated
+      // emoji, so the difference is on screen.
+      form.addEventListener("change", async (event) => {
+        if (event.target.name !== "emoji") return;
+        const doc = frame.contentDocument;
+        if (!doc) return;
+        for (const img of doc.querySelectorAll("img.emoji")) {
+          if (!(await isAnimated(img.currentSrc || img.src))) continue;
+          const target = img.offsetParent ? img : img.nextElementSibling ?? img;
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+      });
       form.addEventListener("input", save);
 
       form.addEventListener("submit", async (event) => {
@@ -298,14 +327,6 @@ const loginHref = `/auth/login?returnTo=${encodeURIComponent(POLL_PATH)}`;
       .poll-option:has(input:focus-visible) {
         outline: 2px solid var(--poll-accent);
         outline-offset: 2px;
-      }
-
-      .poll-option-tag {
-        margin-left: auto;
-        color: var(--poll-faint);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
       }
 
       .poll-comments textarea {
