@@ -1,0 +1,401 @@
+---
+// The redesign poll: the live site on the left, a form on the right. Each
+// answer changes the preview as it is picked (see src/lib/redesign-poll.ts).
+import { POLL_PATH, POLL_QUESTIONS, POLL_STORAGE_KEY } from "../lib/redesign-poll";
+
+const user = Astro.locals.user;
+const loginHref = `/auth/login?returnTo=${encodeURIComponent(POLL_PATH)}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Slacker News Redesign Poll</title>
+    <link rel="icon" href="/favicon.ico" />
+  </head>
+  <body>
+    <div class="poll-page">
+      <iframe class="poll-preview" src="/" title="Slacker News preview"></iframe>
+
+      <form class="poll-form" novalidate>
+        <header class="poll-head">
+          <h1>Build your perfect homepage</h1>
+          <p class="poll-who">
+            {user ? (
+              <>Voting as <strong>{user.name}</strong>.</>
+            ) : (
+              <>
+                <a href={loginHref} target="_top">Sign in with Hack Club</a> to put
+                your name on your vote (optional).
+              </>
+            )}
+          </p>
+        </header>
+
+        {POLL_QUESTIONS.map((question) => (
+          <fieldset class="poll-question" data-key={question.key}>
+            <legend>
+              <span class="poll-question-title">
+                {question.question} <span class="poll-required" aria-hidden="true">*</span>
+              </span>
+              {question.description && (
+                <span class="poll-question-description">{question.description}</span>
+              )}
+            </legend>
+            <label class="poll-option">
+              <input type="radio" name={question.key} value="new" required />
+              <span>{question.newLabel}</span>
+            </label>
+            <label class="poll-option">
+              <input type="radio" name={question.key} value="old" />
+              <span>{question.oldLabel}</span>
+            </label>
+          </fieldset>
+        ))}
+
+        <label class="poll-question poll-comments">
+          <span class="poll-question-title">Anything else?</span>
+          <span class="poll-question-description">Optional.</span>
+          <textarea name="comments" rows="4" maxlength="2000"></textarea>
+        </label>
+
+        <div class="poll-submit">
+          <button type="submit">Submit</button>
+          <p class="poll-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+
+    <script
+      is:inline
+      define:vars={{ storageKey: POLL_STORAGE_KEY, keys: POLL_QUESTIONS.map((q) => q.key) }}
+    >
+      const form = document.querySelector(".poll-form");
+      const frame = document.querySelector(".poll-preview");
+      const status = form.querySelector(".poll-status");
+      const button = form.querySelector("button[type=submit]");
+
+      function readForm() {
+        const data = new FormData(form);
+        const choices = {};
+        for (const key of keys) {
+          const value = data.get(key);
+          if (value) choices[key] = value;
+        }
+        return { choices, comments: String(data.get("comments") ?? "") };
+      }
+
+      function save() {
+        try {
+          sessionStorage.setItem(storageKey, JSON.stringify(readForm()));
+        } catch (_error) {}
+        frame.contentWindow?.postMessage(storageKey, location.origin);
+      }
+
+      // Put back what was picked earlier in this tab, e.g. before signing in.
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? "{}");
+        for (const [key, value] of Object.entries(saved.choices ?? {})) {
+          const input = form.querySelector(`input[name="${key}"][value="${value}"]`);
+          if (input) input.checked = true;
+        }
+        if (typeof saved.comments === "string") form.elements.comments.value = saved.comments;
+      } catch (_error) {}
+      save();
+
+      form.addEventListener("change", save);
+
+      // Whether an emoji image animates. Cachet emoji are checked by the
+      // server (src/pages/api/emoji-animated.ts); any other image counts as
+      // animated when it is a GIF. Results are cached per URL.
+      const animatedCache = new Map();
+      function isAnimated(src) {
+        if (!animatedCache.has(src)) {
+          const url = new URL(src, location.href);
+          const cachet = url.hostname === "cachet.hackclub.com" && url.pathname.match(/^\/emojis\/([^/]+)\//);
+          animatedCache.set(
+            src,
+            cachet
+              ? fetch(`/api/emoji-animated?name=${cachet[1]}`)
+                  .then((response) => response.json())
+                  .then((body) => body.animated === true)
+                  .catch(() => false)
+              : Promise.resolve(url.pathname.toLowerCase().endsWith(".gif"))
+          );
+        }
+        return animatedCache.get(src);
+      }
+
+      // Picking an emoji answer scrolls the preview to its first animated
+      // emoji, so the difference is on screen.
+      form.addEventListener("change", async (event) => {
+        if (event.target.name !== "emoji") return;
+        const doc = frame.contentDocument;
+        if (!doc) return;
+        for (const img of doc.querySelectorAll("img.emoji")) {
+          if (!(await isAnimated(img.currentSrc || img.src))) continue;
+          const target = img.offsetParent ? img : img.nextElementSibling ?? img;
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+      });
+      form.addEventListener("input", save);
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const vote = readForm();
+        const missing = keys.filter((key) => !vote.choices[key]);
+        form.querySelectorAll(".poll-question").forEach((el) => {
+          el.classList.toggle("is-missing", missing.includes(el.dataset.key));
+        });
+        if (missing.length > 0) {
+          status.textContent = `Pick new or old for every question (${missing.length} left).`;
+          form.querySelector(`.poll-question[data-key="${missing[0]}"]`)?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          return;
+        }
+
+        button.disabled = true;
+        status.textContent = "Sending…";
+        try {
+          const response = await fetch("/api/redesign-poll", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(vote),
+          });
+          const body = await response.json().catch(() => ({}));
+          status.textContent = response.ok
+            ? "Thanks, your vote is in."
+            : body.error ?? "Something went wrong. Try again.";
+        } catch (_error) {
+          status.textContent = "Couldn't reach the server. Try again.";
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      form.addEventListener("change", (event) => {
+        event.target.closest(".poll-question")?.classList.remove("is-missing");
+      });
+    </script>
+
+    <style is:global>
+      :root {
+        --poll-bg: #fff;
+        --poll-text: #1f2937;
+        --poll-muted: #4b5563;
+        --poll-faint: #9ca3af;
+        --poll-border: #d1d5db;
+        --poll-hover: #f9fafb;
+        --poll-accent: #ec3750;
+        color-scheme: light;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --poll-bg: #17171d;
+          --poll-text: #e5e7eb;
+          --poll-muted: #9ca3af;
+          --poll-faint: #6b7280;
+          --poll-border: #3f3f46;
+          --poll-hover: #222229;
+          color-scheme: dark;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--poll-bg);
+        color: var(--poll-text);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      .poll-page {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(320px, 1fr);
+        height: 100%;
+      }
+
+      .poll-preview {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-right: 1px solid var(--poll-border);
+      }
+
+      .poll-form {
+        overflow-y: auto;
+        padding: 28px 24px 40px;
+      }
+
+      .poll-head h1 {
+        margin: 0 0 8px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.6rem;
+        font-weight: 900;
+        line-height: 1.15;
+      }
+
+      .poll-head p {
+        margin: 0 0 8px;
+        color: var(--poll-muted);
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+
+      .poll-head a,
+      .poll-head strong {
+        color: var(--poll-text);
+      }
+
+      .poll-question {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 24px 0 0;
+        padding: 0;
+        border: 0;
+        min-width: 0;
+      }
+
+      .poll-question legend {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        margin-bottom: 8px;
+      }
+
+      .poll-question-title {
+        font-weight: 700;
+        font-size: 1rem;
+      }
+
+      .poll-question-description {
+        color: var(--poll-muted);
+        font-size: 0.95rem;
+      }
+
+      .poll-required {
+        color: var(--poll-faint);
+        font-weight: 400;
+      }
+
+      .poll-question.is-missing .poll-question-title {
+        color: var(--poll-accent);
+      }
+
+      .poll-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--poll-border);
+        border-radius: 8px;
+        cursor: pointer;
+        line-height: 1.35;
+        font-size: 0.95rem;
+      }
+
+      .poll-option:hover {
+        background: var(--poll-hover);
+      }
+
+      .poll-option input {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        accent-color: var(--poll-accent);
+      }
+
+      .poll-option:has(input:checked) {
+        border-color: var(--poll-accent);
+        box-shadow: inset 0 0 0 1px var(--poll-accent);
+      }
+
+      .poll-option:has(input:focus-visible) {
+        outline: 2px solid var(--poll-accent);
+        outline-offset: 2px;
+      }
+
+      .poll-comments textarea {
+        width: 100%;
+        margin-top: 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--poll-border);
+        border-radius: 8px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 0.95rem;
+        resize: vertical;
+      }
+
+      .poll-comments textarea:focus {
+        outline: 2px solid var(--poll-accent);
+        outline-offset: 1px;
+      }
+
+      .poll-submit {
+        margin-top: 28px;
+      }
+
+      .poll-submit button {
+        width: 100%;
+        padding: 12px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--poll-accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .poll-submit button:disabled {
+        opacity: 0.6;
+        cursor: progress;
+      }
+
+      .poll-status {
+        min-height: 1.4em;
+        margin: 10px 0 0;
+        color: var(--poll-muted);
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 800px) {
+        html,
+        body {
+          height: auto;
+        }
+
+        .poll-page {
+          display: block;
+        }
+
+        .poll-preview {
+          height: 60vh;
+          border-right: 0;
+          border-bottom: 1px solid var(--poll-border);
+        }
+
+        .poll-form {
+          overflow: visible;
+          padding: 24px 16px 40px;
+        }
+      }
+    </style>
+  </body>
+</html>
