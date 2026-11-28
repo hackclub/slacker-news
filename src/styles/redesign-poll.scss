@@ -1,0 +1,235 @@
+// Old looks for the redesign poll (src/lib/redesign-poll.ts). Each block
+// applies only when its class is on <html>, which happens only inside the
+// poll's preview frame. These approximate the old design on the new markup;
+// they are not exact restorations.
+
+$poll-white: #fff;
+
+// ─── Colour: grey until hovered ──────────────────────────────────────────────
+
+html.poll-old-colour {
+  .emoji,
+  .slack_user,
+  .slack_channel,
+  .footer-hc-inline,
+  .acknowledgements-full-grid .acknowledgement-name {
+    filter: grayscale(100%);
+    transition: filter 0.15s ease;
+  }
+
+  .emoji:hover,
+  .slack_user:hover,
+  .slack_channel:hover,
+  .acknowledgements-full-grid .acknowledgement-name:hover,
+  .acknowledgements-full-grid .acknowledgement-name:focus-within,
+  :is(.front-lead, .opinion-item, .story-block, .slack-column-block, .front-pair-col):hover
+    :is(.slack_user, .slack_channel, .emoji) {
+    filter: none;
+  }
+
+  .video-embed-thumb {
+    filter: grayscale(1);
+    transition: filter 0.2s;
+  }
+
+  .video-embed-play:is(:hover, :focus-visible) .video-embed-thumb {
+    filter: none;
+  }
+
+  &.dark-mode .video-embed-thumb {
+    filter: grayscale(1) invert(1) hue-rotate(180deg);
+  }
+
+  &.dark-mode .video-embed-play:is(:hover, :focus-visible) .video-embed-thumb {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+// ─── Animated emoji: still ───────────────────────────────────────────────────
+// The preview script draws each emoji's first frame into a canvas placed
+// after it; the image itself is hidden.
+
+html.poll-old-emoji img.emoji[data-poll-still] {
+  display: none !important;
+}
+
+.poll-emoji-still {
+  display: none;
+  height: 1.2em;
+  width: auto;
+  vertical-align: middle;
+}
+
+html.poll-old-emoji .poll-emoji-still {
+  display: inline;
+}
+
+html.poll-old-colour .poll-emoji-still {
+  filter: grayscale(100%);
+}
+
+html.poll-old-colour .poll-emoji-still:hover {
+  filter: none;
+}
+
+// ─── Authors and profile pictures ────────────────────────────────────────────
+
+html.poll-old-authors .newspaper-front .byline {
+  display: none;
+}
+
+html.poll-old-avatars .byline-avatar {
+  display: none;
+}
+
+// ─── Homepage stories in boxes ───────────────────────────────────────────────
+
+html.poll-old-cards .newspaper-front {
+  .story-block,
+  .slack-column-block:not(.slack-column-placeholder),
+  .front-lead,
+  .front-rail,
+  .front-pair-col {
+    background: var(--poll-card-bg, #f5f5f0);
+    border: 2px solid #000;
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+
+  .front-rail .opinion-item:first-of-type {
+    border-top: none;
+  }
+
+  .front-grid {
+    gap: 20px;
+  }
+}
+
+// ─── Homepage width: narrow, inside the reading wrapper ──────────────────────
+
+html.poll-old-width .newspaper-front {
+  margin: 28px 0 48px;
+
+  .front-top {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+
+  .front-grid {
+    --front-grid-columns: 2;
+  }
+
+  .slack-column-row-items {
+    --front-grid-columns: 2;
+  }
+
+  .front-lead .block-headline {
+    font-size: 2.2rem;
+  }
+
+  .front-lead .block-excerpts {
+    flex: none;
+    contain: none;
+    max-height: 12em;
+  }
+}
+
+// ─── Masthead rules ──────────────────────────────────────────────────────────
+
+html.poll-old-masthead {
+  .site-header {
+    border-top: 5px solid #000;
+  }
+
+  .news-ticker {
+    background: #f5f5f0;
+    border-top: 3px solid #000;
+    border-bottom: 3px double #000;
+  }
+
+  .news-ticker-pause {
+    background: #f5f5f0;
+    border-left: 2px solid #000;
+  }
+}
+
+// ─── Background: white surfaces ──────────────────────────────────────────────
+
+html.poll-old-paper {
+  --poll-card-bg: #{$poll-white};
+
+  .site-header,
+  .site-footer,
+  .front-block,
+  .acknowledgements-full-grid .acknowledgement-name {
+    background-color: $poll-white;
+  }
+}
+
+// ─── Section headings in the left margin ─────────────────────────────────────
+
+html.poll-old-headings .newspaper-front {
+  .front-section {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 56px;
+    padding: 48px 0 72px;
+    border-top: 1px solid #d8d8cf;
+  }
+
+  .front-section > .front-section-head {
+    display: block;
+    align-self: start;
+    position: sticky;
+    top: 24px;
+    margin: 0;
+
+    &::after {
+      content: none;
+    }
+
+    .front-section-note {
+      display: block;
+      margin-top: 6px;
+    }
+
+    .front-section-more {
+      display: inline-block;
+      margin-top: 14px;
+    }
+  }
+
+  // The opinion rail and the changelog pair kept a plain row: name, then
+  // the archive link at the far end.
+  .front-rail > .front-section-head,
+  .front-pair-col > .front-section-head {
+    justify-content: space-between;
+    margin-bottom: 20px;
+
+    &::after {
+      content: none;
+    }
+  }
+
+  .front-pair {
+    padding-top: 48px;
+    border-top: 1px solid #d8d8cf;
+  }
+}
+
+html.poll-old-headings.poll-old-width .newspaper-front .front-section,
+html.poll-old-headings .newspaper-front .front-section:is(.slack-auth-prompt) {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  html.poll-old-headings .newspaper-front .front-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+
+    > .front-section-head {
+      position: static;
+    }
+  }
+}

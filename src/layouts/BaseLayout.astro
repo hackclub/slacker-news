@@ -19,6 +19,8 @@ interface Props {
 }
 
 import "../styles/main.scss";
+import "../styles/redesign-poll.scss";
+import { POLL_PATH, POLL_QUESTIONS, POLL_STORAGE_KEY } from "../lib/redesign-poll";
 
 const {
   title,
@@ -45,6 +47,7 @@ function toAbsoluteURL(input: string): string {
 const canonicalURL = toAbsoluteURL(canonicalPath ?? Astro.url.pathname);
 const socialImageURL = toAbsoluteURL(openGraphImage ?? "https://cdn.hackclub.com/019dbae9-5242-745b-acd2-3476ab3c52a3/og-default.png");
 const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
+const pollOldClasses = POLL_QUESTIONS.map(({ key, oldClass }) => ({ key, oldClass }));
 ---
 
 <!doctype html>
@@ -498,6 +501,82 @@ const socialImageAlt = openGraphImageAlt ?? `${siteTitle} social preview`;
         // server-rendered ones, which never carry dark-mode/light-mode.
         applyTheme();
         document.addEventListener("astro:after-swap", applyTheme);
+      })();
+    </script>
+    <script
+      is:inline
+      define:vars={{ pollOldClasses, pollStorageKey: POLL_STORAGE_KEY, pollPath: POLL_PATH }}
+    >
+      // Redesign poll preview: only inside the /redesign-poll frame, put back
+      // the old looks the reader has picked (src/lib/redesign-poll.ts).
+      (function () {
+        var framed = false;
+        try {
+          framed = window.parent !== window && window.parent.location.pathname === pollPath;
+        } catch (_error) {}
+        if (!framed) return;
+
+        function readChoices() {
+          try {
+            return JSON.parse(sessionStorage.getItem(pollStorageKey) || "{}").choices || {};
+          } catch (_error) {
+            return {};
+          }
+        }
+
+        // Draw an emoji's first frame into a canvas after it. A canvas shows a
+        // cross-origin image without needing CORS; it just can't be read back.
+        function freezeEmoji(img) {
+          if (img.hasAttribute("data-poll-still") || img.hasAttribute("data-poll-pending")) return;
+          if (!img.complete || !img.naturalWidth) {
+            img.setAttribute("data-poll-pending", "");
+            img.addEventListener(
+              "load",
+              function () {
+                img.removeAttribute("data-poll-pending");
+                freezeEmoji(img);
+              },
+              { once: true }
+            );
+            return;
+          }
+          var canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          canvas.getContext("2d").drawImage(img, 0, 0);
+          canvas.className = "poll-emoji-still";
+          canvas.setAttribute("role", "img");
+          canvas.setAttribute("aria-label", img.alt);
+          canvas.title = img.alt;
+          img.after(canvas);
+          img.setAttribute("data-poll-still", "");
+        }
+
+        function freezeAll() {
+          if (!document.documentElement.classList.contains("poll-old-emoji")) return;
+          document.querySelectorAll("img.emoji").forEach(freezeEmoji);
+        }
+
+        function apply() {
+          var choices = readChoices();
+          var root = document.documentElement;
+          pollOldClasses.forEach(function (question) {
+            root.classList.toggle(question.oldClass, choices[question.key] === "old");
+          });
+          freezeAll();
+        }
+
+        apply();
+        document.addEventListener("astro:after-swap", apply);
+        document.addEventListener("DOMContentLoaded", freezeAll);
+        window.addEventListener("message", function (event) {
+          if (event.origin === location.origin && event.data === pollStorageKey) apply();
+        });
+        // Slack columns and search results arrive after load.
+        new MutationObserver(freezeAll).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+        });
       })();
     </script>
     <script is:inline>
